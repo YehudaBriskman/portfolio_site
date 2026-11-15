@@ -151,26 +151,22 @@ describe("the Marketing tab strip", () => {
     expect(within(nav()).getByRole("link", { name: /^Campaigns/ })).toBeTruthy();
   });
 
-  it("is unchanged at 600px and up", () => {
-    viewport(600);
-    hub();
-    expect(within(screen.getByRole("tablist")).getAllByRole("tab")).toHaveLength(5);
+  it("is gone on desktop too: the sidebar is the one navigation", () => {
     viewport(1440);
-    cleanup();
     hub();
-    expect(within(screen.getByRole("tablist")).getAllByRole("tab")).toHaveLength(5);
+    expect(screen.queryByRole("tablist")).toBeNull();
+    expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
   });
 
   it("still opens /admin/marketing?tab=settings on desktop and on a phone", async () => {
-    viewport(1440);
-    hub("/admin/marketing?tab=settings");
-    expect(screen.getByRole("tab", { name: /Settings/ }).getAttribute("aria-selected")).toBe("true");
-    cleanup();
-    viewport(390);
-    hub("/admin/marketing?tab=settings");
-    expect(screen.queryByRole("tablist")).toBeNull();
-    expect((await screen.findByRole("tabpanel")).getAttribute("aria-label")).toBe("Settings");
-    expect(within(nav()).getByRole("link", { name: /^Settings/, current: "page" })).toBeTruthy();
+    for (const w of [1440, 390]) {
+      cleanup();
+      viewport(w);
+      hub("/admin/marketing?tab=settings");
+      expect(screen.queryByRole("tablist")).toBeNull();
+      expect((await screen.findByRole("region", { name: "Settings" }))).toBeTruthy();
+      expect(within(nav()).getByRole("link", { name: /^Settings/, current: "page" })).toBeTruthy();
+    }
   });
 
   it("follows a drawer link without a reload: Campaigns after Inbox", async () => {

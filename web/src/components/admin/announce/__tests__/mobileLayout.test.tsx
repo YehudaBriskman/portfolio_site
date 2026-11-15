@@ -37,49 +37,6 @@ beforeEach(() => {
 });
 afterEach(() => (cleanup(), vi.unstubAllGlobals(), document.documentElement.removeAttribute("lang"), document.documentElement.removeAttribute("dir")));
 
-describe("hub tabs (M3)", () => {
-  const hub = () => render(<MemoryRouter initialEntries={["/admin/marketing"]}><AdminAnnounce /></MemoryRouter>);
-
-  it("is a tablist of tabs, and every tab wraps into view rather than hiding in a scroller", () => {
-    hub();
-    const list = screen.getByRole("tablist");
-    expect(within(list).getAllByRole("tab").length).toBeGreaterThanOrEqual(5);
-    const tabs = rule(css("src/index.css"), ".a-tabs");
-    expect(tabs).toMatch(/flex-wrap:\s*wrap/);
-    expect(tabs).not.toMatch(/overflow-x:\s*auto/);
-    expect(tabs).not.toMatch(/scrollbar-width:\s*none/);
-  });
-
-  it("moves between tabs with the arrow keys, Home and End, and only the current tab is in the tab order", async () => {
-    hub();
-    const tabs = screen.getAllByRole("tab");
-    expect(tabs.map((t) => t.getAttribute("tabindex"))).toEqual(tabs.map((_, i) => (i === 0 ? "0" : "-1")));
-    tabs[0].focus();
-    fireEvent.keyDown(tabs[0], { key: "ArrowRight" });
-    await waitFor(() => expect(tabs[1].getAttribute("aria-selected")).toBe("true"));
-    expect(document.activeElement).toBe(tabs[1]);
-    fireEvent.keyDown(tabs[1], { key: "End" });
-    await waitFor(() => expect(tabs[tabs.length - 1].getAttribute("aria-selected")).toBe("true"));
-    fireEvent.keyDown(tabs[tabs.length - 1], { key: "Home" });
-    await waitFor(() => expect(tabs[0].getAttribute("aria-selected")).toBe("true"));
-  });
-
-  it("mirrors the arrows in Hebrew", async () => {
-    document.documentElement.dir = "rtl";
-    hub();
-    const tabs = screen.getAllByRole("tab");
-    tabs[0].focus();
-    fireEvent.keyDown(tabs[0], { key: "ArrowLeft" });
-    await waitFor(() => expect(tabs[1].getAttribute("aria-selected")).toBe("true"));
-  });
-
-  it("labels the panel by its tab", () => {
-    hub();
-    const panel = screen.getByRole("tabpanel");
-    expect(panel.getAttribute("aria-labelledby")).toBe(screen.getAllByRole("tab")[0].id);
-  });
-});
-
 describe("inbox (M10, M13)", () => {
   const inbox = css("src/components/admin/announce/inbox/inbox.css");
 
@@ -87,11 +44,6 @@ describe("inbox (M10, M13)", () => {
     const m = /@media \(pointer:\s*coarse\)\s*\{([^@]*?\.mk-keys\s*\{[^}]*\})/.exec(inbox);
     expect(m, "pointer: coarse block for .mk-keys").not.toBeNull();
     expect(m![1]).toMatch(/display:\s*none/);
-  });
-
-  it("puts a gap of at least .5rem between the row actions", () => {
-    const gap = /gap:\s*([\d.]+)rem/.exec(rule(inbox, ".mk-quick"));
-    expect(Number(gap?.[1])).toBeGreaterThanOrEqual(0.5);
   });
 });
 

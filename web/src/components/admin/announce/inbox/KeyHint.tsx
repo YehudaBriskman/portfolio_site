@@ -9,7 +9,6 @@ export default function KeyHint({ id, mode }: { id?: string; mode: "list" | "com
       : [[["c"], w.keyCopy], [["o"], w.keyOpenChannel], [["d"], w.keyDone], [["Esc"], w.keyBack]];
   return (
     <p className="mk-keys a-hint" id={id}>
-      <span className="font-bold">{w.hotkeys}</span>
       {keys.map(([ks, what]) => (
         <span key={ks.join()} className="mk-key-group">
           {ks.map((k) => (
