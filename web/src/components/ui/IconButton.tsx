@@ -31,12 +31,18 @@ export interface IconButtonProps
   pressed?: boolean;
   /** Extra content after the glyph (a badge). Hidden from the name. */
   badge?: ReactNode;
+  /**
+   * The action is running (M10). The glyph's own slot turns, so the box and the
+   * label keep their size; presses are ignored; the button stays focusable and
+   * keeps its name (`aria-busy`). Not `disabled`: a disabled button drops focus.
+   */
+  busy?: boolean;
 }
 
 const cx = (...p: Array<string | false | undefined>) => p.filter(Boolean).join(" ");
 
 export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(function IconButton(
-  { icon: Icon, label, showLabel = "never", tone = "neutral", size = "md", pressed, badge, className, ...rest },
+  { icon: Icon, label, showLabel = "never", tone = "neutral", size = "md", pressed, badge, busy, className, onClick, ...rest },
   ref,
 ) {
   const drawn = showLabel !== "never";
@@ -44,6 +50,8 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(functio
     <button
       {...rest}
       ref={ref}
+      aria-busy={busy || undefined}
+      onClick={busy ? (e) => e.preventDefault() : onClick}
       type="button"
       aria-label={label}
       aria-pressed={pressed}
@@ -52,7 +60,7 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(functio
       data-label={showLabel}
       className={cx(styles.btn, styles[tone], styles[size], drawn && styles.withLabel, className)}
     >
-      <Icon className={styles.icon} aria-hidden="true" />
+      {busy ? <span className={styles.spinner} data-spinner="" aria-hidden="true" /> : <Icon className={styles.icon} aria-hidden="true" />}
       {drawn && (
         <span className={cx(styles.label, showLabel === "from-md" && styles.fromMd)} aria-hidden="true">
           {label}
