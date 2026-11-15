@@ -763,7 +763,9 @@
     align-items: stretch;
     gap: 8px;
     pointer-events: none;
-    transition: transform var(--dur-fast, 160ms) var(--ease-settle, ease-out);
+    transition:
+      transform var(--dur-fast, 160ms) var(--ease-settle, ease-out),
+      opacity var(--dur-fast, 160ms) ease;
   }
   @media (prefers-reduced-motion: reduce) {
     .bar {
@@ -772,6 +774,7 @@
   }
   .bar[data-tucked] {
     transform: translateY(calc(100% + 24px + env(safe-area-inset-bottom, 0px)));
+    opacity: 0;
   }
   .barPill,
   .sizePanel {

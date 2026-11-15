@@ -62,6 +62,14 @@ export default function Nav() {
      closes it is in the bar. `useDarkChrome` keeps watching the strip while
      the bar is away, so it comes back already in the right material. */
   const [tucked, reveal] = useTuckedBar(pathname, BAR_H, open);
+  /* One state, two controls: the back chip (FloatingBack) hides and shows with
+     the circle, from this same value, so they can never disagree. */
+  useEffect(() => {
+    const root = document.documentElement;
+    if (tucked) root.setAttribute("data-bar-tucked", "");
+    else root.removeAttribute("data-bar-tucked");
+    return () => root.removeAttribute("data-bar-tucked");
+  }, [tucked]);
 
   /*
    * The controls are stateful and appear twice — once in the bar, once in the

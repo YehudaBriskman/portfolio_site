@@ -19,3 +19,25 @@
   color: rgb(var(--ink));
   box-shadow: var(--dock-shadow);
 }
+
+/* Out of the way once the footer reaches it (useFooterReached): down and a
+   fade, the circle menu's easing and duration; with motion off it only fades.
+   The component also sets `inert` and aria-hidden, so it cannot be tabbed to. */
+.dock {
+  transition:
+    translate var(--dur-fast, 160ms) var(--ease-settle, ease-out),
+    opacity var(--dur-fast, 160ms) ease;
+}
+.dock[data-away] {
+  translate: 0 calc(100% + var(--dock-bottom, 12px) + 12px);
+  opacity: 0;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dock[data-away] {
+    translate: none;
+  }
+}
+:global(body.motion-paused) .dock[data-away] {
+  translate: none;
+}

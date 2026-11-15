@@ -32,6 +32,27 @@
   font-size: 0.875rem;
   font-weight: 600;
   line-height: 1;
+  transition:
+    translate var(--dur-fast, 160ms) var(--ease-settle, ease-out),
+    opacity var(--dur-fast, 160ms) ease;
+}
+
+/* Tucks with the circle menu: same state (Nav's `data-bar-tucked` on the root,
+   from useTuckedBar), same lift off the top edge and fade, same exceptions
+   (held while keyboard focus is inside it; only a fade with motion off). */
+:global(:root[data-bar-tucked]) .float:not(:has(:focus-visible)) {
+  translate: 0 calc(-100% - var(--float-top) - 12px);
+  opacity: 0;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  :global(:root[data-bar-tucked]) .float:not(:has(:focus-visible)) {
+    translate: none;
+  }
+}
+:global(body.motion-paused) :global(:root[data-bar-tucked]) .float:not(:has(:focus-visible)),
+:global(:root[data-bar-tucked]) :global(body.motion-paused) .float:not(:has(:focus-visible)) {
+  translate: none;
 }
 
 :global(html[dir="rtl"]) .float {
@@ -48,12 +69,17 @@
   border-radius: 999px;
 }
 
+/* The glyph box is the glyph plus one 12px inset on the outer edge, and none on
+   the inner one: the label's own 12px is the gap after it, the same 12px as
+   the gap between the label and the divider. */
 .arrow {
   display: inline-grid;
   flex: none;
   place-items: center;
-  width: 40px;
+  box-sizing: content-box;
+  width: 20px;
   height: 100%;
+  padding-inline-start: 12px;
 }
 
 /* An arrow that points back points the other way in Hebrew. */
@@ -61,14 +87,16 @@
   transform: scaleX(-1);
 }
 
-/* Equal padding both sides, whichever way the label reads; it shrinks (min 0)
-   before it pushes the chevron out, and ends in an ellipsis. */
+/* Equal padding both sides, whichever way the label reads (the label's own
+   direction follows its text, so the padding is symmetric on purpose: 12px to
+   the chevron, 12px to the divider); it shrinks (min 0) before it pushes the
+   chevron out, and ends in an ellipsis. */
 .name {
   display: block;
   flex: 0 1 auto;
   min-width: 0;
   max-width: min(60vw, 24ch);
-  padding-inline: 2px 10px;
+  padding-inline: 12px;
   overflow: hidden;
   text-align: start;
   text-overflow: ellipsis;
