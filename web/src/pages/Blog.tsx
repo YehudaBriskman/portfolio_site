@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useId, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { FileText, Hash, House, Rss } from "lucide-react";
+import { CalendarDays, Clock, FileText, Hash, House, Rss } from "lucide-react";
+import { iconOf } from "@/components/ui/Icon";
+import { StatChip } from "@/components/ui/StatChip";
+import { usePublicPhone } from "@/components/nav/localBrowse";
+import NoteGlyph from "@/components/notes/NoteGlyph";
 import PageShell from "@/components/PageShell";
+import PhoneBrowse from "@/components/gallery/PhoneBrowse";
+import { useMobileWords } from "@/i18n/mobile";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import AskBox from "@/components/dashboard/AskBox";
 import Timeline from "@/components/dashboard/Timeline";
@@ -91,18 +97,66 @@ function withParams(search: string, set: Record<string, string | null>): string 
   return s ? `/blog?${s}` : "/blog";
 }
 
-function metaOf(p: PostSummary, t: Words, lang: Lang, areaTitle: (slug: string) => string) {
+/* Date and read time are glyph + value chips on a phone; from 640px the glyph
+   is not drawn and the stylesheet's own dot separates them, as before. The
+   word that names each is already in the value ("4 min read"), so the chip
+   adds no spoken label. */
+const DateGlyph = iconOf(CalendarDays, 16);
+const ReadGlyph = iconOf(Clock, 16);
+
+export function metaOf(p: PostSummary, t: Words, lang: Lang, areaTitle: (slug: string) => string) {
   return [
     <span key="a" translate="no">
       {areaTitle(p.collection)}
     </span>,
     p.publishedAt ? (
       <time key="d" dateTime={p.publishedAt}>
-        {shortDate(p.publishedAt, lang)}
+        <StatChip className={styles.metaChip} icon={DateGlyph} value={shortDate(p.publishedAt, lang)} label="" />
       </time>
     ) : null,
-    t.minRead(p.readingMinutes),
+    <StatChip key="r" className={styles.metaChip} icon={ReadGlyph} value={t.minRead(p.readingMinutes)} label="" />,
   ];
+}
+
+/** One of the three recommended notes: image first on a phone, the old text card above it. */
+export function TopPostCard({ p, t, lang, areaTitle }: { p: PostSummary; t: Words; lang: Lang; areaTitle: string }) {
+  const phone = usePublicPhone();
+  return (
+    <li className={styles.post}>
+      {/* Phone only (CSS): the cover, 16:9 with its size reserved, else the
+          note's own glyph tile. Decorative: the title names the note. */}
+      <div className={styles.postMedia} data-post-media aria-hidden="true">
+        {p.coverImage ? (
+          <img src={p.coverImage} alt="" width={1600} height={900} loading="lazy" decoding="async" />
+        ) : (
+          <NoteGlyph seed={p.slug} />
+        )}
+      </div>
+      <div className={styles.postHead}>
+        <AreaGlyph seed={p.collection} size={14} />
+        <span className={styles.postArea} translate="no">
+          {areaTitle}
+        </span>
+        {p.featured != null && <span className={styles.featured}>{t.featured}</span>}
+      </div>
+      <h3 className={styles.postTitle} dir={phone ? "auto" : undefined}>
+        <Link to={`/blog/${p.slug}`}>{p.title}</Link>
+      </h3>
+      <p className={styles.postExcerpt} dir={phone ? "auto" : undefined}>
+        {p.excerpt}
+      </p>
+      <div className={styles.postMeta} data-post-meta>
+        {p.publishedAt && (
+          <time className={styles.metaPart} dateTime={p.publishedAt}>
+            <StatChip className={styles.metaChip} icon={DateGlyph} value={shortDate(p.publishedAt, lang)} label="" />
+          </time>
+        )}
+        <span className={styles.metaPart}>
+          <StatChip className={styles.metaChip} icon={ReadGlyph} value={t.minRead(p.readingMinutes)} label="" />
+        </span>
+      </div>
+    </li>
+  );
 }
 
 function TopicChips({ post, label }: { post: PostSummary; label: string }) {
@@ -275,6 +329,53 @@ export default function Blog() {
     </>
   );
 
+  /* On a phone the menu's Browse is this, not the rail (#808): the view, a
+     search where the feed has one, a chip per filter, the areas behind More. */
+  const mobile = useMobileWords();
+  const phoneRail = ({ open, onClose }: { open: boolean; onClose: () => void }) => (
+    <PhoneBrowse
+      open={open}
+      onClose={onClose}
+      title={t.browse}
+      facets={offered}
+      selection={selection}
+      path="/blog"
+      withQuery
+      shown={matching.length}
+      search={
+        view === "feed" && all.length >= SEARCH_FROM ? (
+          <SearchField label={t.askLabel} path="/blog" placeholder={t.searchPlaceholder} />
+        ) : undefined
+      }
+      sort={{
+        label: t.views,
+        options: [
+          { value: "home", label: t.home },
+          { value: "feed", label: t.feed },
+        ],
+        value: view,
+        onChange: (v) => navigate(v === "feed" ? feedHref : homeHref, { preventScrollReset: true }),
+      }}
+      moreLabel={mobile.selection.more}
+      more={
+        areas.length > 0 ? (
+          <div className={styles.localBody}>
+            <TopList
+              title={t.topAreas}
+              items={areas.map((a) => ({
+                key: a.slug,
+                label: a.title,
+                to: `/blog/area/${a.slug}`,
+                count: a.noteCount,
+                icon: <AreaGlyph seed={a.slug} />,
+              }))}
+            />
+          </div>
+        ) : undefined
+      }
+    />
+  );
+
   const aside = <Timeline events={events} error={eventsError} onRetry={retryEvents} logHref="/blog/log" />;
 
   /* ── the states every view shares ──────────────────────────────────── */
@@ -424,27 +525,7 @@ export default function Blog() {
           <div className={styles.postsWrap}>
             <ul className={styles.posts}>
               {topPosts(all, 3).map((p) => (
-                <li key={p.slug} className={styles.post}>
-                  <div className={styles.postHead}>
-                    <AreaGlyph seed={p.collection} size={14} />
-                    <span className={styles.postArea} translate="no">
-                      {areaTitle(p.collection)}
-                    </span>
-                    {p.featured != null && <span className={styles.featured}>{t.featured}</span>}
-                  </div>
-                  <h3 className={styles.postTitle}>
-                    <Link to={`/blog/${p.slug}`}>{p.title}</Link>
-                  </h3>
-                  <p className={styles.postExcerpt}>{p.excerpt}</p>
-                  <div className={styles.postMeta}>
-                    {p.publishedAt && (
-                      <time className={styles.metaPart} dateTime={p.publishedAt}>
-                        {shortDate(p.publishedAt, lang)}
-                      </time>
-                    )}
-                    <span className={styles.metaPart}>{t.minRead(p.readingMinutes)}</span>
-                  </div>
-                </li>
+                <TopPostCard key={p.slug} p={p} t={t} lang={lang} areaTitle={areaTitle(p.collection)} />
               ))}
             </ul>
           </div>
@@ -549,6 +630,7 @@ export default function Blog() {
         phonePage="blog"
         railLabel={lang === "he" ? "עיון ברשימות" : "Browse the notes"}
         rail={rail}
+        phoneRail={phoneRail}
         asideLabel={t.timeline}
         aside={aside}
         count={on}

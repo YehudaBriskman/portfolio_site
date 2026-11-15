@@ -1,3 +1,4 @@
+import { usePublicPhone } from "@/components/nav/localBrowse";
 import { useId, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { Search } from "lucide-react";
@@ -101,7 +102,10 @@ export function Row({
   chips,
   badge,
   area,
+  stack,
 }: {
+  /** Phone: the meta parts stack on their own lines instead of being joined by a dot, so a wrapped part never leaves a dangling separator. */
+  stack?: boolean;
   /** The area the note is filed in: on a phone it tints the circle and adds the chevron (direction A). */
   area?: string;
   icon: ReactNode;
@@ -112,6 +116,7 @@ export function Row({
   chips?: ReactNode;
   badge?: ReactNode;
 }) {
+  const phone = usePublicPhone();
   const parts = meta.filter((m) => m !== null && m !== undefined && m !== "");
   return (
     <li className={styles.row} data-phone-note={area ? "" : undefined}>
@@ -125,12 +130,12 @@ export function Row({
       </span>
       <div className={styles.rowBody}>
         <div className={styles.rowTitleLine}>
-          <Link to={to} className={styles.rowTitle}>
+          <Link to={to} className={styles.rowTitle} dir={phone ? "auto" : undefined}>
             {title}
           </Link>
           {badge}
         </div>
-        <div className={styles.rowMeta}>
+        <div className={styles.rowMeta} data-stack={stack ? "" : undefined}>
           {parts.map((m, i) => (
             <span key={i} className={styles.metaPart}>
               {m}
@@ -229,6 +234,10 @@ export function AreaGlyph({ seed, size = 16 }: { seed: string; size?: number }) 
 /** Whose dashboard this is. The role is the one the owner asked for. */
 export function OwnerCard() {
   const [t] = useWords();
+  /* On a phone the rail's only home is the menu's Browse, and the person
+     is named once on the page (#808). */
+  const phone = usePublicPhone();
+  if (phone) return null;
   return (
     <div className={styles.owner}>
       <span className={styles.avatar}>

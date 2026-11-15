@@ -21,13 +21,18 @@
  *              unreachable (the circle is still on top while it is open).
  * At 768 and 1280 the bar is unchanged: the word is there, the bar is full width.
  *
- * The merge (#780), phones only, at 390x844 in both languages:
- *   one control  the circle's sheet opens with a local section ([data-local-browse],
- *                heading Browse/עיון) above the global links on /blog, an area,
- *                /projects and a project, with the page's own controls reachable
- *                (a link in it closes the sheet and moves on); pages with nothing
- *                to browse show only the global links; there is no Browse button
- *                and no drawer on the page; at 768 the Browse button is still there;
+ * The merge (#780, #808), phones only, at 390x844 in both languages:
+ *   one control  the circle's menu opens with ONE row ([data-local-browse], the
+ *                word Browse/עיון, the filter count) above the global links on
+ *                /blog, an area, /projects and a project; pressing it closes the
+ *                menu and opens the page's own sheet (a dialog named Browse), where
+ *                the page's controls are reachable (a link in it closes the sheet
+ *                and moves on); pages with nothing to browse show only the global
+ *                links; there is no Browse button and no drawer on the page; at 768
+ *                the Browse button is still there;
+ *   first screen the whole global part (pages, display and accessibility, links
+ *                elsewhere, in that order) is inside a 360x780 and a 390x844 window
+ *                without scrolling the menu;
  *   title row    px from the top to the first h1: lists and text pages 24 or less,
  *                detail pages 72 or less, under the back chip;
  *   back chip    one link to the parent URL (not history), aria-label equal to its
@@ -56,7 +61,7 @@ const PHONES = [
   ["430x932", 430, 932],
   ["390x667", 390, 667],
 ];
-const ROUTES = ["/", "/blog", "/blog/fixture-post", "/projects", "/projects/bothy", "/contact", "/help"];
+const ROUTES = ["/", "/blog", "/blog/fixture-post", "/projects", "/projects/bothy", "/contact", "/help", "/help/rss"];
 const WORDS = ["Menu", "תפריט"];
 
 const { base, stop } = await startPreview();
@@ -286,10 +291,10 @@ async function wide() {
 
 const BROWSE = ["Browse", "עיון"];
 const LISTS = ["/blog", "/projects", "/story", "/follow", "/help", "/accessibility", "/developers/mcp"];
-const DETAILS = ["/projects/bothy", "/blog/area/bothy", "/blog/fixture-post"];
-const PARENT = { "/projects/bothy": "/projects", "/blog/area/bothy": "/blog", "/blog/fixture-post": "/blog" };
+const DETAILS = ["/projects/bothy", "/blog/area/bothy", "/blog/fixture-post", "/help/rss"];
+const PARENT = { "/projects/bothy": "/projects", "/blog/area/bothy": "/blog", "/blog/fixture-post": "/blog", "/help/rss": "/help" };
 const WITH_LOCAL = ["/blog", "/blog/area/bothy", "/projects", "/projects/bothy"];
-const WITHOUT_LOCAL = ["/help", "/story", "/follow", "/blog/fixture-post"];
+const WITHOUT_LOCAL = ["/help", "/help/rss", "/story", "/follow", "/blog/fixture-post"];
 
 /* Waits (by hand, never rAF) for a real h1: the loading one is sr-only. */
 const ready = (page) =>
@@ -392,7 +397,7 @@ function sheetShape() {
   const sheet = document.getElementById("nav-menu");
   const local = sheet.querySelector("[data-local-browse]");
   const global = sheet.querySelector("nav");
-  const head = local?.querySelector("p")?.textContent.trim();
+  const head = local?.querySelector("button")?.textContent.trim();
   const sb = sheet.getBoundingClientRect();
   const lb = local?.getBoundingClientRect();
   const focusables = local ? local.querySelectorAll("a[href], button:not([disabled]), input, select, textarea").length : 0;
@@ -404,7 +409,8 @@ function sheetShape() {
     visible: !!lb && lb.height > 20 && lb.right > 0 && lb.left < innerWidth,
     inside: !!lb && lb.left >= sb.left - 1 && lb.right <= sb.right + 1,
     focusables,
-    areaLink: !!local?.querySelector('a[href*="/blog/area/"]'),
+    rows: [...sheet.children].filter((e) => e.tagName === "NAV" || e.getAttribute("role") === "group").map((e) => e.getAttribute("aria-label")),
+    lastBottom: Math.max(...[...sheet.querySelectorAll("nav, [role=group]")].map((e) => e.getBoundingClientRect().bottom)),
     first: sheet.firstElementChild?.tagName.toLowerCase(),
   };
 }
@@ -435,22 +441,36 @@ async function localSection() {
             if (s.first !== "nav") fail(where, `the menu opens on <${s.first}>, want the global links`);
             continue;
           }
-          if (!BROWSE.includes(s.head ?? "")) fail(where, `the local section is headed "${s.head}", want the existing Browse/עיון`);
+          if (!BROWSE.some((b) => (s.head ?? "").startsWith(b))) fail(where, `the local row says "${s.head}", want the existing Browse/עיון`);
           if (!s.above) fail(where, "the local section is not above the global links");
           if (!s.visible || !s.inside) fail(where, "the local section is not drawn inside the sheet");
-          if (s.focusables < 1) fail(where, "nothing in the local section can be reached");
-          if (j.route === "/blog" && !s.areaLink) fail(where, "the blog's areas are not in the local section");
+          if (s.focusables !== 1) fail(where, `the menu's local section has ${s.focusables} controls, want one Browse row`);
+          if (s.lastBottom > 844) fail(where, `the global links end at ${Math.round(s.lastBottom)}px, below the first screen`);
           /* Tab from the circle lands in the local section first (it is first in the order). */
           await page.keyboard.press("Tab");
           const inLocal = await page.evaluate(() => !!document.activeElement?.closest("[data-local-browse]"));
           if (!inLocal) fail(where, "Tab from the circle does not enter the local section");
-          /* A link in it closes the menu and moves on. */
+          /* The row closes the menu and opens the page's own sheet; a link there closes it and moves on. */
           if (j.route === "/blog") {
-            await page.locator('#nav-menu [data-local-browse] a[href*="/blog/area/"]').first().click({ force: true });
+            await page.locator("#nav-menu [data-local-browse] button").click({ force: true });
             await page.waitForTimeout(800);
             s = await page.evaluate(sheetShape);
-            if (s.open) fail(where, "following a link in the local section does not close the menu");
-            if (!/\/blog\/area\//.test(new URL(page.url()).pathname)) fail(where, "the local link did not navigate");
+            if (s.open) fail(where, "the Browse row does not close the menu");
+            const dlg = await page.evaluate(() => {
+              const d = document.querySelector("dialog[open]");
+              return d ? { name: d.getAttribute("aria-label") || d.querySelector("h2")?.textContent?.trim(), chips: d.querySelectorAll("[role=group] button[aria-haspopup]").length } : null;
+            });
+            if (!dlg) fail(where, "the Browse row did not open a sheet");
+            else {
+              if (!BROWSE.includes(dlg.name ?? "")) fail(where, `the sheet is named "${dlg.name}", want the existing Browse/עיון`);
+              if (dlg.chips < 1) fail(where, "the Browse sheet has no filter chips");
+            }
+            await page.locator("dialog[open] summary").first().click({ force: true });
+            await page.waitForTimeout(300);
+            await page.locator('dialog[open] a[href*="/blog/area/"]').first().click({ force: true });
+            await page.waitForTimeout(800);
+            if (await page.locator("dialog[open]").count()) fail(where, "following a link in the Browse sheet does not close it");
+            if (!/\/blog\/area\//.test(new URL(page.url()).pathname)) fail(where, "the link in the Browse sheet did not navigate");
           } else {
             await page.keyboard.press("Escape");
             await page.waitForTimeout(300);

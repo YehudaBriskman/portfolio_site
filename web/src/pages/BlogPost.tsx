@@ -174,6 +174,9 @@ export default function BlogPost() {
           onContents={openSheet}
           prefs={prefs}
           setPrefs={setPrefs}
+          editTo={isAdmin ? `/admin/posts/${post.slug}` : undefined}
+          editLabel={w.editNote}
+          editWord={w.edit}
         />
       )}
 
@@ -323,7 +326,7 @@ export default function BlogPost() {
                 {/* A name and a face, which a personal blog had nowhere above
                     the fold, beside the two facts that were already here. */}
                 <Byline
-                  className="mt-12 border-t border-edge pt-6"
+                  className="mt-12 border-t border-edge pt-6 max-sm:mt-6"
                   meta={
                     <div className="flex flex-wrap items-center">
                       {post.publishedAt && (
@@ -336,10 +339,12 @@ export default function BlogPost() {
                   }
                 />
                 {/* Below the wide layout the panels live in a sheet; this is
-                    its opener at the top of the note (the reading bar at the
-                    foot of a phone's screen carries another). Edit sits
-                    beside it, for the signed-in admin only. */}
-                <div className={`${reader.phoneBar} ${reader.phoneOnly} flex flex-wrap gap-2`}>
+                    its opener at the top of the note on a tablet. Edit sits
+                    beside it, for the signed-in admin only. On a phone both
+                    are in the floating reading bar (Contents, and Edit as its
+                    fourth control), so this row is not drawn there and
+                    leaves no gap under the byline. */}
+                <div className={`${reader.phoneBar} ${reader.phoneOnly} flex flex-wrap gap-2 max-sm:hidden`}>
                   <button
                     type="button"
                     className={reader.panelBtn}
@@ -366,7 +371,7 @@ export default function BlogPost() {
                      dimensions at all, so every post loaded with a layout shift. */
                   fetchpriority="high"
                   decoding="async"
-                  className="bleed mt-12 aspect-[16/9] w-full border-y border-edge object-cover sm:rounded-[var(--r-xl)] sm:border"
+                  className="bleed mt-12 max-sm:mt-6 aspect-[16/9] w-full border-y border-edge object-cover sm:rounded-[var(--r-xl)] sm:border"
                 />
               )}
 

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { ArrowUpRight, BookMarked, BookOpen, Code2, FileText, FolderGit2, GitFork, NotebookPen, Rss, Star, Tag } from "lucide-react";
+import { ArrowUpRight, BookMarked, BookOpen, Code2, FileText, FolderGit2, NotebookPen, Rss, Star, Tag } from "lucide-react";
 import { heldHeight, useRememberHeight } from "@/lib/heldHeight";
 import PageShell from "@/components/PageShell";
 import DashboardShell from "@/components/dashboard/DashboardShell";
@@ -25,6 +25,7 @@ import Plate from "@/components/projects/Plate";
 import ProjectBrief from "@/components/projects/ProjectBrief";
 import ProjectDecisions from "@/components/projects/ProjectDecisions";
 import ProjectStack from "@/components/projects/ProjectStack";
+import ProjectAbout, { CountValue, FactList, FactRow } from "@/components/projects/ProjectAbout";
 import { kindOf } from "@/components/projects/catalogue";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { relatedTo, useProjects } from "@/hooks/useProjects";
@@ -322,9 +323,25 @@ export default function Project() {
     </>
   );
 
+  const repoIsPrimary = Boolean(entry && !entry.primaryLink && c?.repoUrl);
   /* ── the aside: About, GitHub's place for the facts ────────────────── */
   const aboutId = `${idBase}-about`;
-  const aside = (
+  const phoneAside =
+    c && phone ? (
+      <ProjectAbout
+        heading={t.about}
+        headingId={aboutId}
+        lang={lang}
+        stats={c.stats ?? null}
+        repoUrl={c.repoUrl}
+        repoInDetails={Boolean(c.repoUrl) && !repoIsPrimary}
+        slug={c.slug}
+        live={Boolean(entry?.live)}
+        words={{ areaNotes: t.areaNotes, repository: t.repository, feed: t.feed }}
+        icons={{ notes: <NotebookPen aria-hidden="true" />, repo: <FolderGit2 aria-hidden="true" />, feed: <Rss aria-hidden="true" />}}
+      />
+    ) : null;
+  const aside = phoneAside ?? (
     <div className={history.side}>
       <section className={history.sideCard} aria-labelledby={aboutId}>
         <h2 id={aboutId} className={history.sideTitle}>
@@ -379,7 +396,6 @@ export default function Project() {
 
   /* ── the header: Work / name, pill, tagline, the outbound buttons ──── */
   const release = c?.stats?.latestRelease ?? null;
-  const repoIsPrimary = Boolean(entry && !entry.primaryLink && c?.repoUrl);
   const tone = entry ? toneOfKind(kindOf(entry.state)) : "neutral";
   /* Behind "Details": every outbound link that is not the pinned primary. */
   const secondary: { url: string; label: string; icon: ReactNode; tone: Tone; ltr?: boolean }[] = [];
@@ -438,12 +454,18 @@ export default function Project() {
           {[
             c.stats?.language ? <StatTile key="lang" icon={Code2} value={c.stats.language} label={hw.language} /> : null,
             c.stats?.stars != null ? <StatTile key="stars" icon={Star} value={countFmt(c.stats.stars, lang)} label={hw.stars} /> : null,
-            c.stats?.forks != null ? <StatTile key="forks" icon={GitFork} value={countFmt(c.stats.forks, lang)} label={hw.forks} /> : null,
             release ? <StatTile key="rel" icon={Tag} value={release.tag} label={hw.release} /> : null,
           ]}
         </StatGrid>
-        {(secondary.length > 0 || entry.tech.length > 0) && (
+        {(secondary.length > 0 || entry.tech.length > 0 || c.stats?.forks != null) && (
           <Disclosure summary={tw.details} className={styles.phoneDetails}>
+            {c.stats?.forks != null && (
+              <FactList>
+                <FactRow label={hw.forks}>
+                  <CountValue n={c.stats.forks} lang={lang} />
+                </FactRow>
+              </FactList>
+            )}
             {secondary.length > 0 && (
               <GroupedSection>
                 <ul className={styles.list}>
@@ -619,11 +641,19 @@ export default function Project() {
             {tab === "overview" && (
               <div {...panel("overview")}>
                 <section className={styles.card} aria-label={c.title}>
-                  {c.description && (
-                    <Written className={styles.description} {...inEnglish(lang, c.description)}>
-                      {c.description}
-                    </Written>
-                  )}
+                  {c.description &&
+                    (phone ? (
+                      /* Plain ink, not the pen: a phone reads from the top and
+                         a paragraph that waits to be scrolled into ink looks
+                         disabled. dir=auto: the text's own first letter. */
+                      <p className={styles.description} dir="auto">
+                        {c.description}
+                      </p>
+                    ) : (
+                      <Written className={styles.description} {...inEnglish(lang, c.description)}>
+                        {c.description}
+                      </Written>
+                    ))}
                   {/* The drift's own box: `--vh` is written here and read
                       here, so a scroll re-styles this figure and not the
                       document (#174). `sizes` is the figure's real width:
@@ -633,13 +663,7 @@ export default function Project() {
                       the header and its Details, so the picture is bare
                       (no "Fig. 01" caption) and a coverless project has no
                       stand-in plate: the header's tint is its image. */}
-                  {phone ? (
-                    c.coverImage && (
-                      <div ref={drift} className={styles.figure}>
-                        <Shot src={c.coverImage} alt={`${c.title} screenshot`} className={shape} sizes="100vw" eager />
-                      </div>
-                    )
-                  ) : (
+                  {phone ? null : (
                     <div
                       ref={drift}
                       className={styles.figure}
@@ -710,7 +734,19 @@ export default function Project() {
                           icon={<BookMarked />}
                           title={o.collection.title}
                           to={`/projects/${o.collection.slug}`}
-                          meta={[o.collection.tagline, o.year]}
+                          stack={phone}
+                          meta={
+                            phone
+                              ? [
+                                  o.collection.tagline ? <bdi key="t">{o.collection.tagline}</bdi> : null,
+                                  o.year ? (
+                                    <bdi key="y" dir="ltr" className={styles.num}>
+                                      {o.year}
+                                    </bdi>
+                                  ) : null,
+                                ]
+                              : [o.collection.tagline, o.year]
+                          }
                         />
                       ))}
                     </RowList>

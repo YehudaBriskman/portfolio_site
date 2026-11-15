@@ -20,16 +20,21 @@ export const pages = [
   {
     name: "help",
     route: "/help",
-    groups: 1,
-    circles: 6,
+    /* the index (#803): four groups of rows, one circle per page, each row a link to its own page */
+    groups: 4,
+    circles: 29,
     check: async (page, fail) => {
-      await rounded("[data-ph-prose] article", 22, 5)(page, fail);
-      await rounded("[data-ph-prose] > ul", 22, 3)(page, fail);
-      /* every contents row still jumps to its section */
-      const dead = await page.evaluate(() =>
-        [...document.querySelectorAll("[data-phone-row][href^='#']")].filter((a) => !document.getElementById(decodeURIComponent(a.getAttribute("href").slice(1)))).length,
-      );
-      if (dead) fail(`${dead} contents rows point at a missing section`);
+      await rounded("[data-phone-group] > ul", 22, 4)(page, fail);
+      const dead = await page.evaluate(() => [...document.querySelectorAll("[data-phone-row]")].filter((a) => !/^\/(he\/)?help\/[a-z-]+$/.test(a.getAttribute("href"))).length);
+      if (dead) fail(`${dead} index rows do not point at a /help/<id> page`);
+    },
+  },
+  {
+    name: "help-topic",
+    route: "/help/contact-send-failed",
+    check: async (page, fail) => {
+      await rounded("[data-ph-prose] article", 22, 1)(page, fail);
+      await rounded("[data-ph=pager] a", 22, 2)(page, fail);
     },
   },
   {

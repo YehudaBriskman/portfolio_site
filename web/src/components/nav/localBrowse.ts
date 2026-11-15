@@ -2,51 +2,52 @@ import { createContext, useContext, useEffect, useSyncExternalStore } from "reac
 import { PUBLIC_PHONE_QUERY } from "@/lib/phoneBreakpoint";
 
 /*
- * The page's own "Browse" inside the phone menu (#780).
+ * The page's own "Browse" behind the phone menu (#780, #808).
  *
- * Below 640px the floating circle is the one master control. Its sheet opens
- * with a local section for the page the reader is on (the blog's areas and
- * topics, the project filters) above the global links; a page with nothing to
- * browse shows only the global links. The page does not draw a Browse row or
- * button of its own on a phone.
+ * Below 640px the floating circle is the one master control, and its menu is
+ * the same on every page: the pages, the display and accessibility switches,
+ * and the links elsewhere, all on the first screen. A page with something to
+ * browse (the projects' filters, the blog's areas) adds ONE row at the top of
+ * it: the page's existing Browse word, with how many filters are on. Pressing
+ * it closes the menu and opens the page's own sheet (`gallery/PhoneBrowse`),
+ * so the filters never crowd the navigation and one sheet is open at a time.
  *
  * The menu is mounted once above the routes (`SiteChrome`) and the page lives
- * inside the outlet, so the two meet here: the menu owns an empty slot element
- * in its sheet (`LocalSection.tsx`), the page registers its Browse label and
- * portals its content into the slot. A portal keeps the page's React context,
- * state and event handlers, so the content is the page's own component, not a
- * copy. The label is a string, so registering it cannot loop; the content never
- * goes through state.
+ * inside the outlet, so the two meet here. The page registers its label and
+ * count (a string and a number, so registering cannot loop); the row asks the
+ * page to open by bumping `tick`, which the page watches.
  */
 
 export type LocalBrowseHost = {
   label: string | null;
-  setLabel: (label: string | null) => void;
-  slot: HTMLElement | null;
-  setSlot: (el: HTMLElement | null) => void;
+  count: number;
+  /** Bumped each time the menu's Browse row is pressed. */
+  tick: number;
+  setBrowse: (label: string | null, count: number) => void;
+  requestOpen: () => void;
 };
 
 const noop = () => {};
-export const LocalBrowseContext = createContext<LocalBrowseHost>({ label: null, setLabel: noop, slot: null, setSlot: noop });
+export const LocalBrowseContext = createContext<LocalBrowseHost>({ label: null, count: 0, tick: 0, setBrowse: noop, requestOpen: noop });
 
-/** The menu's side: the label to show (null: no local section) and the slot. */
+/** The menu's side: the label to show (null: no row), its count, and the press. */
 export function useLocalBrowseHost(): LocalBrowseHost {
   return useContext(LocalBrowseContext);
 }
 
 /**
- * The page's side. While `label` is set the menu shows a local section with
- * that heading; the returned element is where the page portals its content
- * (null until the menu has drawn the section).
+ * The page's side. While `label` is set the menu shows a Browse row carrying
+ * `count`. Returns `tick`, which changes when the row is pressed: the page
+ * opens its sheet when it sees a tick it has not seen.
  */
-export function useLocalBrowse(label: string | null): HTMLElement | null {
-  const { setLabel, slot } = useContext(LocalBrowseContext);
+export function useLocalBrowse(label: string | null, count = 0): { tick: number } {
+  const { setBrowse, tick } = useContext(LocalBrowseContext);
   useEffect(() => {
     if (!label) return;
-    setLabel(label);
-    return () => setLabel(null);
-  }, [label, setLabel]);
-  return label ? slot : null;
+    setBrowse(label, count);
+    return () => setBrowse(null, 0);
+  }, [label, count, setBrowse]);
+  return { tick };
 }
 
 function subscribe(onChange: () => void) {

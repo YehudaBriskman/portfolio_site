@@ -1,6 +1,7 @@
 import { contentModifiedAt, newestContentModified } from "./content-modified.js";
 import { escapeXml, validDate } from "./escape.js";
 import { env } from "../env.js";
+import { HELP_CONTACT_PAGE, HELP_PAGES } from "./help-pages.js";
 import type { Collection, Post } from "../schemas/content.js";
 import type { SiteSettings } from "../schemas/site-settings.js";
 
@@ -232,6 +233,10 @@ export type SitemapExtras = {
   /** Whether a post, an area or a collection's project page has published Hebrew (#304). */
   postHebrew?: (p: Post) => boolean;
   areaHebrew?: (c: Collection) => boolean;
+  /** Whether the contact form is shown; its help guide is left out when it is not (#803). Default shown. */
+  contactShown?: boolean;
+  /** Whether a help page has Hebrew of its own (#318). Default: what the page's words say. */
+  helpHebrew?: (id: string) => boolean;
 };
 
 /**
@@ -256,6 +261,12 @@ function sitemapEntries(posts: Post[], collections: Collection[], extras: Sitema
     if (at === -1) entries.push(e);
     else entries[at] = { ...entries[at], ...(e.lastmod ? { lastmod: e.lastmod } : {}), ...(e.lastmodHe ? { lastmodHe: e.lastmodHe } : {}), ...(e.hebrew === undefined ? {} : { hebrew: e.hebrew }) };
   };
+
+  /* One page per help topic (#803): the index above, each topic here. */
+  for (const p of HELP_PAGES) {
+    if (p.id === HELP_CONTACT_PAGE && extras.contactShown === false) continue;
+    add({ loc: `/help/${p.id}`, lastmod: newest, changefreq: "yearly", priority: 0.3, hebrew: (extras.helpHebrew ?? (() => p.hebrew))(p.id) });
+  }
 
   const areaHebrew = extras.areaHebrew ?? (() => true);
   const postHebrew = extras.postHebrew ?? (() => true);

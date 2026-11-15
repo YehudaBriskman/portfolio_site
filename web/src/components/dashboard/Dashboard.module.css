@@ -717,6 +717,31 @@
   padding-inline: 0.375rem;
 }
 
+/* Date and read time are StatChips (glyph + value). From 640px they read as
+   the plain text they always were: no glyph, the parent's type, no box. */
+.metaPart .metaChip {
+  display: inline;
+  gap: 0;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+  white-space: inherit;
+}
+
+.metaPart .metaChip svg {
+  display: none;
+}
+/* the chip's own tabular figures and bidi isolate are a phone look */
+.metaPart .metaChip span {
+  font-variant-numeric: inherit;
+  unicode-bidi: inherit;
+}
+
+/* the cover / glyph tile of a recommended note is a phone-only part */
+.postMedia {
+  display: none;
+}
+
 .chips {
   display: flex;
   flex-wrap: wrap;
@@ -1647,29 +1672,70 @@
     font-size: 0.875rem;
   }
 
-  /* recommended: the three picks are one group, divided like rows */
+  /* recommended (W3): image-led cards. The cover (or the note's glyph tile) is
+     16:9 with its room reserved, then area, title, excerpt, and the date and
+     read time as chips. Each pick is its own card on the ground. */
   .ground[data-phone-page="blog"] .posts {
-    gap: 0;
-    overflow: hidden;
-    border-radius: var(--r-md);
-    background: var(--ph-card);
+    gap: 12px;
   }
   .ground[data-phone-page="blog"] .post {
     position: relative;
-    padding: 12px var(--ph-gutter);
+    gap: 8px;
+    padding: 0 0 14px;
+    overflow: hidden;
     border: 0;
-    border-radius: 0;
+    border-radius: var(--r-md);
+    background: var(--ph-card);
   }
-  .ground[data-phone-page="blog"] .post + .post::before {
-    content: "";
-    position: absolute;
-    inset-block-start: 0;
-    inset-inline: var(--ph-gutter) 0;
-    height: 1px;
-    background: var(--ph-line);
+  .ground[data-phone-page="blog"] .postMedia {
+    display: block;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    background: var(--ph-recess);
+  }
+  .ground[data-phone-page="blog"] .postMedia img,
+  .ground[data-phone-page="blog"] .postMedia svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .ground[data-phone-page="blog"] .postHead,
+  .ground[data-phone-page="blog"] .postTitle,
+  .ground[data-phone-page="blog"] .postExcerpt,
+  .ground[data-phone-page="blog"] .postMeta {
+    margin-inline: var(--ph-gutter);
+  }
+  .ground[data-phone-page="blog"] .postHead {
+    margin-block-start: 4px;
   }
   .ground[data-phone-page="blog"] .postTitle {
-    font-size: 1rem;
+    font-size: 1.125rem;
+    line-height: 1.3;
+    text-align: start;
+    text-wrap: balance;
+  }
+  .ground[data-phone-page="blog"] .rowTitle {
+    text-align: start;
+    text-wrap: balance;
+  }
+  /* date and read time: glyph + value chips, the gap does the separating
+     (a drawn dot wrapped to the start of the next line) */
+  .ground[data-phone-page="blog"] .rowMeta,
+  .ground[data-phone-page="blog"] .postMeta {
+    gap: 4px 12px;
+  }
+  .ground[data-phone-page="blog"] .metaPart + .metaPart::before {
+    content: none;
+  }
+  .ground[data-phone-page="blog"] .metaPart .metaChip {
+    display: inline-flex;
+    gap: 4px;
+    align-items: center;
+    white-space: nowrap;
+  }
+  .ground[data-phone-page="blog"] .metaPart .metaChip svg {
+    display: block;
   }
   .ground[data-phone-page="blog"] .postExcerpt {
     -webkit-line-clamp: 2;
@@ -1760,5 +1826,17 @@
 
   .ground:not([data-back]) .main h1 {
     padding-inline-end: 58px;
+  }
+}
+
+/* A row whose meta parts stack (the project page's Elsewhere on a phone): no
+   joining dot, so a part that wraps can never leave one dangling at a line's
+   end. Wide rows keep the dot; `data-stack` is only set on a phone. */
+@media (max-width: 639px) {
+  .rowMeta[data-stack] {
+    flex-direction: column;
+  }
+  .rowMeta[data-stack] .metaPart + .metaPart::before {
+    content: none;
   }
 }

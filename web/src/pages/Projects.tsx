@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link, useLocation, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { BookMarked } from "lucide-react";
 import { heldHeight, useRememberHeight } from "@/lib/heldHeight";
 import PageShell from "@/components/PageShell";
@@ -11,7 +11,10 @@ import dash from "@/components/dashboard/Dashboard.module.css";
 import { INTL } from "@/components/dashboard/i18n";
 import FilterControl, { FilterTokens, type FacetSpec } from "@/components/gallery/FilterControl";
 import { activeCount, readSelection } from "@/components/gallery/facets";
-import { FACETS, applyFilters, optionsFor } from "@/components/projects/catalogue";
+import PhoneBrowse from "@/components/gallery/PhoneBrowse";
+import { toneOfKind } from "@/components/phone/tone";
+import { useMobileWords } from "@/i18n/mobile";
+import { FACETS, applyFilters, kindOf, optionsFor } from "@/components/projects/catalogue";
 import RepoCard from "@/components/work/RepoCard";
 import styles from "@/components/work/Work.module.css";
 import HeadStrand from "@/components/motion/HeadStrand";
@@ -205,6 +208,59 @@ export default function Projects() {
     </>
   );
 
+  /* On a phone the menu's Browse is this, not the rail (#808): sort, one chip
+     per facet, the pinned covers, and the areas behind one More. */
+  const mobile = useMobileWords();
+  const navigate = useNavigate();
+  const phoneRail = ({ open, onClose }: { open: boolean; onClose: () => void }) => (
+    <PhoneBrowse
+      open={open}
+      onClose={onClose}
+      title={t.browse}
+      facets={facets}
+      selection={filters}
+      path="/projects"
+      shown={shown.length}
+      sort={{
+        label: t.sortBy,
+        options: SORTS.map((s) => ({ value: s, label: t.sort[s] })),
+        value: sort,
+        onChange: (s) => navigate(hrefSorted(location.search, s as (typeof SORTS)[number]), { replace: true, preventScrollReset: true }),
+      }}
+      pinned={{
+        title: t.pinned,
+        items: allPinned.map((e) => ({
+          key: e.collection.slug,
+          to: `/projects/${e.collection.slug}`,
+          label: e.collection.title,
+          cover: e.collection.coverImage,
+          tone: toneOfKind(kindOf(e.state)),
+        })),
+      }}
+      moreLabel={mobile.selection.more}
+      more={
+        !areasDone || withNotes.length > 0 ? (
+          <div className={dash.localBody}>
+            {!areasDone ? (
+              <ListSkeleton lines={3} />
+            ) : (
+              <TopList
+                title={t.areas}
+                items={withNotes.map((a) => ({
+                  key: a.slug,
+                  label: a.title,
+                  to: `/blog/area/${a.slug}`,
+                  count: a.noteCount,
+                  icon: <AreaGlyph seed={a.slug} />,
+                }))}
+              />
+            )}
+          </div>
+        ) : undefined
+      }
+    />
+  );
+
   const aside = (
     <Timeline
       title={t.releases}
@@ -225,6 +281,7 @@ export default function Projects() {
       <DashboardShell
         railLabel={t.browse}
         rail={rail}
+        phoneRail={phoneRail}
         asideLabel={t.releases}
         aside={aside}
         count={on}

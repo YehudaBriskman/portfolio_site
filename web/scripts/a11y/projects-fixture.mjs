@@ -31,12 +31,36 @@ export const BOTHY_COLLECTION = {
   he: null,
 };
 
-/** A Playwright route handler for `**\/api/**`. */
-export function handler() {
+/**
+ * A Playwright route handler for `**\/api/**`.
+ *
+ * `opts` (the polish shots only): `cover` gives Bothy a real, busy cover
+ * (`/projects/icaros.jpg`), `longTitle` a title that must wrap, and `windom`
+ * adds a live WindoM that has a repository, a licence and no release.
+ */
+export function handler(opts = {}) {
   return (r) => {
     const url = r.request().url();
     if (/\/blog\/collections$/.test(new URL(url).pathname)) {
-      r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ items: [BOTHY_COLLECTION] }) });
+      const bothy = {
+        ...BOTHY_COLLECTION,
+        ...(opts.cover ? { coverImage: "/projects/icaros.jpg" } : {}),
+        ...(opts.longTitle ? { title: "Bothy: a console for one machine that asks Docker what is running" } : {}),
+      };
+      const items = [bothy];
+      if (opts.windom)
+        items.push({
+          ...BOTHY_COLLECTION,
+          slug: "windom",
+          title: "WindoM",
+          tagline: "Window manager for the browser",
+          description: "A tiling window manager for the browser. Written in TypeScript, it keeps your tabs in tidy columns.",
+          order: 3,
+          repoUrl: "https://github.com/example/windom",
+          coverImage: opts.cover ? "/projects/icaros.jpg" : null,
+          stats: { ...BOTHY_COLLECTION.stats, stars: 15, forks: 2, latestRelease: null },
+        });
+      r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ items }) });
       return;
     }
     const { status, body } = answer(url, false);

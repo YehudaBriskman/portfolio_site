@@ -366,6 +366,16 @@ server {
     error_page 500 502 503 504 = @spa;
   }
 
+  # One page per help topic (#803): /help/rss, /help/contact-sent. The slug
+  # alphabet only, as for the other captures; the renderer answers 404 itself
+  # for an id that is no topic.
+  location ~ "^/help/([a-z0-9-]+)/?$" {
+    proxy_pass http://$api_upstream/api/seo/render/help/$1;
+    include /etc/nginx/snippets/proxy-headers.conf;
+    proxy_intercept_errors on;
+    error_page 500 502 503 504 = @spa;
+  }
+
   location = /follow {
     proxy_pass http://$api_upstream/api/seo/render/follow;
     include /etc/nginx/snippets/proxy-headers.conf;

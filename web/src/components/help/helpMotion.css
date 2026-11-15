@@ -1,0 +1,61 @@
+/*
+ * The phone's push and pop between the help index and a topic (#803).
+ * State comes from `useHelpMotion`: `data-help-motion` on the page's root.
+ *
+ * PHONE ONLY and only with no reduced-motion preference: above 640px, and
+ * under `prefers-reduced-motion: reduce`, there is no rule here, so the page
+ * is instant and byte-identical to before. Pause motion is held in the hook
+ * (the page never goes to a leaving state).
+ *
+ * `translate` and `opacity` only: nothing moves the layout, so nothing
+ * shifts. The distance is small (24px) because the old page is fading out as
+ * it goes. `--help-dir` is -1 under RTL, so a push still travels from the
+ * inline-end edge to the inline-start one. `overflow-x: clip` keeps the
+ * travelling page from widening the document.
+ *
+ * Curve and time are the site's (`--ease-settle`, `--dur-fast`, index.css).
+ * Leaving is shorter than entering, and the hook's LEAVE_MS matches it.
+ */
+@media (max-width: 639px) {
+  [data-help-motion] {
+    --help-dir: 1;
+    overflow-x: clip;
+  }
+  :root[dir="rtl"] [data-help-motion] {
+    --help-dir: -1;
+  }
+}
+
+@media (max-width: 639px) and (prefers-reduced-motion: no-preference) {
+  [data-help-motion="enter-push"] {
+    animation: help-in-push var(--dur-fast) var(--ease-settle) both;
+  }
+  [data-help-motion="enter-pop"] {
+    animation: help-in-pop var(--dur-fast) var(--ease-settle) both;
+  }
+  [data-help-motion="leave-push"] {
+    animation: help-out-push 160ms var(--ease-settle) both;
+  }
+  [data-help-motion="leave-pop"] {
+    animation: help-out-pop 160ms var(--ease-settle) both;
+  }
+}
+
+/* A push: the new page comes from the inline-end edge, the old one goes to the inline-start. */
+@keyframes help-in-push {
+  from { translate: calc(24px * var(--help-dir)) 0; opacity: 0; }
+  to   { translate: 0 0; opacity: 1; }
+}
+@keyframes help-out-push {
+  from { translate: 0 0; opacity: 1; }
+  to   { translate: calc(-24px * var(--help-dir)) 0; opacity: 0; }
+}
+/* A pop is the same, the other way. */
+@keyframes help-in-pop {
+  from { translate: calc(-24px * var(--help-dir)) 0; opacity: 0; }
+  to   { translate: 0 0; opacity: 1; }
+}
+@keyframes help-out-pop {
+  from { translate: 0 0; opacity: 1; }
+  to   { translate: calc(24px * var(--help-dir)) 0; opacity: 0; }
+}

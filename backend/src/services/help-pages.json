@@ -1,0 +1,379 @@
+[
+  {
+    "id": "language",
+    "group": null,
+    "title": {
+      "en": "Language",
+      "he": "שפה"
+    },
+    "description": {
+      "en": "The site is in English and in Hebrew. Open the display settings button in the top bar (inside the menu on a phone) and choose a language under Language.",
+      "he": "האתר זמין באנגלית ובעברית. פתחו את כפתור הגדרות התצוגה בסרגל העליון (בתוך התפריט בטלפון) ובחרו שפה תחת ״שפה״."
+    },
+    "hebrew": true
+  },
+  {
+    "id": "look",
+    "group": null,
+    "title": {
+      "en": "Theme, text size and contrast",
+      "he": "ערכת צבעים, גודל טקסט וניגודיות"
+    },
+    "description": {
+      "en": "Theme: Light, Dark, or System to follow your device. Text size: Default, Large or Larger. This is on top of your browser’s own zoom. Contrast: Standard, More, or System to follow your device’s setting. Pause motion: a switch at the bottom of the menu that stops every animation.",
+      "he": "ערכת צבעים: בהירה, כהה, או לפי המערכת כדי לעקוב אחרי המכשיר שלכם. גודל טקסט: רגיל, גדול או גדול יותר. זה בנוסף להגדלת התצוגה בדפדפן. ניגודיות: רגילה, מוגברת, או לפי המערכת כדי לעקוב אחרי הגדרת המכשיר. השהיית תנועה: מתג בתחתית התפריט שעוצר כל הנפשה."
+    },
+    "hebrew": true
+  },
+  {
+    "id": "keyboard",
+    "group": null,
+    "title": {
+      "en": "Keyboard",
+      "he": "מקלדת"
+    },
+    "description": {
+      "en": "Tab and Shift+Tab move to the next and the previous link or button. The first Tab reaches a link that skips straight to the content. Menus (display settings, Share, filters): Enter or Space opens one, the arrow keys move, Escape closes it. The year chart: the arrow keys move between days, and Home and End go to the first and the last. The image viewer: plus and minus zoom, 0 resets, and the left and right arrow keys move between pictures.",
+      "he": "Tab ו־Shift+Tab עוברים לקישור או לכפתור הבא ולקודם. הלחיצה הראשונה על Tab מגיעה לקישור שמדלג ישירות לתוכן. תפריטים (הגדרות תצוגה, שיתוף, מסננים): Enter או רווח פותחים תפריט, מקשי החיצים עוברים בין האפשרויות, ו־Escape סוגר אותו. תרשים השנה: מקשי החיצים עוברים בין הימים, ו־Home ו־End מגיעים לראשון ולאחרון. מציג התמונות: פלוס ומינוס מגדילים ומקטינים, 0 מאפס, ומקשי החיצים ימינה ושמאלה עוברים בין תמונות."
+    },
+    "hebrew": true
+  },
+  {
+    "id": "sharing",
+    "group": null,
+    "title": {
+      "en": "Sharing a page",
+      "he": "שיתוף עמוד"
+    },
+    "description": {
+      "en": "Posts, projects and a few other pages have a Share button. It opens a menu you can use with the keyboard.",
+      "he": "לרשימות, לפרויקטים ולכמה עמודים נוספים יש כפתור שיתוף. הוא פותח תפריט שאפשר להשתמש בו במקלדת."
+    },
+    "hebrew": true
+  },
+  {
+    "id": "rss",
+    "group": null,
+    "title": {
+      "en": "RSS",
+      "he": "פיד RSS"
+    },
+    "description": {
+      "en": "The notes have an RSS feed, for a feed reader. Add this address to your reader, or open it to see the feed.",
+      "he": "לרשימות יש פיד RSS, לקורא פידים. הוסיפו את הכתובת הזאת לקורא שלכם, או פתחו אותה כדי לראות את הפיד."
+    },
+    "hebrew": true
+  },
+  {
+    "id": "contact-form",
+    "group": null,
+    "title": {
+      "en": "The contact form",
+      "he": "טופס יצירת הקשר"
+    },
+    "description": {
+      "en": "The form is in the Contact section on the home page. This is what happens when you press Send message.",
+      "he": "הטופס נמצא באזור יצירת הקשר בעמוד הבית. כך זה עובד כשלוחצים על שליחת ההודעה."
+    },
+    "hebrew": true
+  },
+  {
+    "id": "contact-sent",
+    "group": "contact",
+    "title": {
+      "en": "Message sent",
+      "he": "ההודעה נשלחה"
+    },
+    "description": {
+      "en": "Message sent: “Sent. I’ll reply to the address you gave.” The fields are cleared.",
+      "he": "ההודעה נשלחה: ״נשלח. אענה לכתובת שמסרתם.״ השדות מתרוקנים."
+    },
+    "hebrew": true
+  },
+  {
+    "id": "contact-fields-invalid",
+    "group": "contact",
+    "title": {
+      "en": "A field needs a change",
+      "he": "שדה דורש תיקון"
+    },
+    "description": {
+      "en": "A field needs a change: “Nothing was sent.” and, under each field that needs a change, a note.",
+      "he": "שדה דורש תיקון: ״ההודעה לא נשלחה.״ ומתחת לכל שדה שדורש תיקון מופיעה הערה."
+    },
+    "hebrew": true
+  },
+  {
+    "id": "contact-send-failed",
+    "group": "contact",
+    "title": {
+      "en": "Nothing was sent: something went wrong",
+      "he": "ההודעה לא נשלחה: משהו השתבש"
+    },
+    "description": {
+      "en": "Nothing was sent: something went wrong: A notice, “Message not sent, something went wrong”, with the line “The problem is on my side. Try again shortly.” Your message is still in the fields.",
+      "he": "ההודעה לא נשלחה: משהו השתבש: הודעה קופצת, ״ההודעה לא נשלחה, משהו השתבש״, עם השורה ״התקלה אצלי. נסו שוב בעוד רגע.״ ההודעה שלכם עדיין בשדות."
+    },
+    "hebrew": true
+  },
+  {
+    "id": "contact-too-many",
+    "group": "contact",
+    "title": {
+      "en": "Too many tries",
+      "he": "יותר מדי ניסיונות"
+    },
+    "description": {
+      "en": "Too many tries: A notice, “Message not sent, too many tries”, with the line “Too many messages were sent just now. Please wait a few minutes, then try again.”",
+      "he": "יותר מדי ניסיונות: הודעה קופצת, ״ההודעה לא נשלחה, יותר מדי ניסיונות״, עם השורה ״נשלחו יותר מדי הודעות ברגע זה. המתינו כמה דקות ונסו שוב.״"
+    },
+    "hebrew": true
+  },
+  {
+    "id": "contact-too-long",
+    "group": "contact",
+    "title": {
+      "en": "The message is too long",
+      "he": "ההודעה ארוכה מדי"
+    },
+    "description": {
+      "en": "The message is too long: A notice, “Message not sent, too long”, with the line “Shorten the message a little and try again.”",
+      "he": "ההודעה ארוכה מדי: הודעה קופצת, ״ההודעה לא נשלחה, היא ארוכה מדי״, עם השורה ״קצרו מעט את ההודעה ונסו שוב.״"
+    },
+    "hebrew": true
+  },
+  {
+    "id": "contact-offline",
+    "group": "contact",
+    "title": {
+      "en": "The site could not be reached",
+      "he": "אי אפשר להגיע לאתר"
+    },
+    "description": {
+      "en": "The site could not be reached: A notice, “Message not sent, check your connection”, with the line “You seem to be offline. Try again once you are back.”",
+      "he": "אי אפשר להגיע לאתר: הודעה קופצת, ״ההודעה לא נשלחה, בדקו את החיבור״, עם השורה ״נראה שאין חיבור לאינטרנט. נסו שוב כשיחזור.״"
+    },
+    "hebrew": true
+  },
+  {
+    "id": "newsletter-check-email",
+    "group": "newsletter",
+    "title": {
+      "en": "“Check your inbox”",
+      "he": "״בדקו את תיבת הדואר״"
+    },
+    "description": {
+      "en": "“Check your inbox”: “Check your inbox. If the address can receive mail, a confirmation link is on its way. Nothing is added until you open it.”",
+      "he": "״בדקו את תיבת הדואר״: ״בדקו את תיבת הדואר. אם אפשר לקבל אימייל בכתובת הזו, קישור אישור בדרך אליה. שום דבר לא נרשם עד שתפתחו אותו.״"
+    },
+    "hebrew": true
+  },
+  {
+    "id": "newsletter-already-subscribed",
+    "group": "newsletter",
+    "title": {
+      "en": "An address that is already on the list",
+      "he": "כתובת שכבר ברשימה"
+    },
+    "description": {
+      "en": "An address that is already on the list: The same message as for a new address: “Check your inbox…”.",
+      "he": "כתובת שכבר ברשימה: אותה הודעה כמו לכתובת חדשה: ״בדקו את תיבת הדואר…״."
+    },
+    "hebrew": true
+  },
+  {
+    "id": "newsletter-fields-invalid",
+    "group": "newsletter",
+    "title": {
+      "en": "The form needs a change",
+      "he": "הטופס דורש תיקון"
+    },
+    "description": {
+      "en": "The form needs a change: “That email address doesn’t look right. It should look like name@example.com” or “Choose at least one: notes or releases.” under the field.",
+      "he": "הטופס דורש תיקון: ״כתובת האימייל לא נראית תקינה. לדוגמה: name@example.com״ או ״יש לבחור לפחות אחד: רשימות או גרסאות.״ מתחת לשדה."
+    },
+    "hebrew": true
+  },
+  {
+    "id": "newsletter-too-many",
+    "group": "newsletter",
+    "title": {
+      "en": "Too many attempts",
+      "he": "יותר מדי ניסיונות"
+    },
+    "description": {
+      "en": "Too many attempts: “Too many attempts from this connection. Try again in a few minutes.”",
+      "he": "יותר מדי ניסיונות: ״יותר מדי ניסיונות מהחיבור הזה. נסו שוב בעוד כמה דקות.״"
+    },
+    "hebrew": true
+  },
+  {
+    "id": "newsletter-try-again",
+    "group": "newsletter",
+    "title": {
+      "en": "The site could not be reached, or had a problem",
+      "he": "אי אפשר להגיע לאתר, או שהייתה תקלה"
+    },
+    "description": {
+      "en": "The site could not be reached, or had a problem: “Couldn’t reach the server. Your details are still here; try again.” or “Something went wrong at my end. Your details are still here; try again in a moment.” On the pages that open from an email: “Could not reach the server. Check your connection and try again.”",
+      "he": "אי אפשר להגיע לאתר, או שהייתה תקלה: ״אי אפשר להגיע לשרת. הפרטים שלכם עדיין כאן, נסו שוב.״ או ״משהו השתבש אצלי. הפרטים שלכם עדיין כאן, נסו שוב בעוד רגע.״ בעמודים שנפתחים מאימייל: ״אי אפשר להגיע לשרת. בדקו את החיבור ונסו שוב.״"
+    },
+    "hebrew": true
+  },
+  {
+    "id": "confirm-done",
+    "group": "newsletter",
+    "title": {
+      "en": "Subscription confirmed",
+      "he": "ההרשמה אושרה"
+    },
+    "description": {
+      "en": "Subscription confirmed: “Subscribed. Thank you. The next note will arrive by email.”",
+      "he": "ההרשמה אושרה: ״נרשמתם. תודה. הרשימה הבאה תישלח אליכם באימייל.״"
+    },
+    "hebrew": true
+  },
+  {
+    "id": "confirm-expired",
+    "group": "newsletter",
+    "title": {
+      "en": "The confirmation link does not work",
+      "he": "קישור האישור לא עובד"
+    },
+    "description": {
+      "en": "The confirmation link does not work: “This confirmation link is invalid or has expired. Subscribe again from the form to get a new one.”",
+      "he": "קישור האישור לא עובד: ״הקישור לא תקין או שפג תוקפו. אפשר להירשם שוב מהטופס ולקבל קישור חדש.״"
+    },
+    "hebrew": true
+  },
+  {
+    "id": "confirm-already-used",
+    "group": "newsletter",
+    "title": {
+      "en": "Opening the confirmation link again",
+      "he": "פתיחת קישור האישור פעם נוספת"
+    },
+    "description": {
+      "en": "Opening the confirmation link again: The same “Subscribed” message as the first time.",
+      "he": "פתיחת קישור האישור פעם נוספת: אותה הודעה ״נרשמתם״ כמו בפעם הראשונה."
+    },
+    "hebrew": true
+  },
+  {
+    "id": "unsubscribe-done",
+    "group": "newsletter",
+    "title": {
+      "en": "Unsubscribed",
+      "he": "הוסרתם מהרשימה"
+    },
+    "description": {
+      "en": "Unsubscribed: “Done. You won’t get any more email from this list.”, followed by a note on what is kept and how to ask for it to be erased.",
+      "he": "הוסרתם מהרשימה: ״בוצע. לא תקבלו עוד אימיילים מרשימת התפוצה.״ ואחריה הערה על מה נשמר ואיך מבקשים למחוק."
+    },
+    "hebrew": true
+  },
+  {
+    "id": "unsubscribe-link-problem",
+    "group": "newsletter",
+    "title": {
+      "en": "The unsubscribe link does not work",
+      "he": "קישור ההסרה לא עובד"
+    },
+    "description": {
+      "en": "The unsubscribe link does not work: “This link is invalid or has expired.” with the advice to use the link in your latest email, or to write to the contact address.",
+      "he": "קישור ההסרה לא עובד: ״הקישור לא תקין או שפג תוקפו.״ עם הפניה להשתמש בקישור באימייל האחרון, או לכתוב לכתובת הקשר."
+    },
+    "hebrew": true
+  },
+  {
+    "id": "manage-saved",
+    "group": "newsletter",
+    "title": {
+      "en": "Preferences saved",
+      "he": "ההעדפות נשמרו"
+    },
+    "description": {
+      "en": "Preferences saved: “Saved.”",
+      "he": "ההעדפות נשמרו: ״נשמר.״"
+    },
+    "hebrew": true
+  },
+  {
+    "id": "manage-link-problem",
+    "group": "newsletter",
+    "title": {
+      "en": "The preferences link does not work",
+      "he": "קישור ההעדפות לא עובד"
+    },
+    "description": {
+      "en": "The preferences link does not work: “This link is invalid or has expired. Use the link in the latest email.”",
+      "he": "קישור ההעדפות לא עובד: ״הקישור לא תקין או שפג תוקפו. השתמשו בקישור באימייל האחרון.״"
+    },
+    "hebrew": true
+  },
+  {
+    "id": "manage-choose-topic",
+    "group": "newsletter",
+    "title": {
+      "en": "Choose at least one topic",
+      "he": "יש לבחור נושא אחד לפחות"
+    },
+    "description": {
+      "en": "Choose at least one topic: “Choose at least one: notes or releases.” Nothing is saved.",
+      "he": "יש לבחור נושא אחד לפחות: ״יש לבחור לפחות אחד: רשימות או גרסאות.״ שום דבר לא נשמר."
+    },
+    "hebrew": true
+  },
+  {
+    "id": "manage-save-failed",
+    "group": "newsletter",
+    "title": {
+      "en": "Preferences were not saved",
+      "he": "ההעדפות לא נשמרו"
+    },
+    "description": {
+      "en": "Preferences were not saved: “Could not save your preferences. Your changes are still here; try again.”",
+      "he": "ההעדפות לא נשמרו: ״אי אפשר לשמור את ההעדפות. השינויים שלכם עדיין כאן, נסו שוב.״"
+    },
+    "hebrew": true
+  },
+  {
+    "id": "share-link-copied",
+    "group": "share",
+    "title": {
+      "en": "Link copied",
+      "he": "הקישור הועתק"
+    },
+    "description": {
+      "en": "Link copied: “Link copied”",
+      "he": "הקישור הועתק: ״הקישור הועתק״"
+    },
+    "hebrew": true
+  },
+  {
+    "id": "share-copy-failed",
+    "group": "share",
+    "title": {
+      "en": "The link was not copied",
+      "he": "הקישור לא הועתק"
+    },
+    "description": {
+      "en": "The link was not copied: “Couldn’t copy. The address is in the address bar.”",
+      "he": "הקישור לא הועתק: ״ההעתקה נכשלה. הכתובת מופיעה בשורת הכתובת.״"
+    },
+    "hebrew": true
+  },
+  {
+    "id": "share-save-failed",
+    "group": "share",
+    "title": {
+      "en": "The image was not saved",
+      "he": "התמונה לא נשמרה"
+    },
+    "description": {
+      "en": "The image was not saved: “Couldn’t save the image.”",
+      "he": "התמונה לא נשמרה: ״שמירת התמונה נכשלה.״"
+    },
+    "hebrew": true
+  }
+]

@@ -158,8 +158,8 @@ await Promise.all(combos.map(async ({ width, lang, theme }) => {
       if (!r.circles.some((c) => c.w === 56)) fail(tag, "no 56px header circle");
       for (const c of r.circles) if (![32, 40, 56].includes(c.w) || c.w !== c.h || !c.round) fail(tag, `circle ${c.w}x${c.h} round=${c.round}`);
       /* stub stats: 12 stars, 3 forks, TypeScript, v1.9.0 */
-      for (const want of ["12", "3", "TypeScript", "v1.9.0"]) if (!r.tiles.some((t) => t.includes(want))) fail(tag, `no stat tile with ${want} (have ${JSON.stringify(r.tiles)})`);
-      if (r.tiles.length !== 4) fail(tag, `${r.tiles.length} stat tiles, want 4`);
+      for (const want of ["12", "TypeScript", "v1.9.0"]) if (!r.tiles.some((t) => t.includes(want))) fail(tag, `no stat tile with ${want} (have ${JSON.stringify(r.tiles)})`);
+      if (r.tiles.length !== 3) fail(tag, `${r.tiles.length} stat tiles, want 3 (forks are in Details)`);
       if (!r.segmented) fail(tag, "tabs are not the segmented pill");
       if (r.tabs.length < 2 || r.tabs.some((t) => t.h < 44)) fail(tag, `tabs ${JSON.stringify(r.tabs)} (44 tall)`);
       if (r.tabs.filter((t) => t.tab === 0).length !== 1) fail(tag, "tablist needs exactly one tab stop");

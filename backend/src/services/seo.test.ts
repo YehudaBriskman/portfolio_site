@@ -14,6 +14,7 @@ import {
   type PageMeta,
 } from "./seo.js";
 import { env } from "../env.js";
+import { HELP_PAGES } from "./help-pages.js";
 import type { Collection, Post } from "../schemas/content.js";
 
 const post = (over: Partial<Post> = {}): Post =>
@@ -102,6 +103,30 @@ describe("buildSitemap", () => {
       expect(xml).toContain(`<loc>https://yehudabriskman.com${p}</loc>`);
       expect(xml).toContain(`<loc>https://yehudabriskman.com/he${p}</loc>`);
     }
+  });
+
+  it("lists every help page, in both languages, each naming the other (#803)", () => {
+    const xml = buildSitemap([], []);
+    expect(HELP_PAGES).toHaveLength(29);
+    for (const p of HELP_PAGES) {
+      expect(xml, p.id).toContain(`<loc>https://yehudabriskman.com/help/${p.id}</loc>`);
+      expect(xml, p.id).toContain(`<loc>https://yehudabriskman.com/he/help/${p.id}</loc>`);
+    }
+    expect(xml).toMatch(/<xhtml:link rel="alternate" hreflang="he" href="[^"]*\/he\/help\/rss" \/>/);
+    /* The nine static pages and the 29 help pages, once per language. */
+    expect(xml.match(/<loc>/g)).toHaveLength(2 * (9 + 29));
+  });
+
+  it("leaves the contact form's guide out of the sitemap while the form is hidden (#803)", () => {
+    const xml = buildSitemap([], [], { contactShown: false });
+    expect(xml).not.toContain("/help/contact-form");
+    expect(xml).toContain("/help/contact-sent");
+  });
+
+  it("lists a help page with no Hebrew of its own in English only (#318)", () => {
+    const xml = buildSitemap([], [], { helpHebrew: (id) => id !== "rss" });
+    expect(xml).toContain("<loc>https://yehudabriskman.com/help/rss</loc>");
+    expect(xml).not.toContain("/he/help/rss");
   });
 
   it("does not list a project twice once it has a real collection", () => {

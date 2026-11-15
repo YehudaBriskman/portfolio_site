@@ -22,6 +22,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createApp } from "../app";
 import { couch } from "../db/couch.js";
 import { resetShellCache, SITE_URL } from "../services/seo.js";
+import { HELP_PAGES } from "../services/help-pages.js";
 
 const ROOT = path.resolve(__dirname, "../../..");
 const INDEX_HTML = fs.readFileSync(path.join(ROOT, "web/index.html"), "utf8");
@@ -114,6 +115,7 @@ const FILL: Record<string, string[]> = {
   "/projects/:project": ["/projects/windom", "/projects/icaros"],
   "/blog/area/:slug": ["/blog/area/windom", "/blog/area/site"],
   "/blog/:slug": NOTES.map((n) => `/blog/${n.slug}`),
+  "/help/:topic": HELP_PAGES.map((p) => `/help/${p.id}`),
 };
 
 /**
@@ -179,7 +181,7 @@ function typesIn(v: unknown, out: string[] = []): string[] {
 describe("SEO gates (#308)", () => {
   it("knows every public route in App.tsx", () => {
     const routes = publicRoutes();
-    expect(routes).toEqual(expect.arrayContaining(["/", "/blog", "/projects", "/story", "/blog/log", "/accessibility", "/privacy", "/help", "/developers/mcp"]));
+    expect(routes).toEqual(expect.arrayContaining(["/", "/blog", "/projects", "/story", "/blog/log", "/accessibility", "/privacy", "/help", "/help/:topic", "/developers/mcp"]));
     for (const r of routes) if (r.includes(":")) expect(FILL[r], `no fixture fills ${r}`).toBeDefined();
   });
 
