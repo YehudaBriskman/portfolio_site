@@ -1,6 +1,7 @@
 import "./inbox.css";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
-import { Megaphone, Plus } from "lucide-react";
+import { Keyboard, Megaphone, Plus } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { EmptyState, ErrorState, LoadingRows } from "@/components/admin/ui";
 import { usePhone } from "@/hooks/usePhone";
 import { copyText } from "@/lib/share";
@@ -37,6 +38,7 @@ export default function InboxTab({ items, error, onRetry, onChange, onCreated }:
   const [openId, setOpenId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [keys, setKeys] = useState(false);
   const newId = useId();
   const [note, setNote] = useState<{ id: string; text: string } | null>(null);
   const readiness = useReadiness(items, openId);
@@ -165,7 +167,15 @@ export default function InboxTab({ items, error, onRetry, onChange, onCreated }:
   return (
     <div>
       <div className="mk-toolbar">
-        {!phone && <KeyHint id="mk-keys" mode="list" />}
+        {!phone && (
+          <div className="mk-keys-slot">
+            <button type="button" className="a-btn a-btn-ghost mk-btn" aria-expanded={keys} aria-controls="mk-keys" onClick={() => setKeys((v) => !v)}>
+              <Icon icon={Keyboard} size={16} />
+              {w.hotkeys}
+            </button>
+            {keys && <KeyHint id="mk-keys" mode="list" />}
+          </div>
+        )}
         <button type="button" className="a-btn a-btn-primary mk-btn" aria-expanded={creating} aria-controls={newId} onClick={() => setCreating((v) => !v)}>
           <Plus aria-hidden="true" />
           {w.newAnnouncement}
@@ -212,7 +222,7 @@ export default function InboxTab({ items, error, onRetry, onChange, onCreated }:
             )}
           </ListPresence>
         ) : (
-          <ul ref={listRef} className="mk-list" aria-label={w.list(items.length)} aria-describedby="mk-keys">
+          <ul ref={listRef} className="mk-list" aria-label={w.list(items.length)} >
             {list.map((e) => (
               <InboxRow
                 key={e.id}

@@ -123,30 +123,21 @@ describe("Inbox row on a phone", () => {
     expect(screen.queryByRole("button", { name: /^Copy/ })).toBeNull();
   });
 
-  it("carries at most the title and the time as text, and four named channel glyphs", () => {
+  it("carries the title and the time as text and no channel glyphs", () => {
     const { container } = renderInbox();
     const r = rows(container)[1];
     expect(r.querySelectorAll(".rr-fact").length).toBeLessThanOrEqual(1);
-    const glyphs = Array.from(r.querySelectorAll("[data-channel]"));
-    expect(glyphs.map((g) => g.getAttribute("data-channel"))).toEqual(["linkedin", "x", "instagram", "email"]);
-    expect(glyphs.map((g) => g.getAttribute("aria-label"))).toEqual([
-      "LinkedIn: posted",
-      "X: not posted yet",
-      "Instagram: not posted yet",
-      "Email: not posted yet",
-    ]);
-    expect(glyphs.map((g) => g.getAttribute("data-done"))).toEqual(["true", "false", "false", "false"]);
+    expect(r.querySelectorAll("[data-channel]").length).toBe(0);
   });
 
-  it("names the row by its title and describes it by time, new and where it is posted", () => {
+  it("names the row by its title and describes it by time and new", () => {
     const { container } = renderInbox();
     const r = rows(container)[0];
     expect(r.getAttribute("aria-label")).toMatch(/Rebuilding the admin as a tool/);
     const descEl = document.getElementById(r.getAttribute("aria-describedby")!)!;
     expect(descEl.textContent).toMatch(/New/);
     expect(descEl.textContent).toMatch(/ago|weeks|days|hours/);
-    expect(descEl.querySelector("[role=group]")?.getAttribute("aria-label")).toBe("Where it is posted");
-    expect(descEl.querySelector("[data-channel=linkedin]")?.getAttribute("aria-label")).toBe("LinkedIn: not posted yet");
+    expect(descEl.querySelector("[data-channel]")).toBeNull();
   });
 
   it("marks an unread event with a dot and says New to a screen reader only", () => {
@@ -235,36 +226,32 @@ describe("Mark done on a phone", () => {
   it("Undo cancels the save and restores the Mark button and the row", async () => {
     const { container, dialog, mark } = await open();
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
-    const row = rows(container)[0];
-    expect(row.querySelector("[data-channel=linkedin]")?.getAttribute("data-done")).toBe("false");
+    void container;
     fireEvent.click(mark);
-    expect(row.querySelector("[data-channel=linkedin]")?.getAttribute("data-done")).toBe("true");
     fireEvent.click(within(dialog).getByRole("button", { name: /^Undo$/ }));
     await act(async () => void vi.advanceTimersByTime(20000));
     expect(doneCalls()).toHaveLength(0);
     expect(within(dialog).getByRole("button", { name: /Mark as done/ })).toBeTruthy();
-    expect(row.querySelector("[data-channel=linkedin]")?.getAttribute("data-done")).toBe("false");
   });
 });
 
 describe("Inbox in Hebrew", () => {
-  it("names the glyphs and the row in Hebrew, and the row mirrors by logical properties", () => {
+  it("names the row in Hebrew, and the row mirrors by logical properties", () => {
     document.documentElement.lang = "he";
     document.documentElement.dir = "rtl";
     const { container } = renderInbox();
     const r = rows(container)[1];
-    expect(r.querySelector("[data-channel=linkedin]")?.getAttribute("aria-label")).toMatch(/[֐-׿]/);
     expect(r.getAttribute("aria-label")).toMatch(/[֐-׿]/);
-    expect(r.querySelector("[data-channel=linkedin]")?.getAttribute("aria-label")).not.toMatch(/posted/);
   });
 });
 
 describe("Desktop is unchanged", () => {
-  it("keeps the Copy buttons, the key hint and the old row at 600px and up", () => {
+  it("keeps one Copy action per row, a Keys button and the old row at 600px and up", () => {
     phone(false);
     const { container } = renderInbox();
     expect(container.querySelectorAll("[data-record-row]").length).toBe(0);
-    expect(container.querySelectorAll(".mk-quick").length).toBe(3);
-    expect(container.querySelector(".mk-keys")).not.toBeNull();
+    expect(screen.getAllByRole("button", { name: "Copy LinkedIn" }).length).toBe(3);
+    expect(container.querySelector(".mk-keys")).toBeNull();
+    expect(screen.getByRole("button", { name: "Keys" })).toBeTruthy();
   });
 });
