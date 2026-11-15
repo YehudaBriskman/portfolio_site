@@ -190,7 +190,20 @@ for (const screen of SCREENS) {
     const fields = await fieldsIn(page, "main");
     for (const f of fields) if ((await sweepField(page, tag, f, "main")) !== "skipped") swept++;
     const inPanel = await sweepPanel(page, screen, tag, true);
-    if (fields.length + inPanel < 5) fail(`${tag}: found only ${fields.length + inPanel} fields, the sweep is not reaching the page`);
+    /* Settings shows one group beside its list (from 840px): click each row and sweep what it opens. */
+    let inGroups = 0;
+    if (!screen.plain) {
+      const ids = await page.evaluate(() => [...document.querySelectorAll("[data-settings-group]")].map((g) => g.getAttribute("data-settings-group")));
+      for (const g of ids) {
+        await page.locator(`[data-settings-group="${g}"] button`).first().dispatchEvent("click");
+        await page.waitForTimeout(600);
+        await openAll(page, "main");
+        const more = await fieldsIn(page, "main");
+        inGroups += more.length;
+        for (const f of more) if ((await sweepField(page, `${tag} group ${g}`, f, "main")) !== "skipped") swept++;
+      }
+    }
+    if (fields.length + inPanel + inGroups < 5) fail(`${tag}: found only ${fields.length + inPanel} fields, the sweep is not reaching the page`);
     await close();
   }
   /* ------------------------------------------------------------ phone */

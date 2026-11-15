@@ -176,7 +176,7 @@ const HE = {
     "settings.sharing.templateTags": "תבנית היא טקסט רגיל: יש להסיר כל מה שנראה כמו תגית.",
     "settings.sharing.source": "שם המקור הוא אותיות, ספרות, מקף או קו תחתון, עד 40 תווים.",
   },
-  needsFix: "דורש תיקון",
+  needsFix: "לתיקון",
   genericIssue: "הערך אינו תקין.",
 };
 
