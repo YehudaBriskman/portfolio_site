@@ -25,7 +25,6 @@
   white-space: nowrap;
   cursor: pointer;
   touch-action: manipulation;
-  transition: background-color var(--dur-micro) ease, color var(--dur-micro) ease;
 }
 
 .sm { min-block-size: var(--ctl-h-sm); min-inline-size: var(--ctl-h-sm); --ctl-icon: var(--ctl-icon-sm); }
