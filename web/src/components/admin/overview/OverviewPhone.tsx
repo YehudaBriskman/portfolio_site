@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { BookOpen, Settings, Type, type LucideIcon } from "lucide-react";
 import { relative, useLang } from "@/components/dashboard/i18n";
@@ -12,8 +12,7 @@ import { useAdminWords, type AdminWords } from "@/i18n/admin";
 import { usePhoneAdminWords } from "@/i18n/adminPhone";
 import { numberIn } from "@/i18n/words";
 import type { AdminCollection, AdminPost, McpGrant } from "@/services/admin";
-import { adminAnnounce } from "@/services/adminAnnounce";
-import { adminCampaigns, type Campaign } from "@/services/adminCampaigns";
+import { useNeeds } from "@/components/admin/overview/useNeeds";
 import type { MediaItem } from "@/services/media";
 import styles from "@/components/admin/phone/phone.module.css";
 
@@ -45,8 +44,6 @@ const KIND_ICON: Record<FeedItem["kind"], LucideIcon> = {
   app: ICON.connectedApp,
 };
 
-const failedSends = (c: Campaign) => c.status === "failed" || (c.status !== "draft" && c.counters.failed > 0);
-
 export default function OverviewPhone({
   posts, areas, media, grants, feed, loading,
 }: {
@@ -62,17 +59,7 @@ export default function OverviewPhone({
   const lang = useLang();
   const go = useNavigate();
   const [now] = useState(() => Date.now());
-  const [unread, setUnread] = useState<number | null>(null);
-  const [failed, setFailed] = useState<number | null>(null);
-
-  useEffect(() => {
-    let live = true;
-    adminAnnounce.inbox().then((r) => live && setUnread(typeof r.unread === "number" ? r.unread : null), () => {});
-    adminCampaigns.list().then((list) => live && setFailed(list.filter(failedSends).length), () => {});
-    return () => {
-      live = false;
-    };
-  }, []);
+  const { unread, failed } = useNeeds();
 
   const published = posts?.filter((x) => x.status === "published") ?? [];
   const drafts = posts?.filter((x) => x.status === "draft") ?? [];

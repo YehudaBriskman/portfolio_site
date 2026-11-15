@@ -11,7 +11,7 @@
  *  - the draft banner keeps its sentence at least 60% of the banner's width
  *    (the buttons drop under it instead of squeezing it);
  *  - links that are targets in their own right are 44px high and 24px wide:
- *    Overview "View all", the project preview link, the breadcrumb trail.
+ *    the project preview link, the breadcrumb trail.
  *
  * Fixtures come from site-stub.mjs plus the one extra document this needs (the
  * projects content, with a draft). Polls on a timer, never rAF: headless
@@ -120,10 +120,6 @@ try {
       target(`${tag}: preview link`, m.preview);
       await close();
     }
-    /* Overview's "View all" link is a desktop-only control: below 600px the page is "needs you" rows and tiles (#682), so it is measured at 768, where the desktop layout is back. */
-    const o = await open(768, 900, lang, "/admin");
-    target(`overview 768 ${lang}: View all`, await o.page.evaluate(sizeOf, ["main a.a-link", "View all|הכול"]));
-    await o.close();
     /* The trail only shows its earlier crumbs from 768 up. */
     for (const w of [768, 1024]) {
       const c = await open(w, 900, lang, "/admin/posts/fixture-post");

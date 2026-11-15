@@ -156,11 +156,12 @@ describe("Connected apps on a phone: Hebrew", () => {
 });
 
 describe("Connected apps on a desktop", () => {
-  it("is unchanged: the table with its Revoke buttons", async () => {
+  it("is the table; Revoke is not drawn on a row, each row has a More menu", async () => {
     undoPhone();
     undoPhone = phone(false);
     page();
-    expect(await screen.findAllByRole("button", { name: /^Revoke / })).toHaveLength(2);
+    expect(await screen.findAllByRole("button", { name: "More actions" })).toHaveLength(2);
+    expect(screen.queryAllByRole("button", { name: /^Revoke / })).toHaveLength(0);
     expect(rows()).toHaveLength(0);
   });
 });
