@@ -528,6 +528,8 @@ export default function AdminEditor() {
     { key: "save", label: w.saveNow, onSelect: () => void saveDraft(), disabled: !canSave, shortcut: "Control+S" },
     ...(published && post?.draft && !dirty ? [{ key: "discard", label: w.discard, onSelect: () => void discard() }] : []),
     ...(published ? [{ key: "unpublish", label: w.unpublish, onSelect: () => void unpublish() }] : []),
+    /* On a phone the header's Details button would cost a control above the fold: it lives here. */
+    ...(phone ? [{ key: "details", label: w.details, onSelect: () => setDetailsOpen((o) => !o) }] : []),
     { key: "keys", label: w.shortcutsTitle, onSelect: () => setKeysOpen(true) },
   ];
   const bar = (
@@ -586,7 +588,7 @@ export default function AdminEditor() {
               ) : undefined
             }
             actions={
-              <button
+              phone ? undefined : <button
                 type="button"
                 className="a-btn a-btn-ghost min-h-11 md:min-h-8"
                 aria-expanded={detailsOpen}

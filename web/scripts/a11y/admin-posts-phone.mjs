@@ -229,7 +229,7 @@ try {
       if (theme === "light") {
         const ed = await open(390, 844, lang, theme, "/admin/posts/p2");
         await waitFor(ed.page, () => !!document.querySelector("input.a-input-title"));
-        await ed.page.evaluate(() => [...document.querySelectorAll("button")].find((b) => /^(Review|סקירה)/.test((b.textContent ?? "").trim()))?.click());
+        await ed.page.evaluate(() => [...document.querySelectorAll("button")].find((b) => /^(Publish|Update|פרסום|עדכון)$/.test((b.textContent ?? "").trim()))?.click());
         if (!(await waitFor(ed.page, () => !!document.querySelector("dialog[open] [data-review-summary]")))) fail(`review ${lang}: the review did not open as a phone sheet`);
         else {
           const order = await ed.page.evaluate(() => {

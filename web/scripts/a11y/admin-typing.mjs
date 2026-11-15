@@ -162,7 +162,13 @@ let swept = 0;
 /* The post editor keeps its details in a side panel (a sheet on a phone), outside `main`: open it, sweep it. */
 async function sweepPanel(page, screen, tag, sweep = false) {
   if (screen.id !== "post-editor") return 0;
-  await page.getByRole("button", { name: "Details" }).click({ force: true });
+  /* On a phone Details is in the bar's More menu, on a desktop a header button. */
+  const btn = page.getByRole("button", { name: "Details" });
+  if (await btn.count()) await btn.click({ force: true });
+  else {
+    await page.getByRole("button", { name: "More actions" }).click({ force: true });
+    await page.getByRole("menuitem", { name: "Details" }).dispatchEvent("click");
+  }
   await page.waitForTimeout(1200);
   /* The panel is the dialog (or sheet) whose heading says Details; the page behind a sheet is inert. */
   await page.evaluate(() => {
