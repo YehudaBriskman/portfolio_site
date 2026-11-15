@@ -223,7 +223,7 @@ try {
   /* The desktop editor is unchanged: the three-way toggle, a Hebrew title beside the English one. */
   const wide = await open(1440, 900, "en", "light", EDITOR, "input.a-input-title");
   const dm = await wide.page.evaluate(() => ({
-    toggles: document.querySelectorAll("[role=group] button[aria-pressed]").length,
+    toggles: document.querySelectorAll("[role=radiogroup] [role=radio]").length,
     titles: document.querySelectorAll("input.a-input-title").length,
     format: !!document.querySelector("button[data-format-sheet]"),
     select: !!document.querySelector("select[data-editing-language]"),

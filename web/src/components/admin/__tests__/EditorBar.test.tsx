@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import AdminShell from "@/components/admin/AdminShell";
-import EditorBar from "@/components/admin/EditorBar";
+import EditorBar, { FLASH_MS } from "@/components/admin/EditorBar";
 import { isTextControl, keyboardOpen } from "@/components/admin/keyboard";
 
 /*
@@ -81,11 +81,43 @@ describe("EditorBar", () => {
     const status = screen.getByRole("status");
     expect(status.textContent).toBe("Draft saved 12:00");
     expect(status.getAttribute("aria-live")).toBe("polite");
-    expect(status.querySelector(".a-dot")?.getAttribute("aria-hidden")).toBe("true");
+    expect(status.querySelector("svg")?.getAttribute("aria-hidden")).toBe("true");
     unmount();
     bar({ tone: "bad", status: "The draft was not saved" });
     expect(screen.getByRole("status").getAttribute("aria-live")).toBe("assertive");
-    expect(screen.getByText("The draft was not saved").hasAttribute("data-problem")).toBe(true);
+    expect(screen.getByText("The draft was not saved").hasAttribute("data-show")).toBe(true);
+  });
+
+  it("draws the state as a glyph that differs by state, not by colour alone", () => {
+    const glyphs = (["idle", "busy", "ok", "warn", "bad"] as const).map((tone) => {
+      const { container, unmount } = bar({ tone, status: tone });
+      const html = container.querySelector("[role=status] svg")?.getAttribute("class") ?? "";
+      unmount();
+      return html;
+    });
+    expect(new Set(glyphs).size).toBe(5);
+  });
+
+  it("shows the word only when the state changes, then leaves the glyph (a phone has no room)", () => {
+    vi.useFakeTimers();
+    try {
+      const { rerender } = bar({ tone: "ok", status: "Saved 12:00" });
+      const word = () => screen.getByText(/Saved|Saving/);
+      expect(word().hasAttribute("data-show")).toBe(true);
+      act(() => void vi.advanceTimersByTime(FLASH_MS + 50));
+      expect(word().hasAttribute("data-show")).toBe(false);
+      // Still read out: it is in the page, only drawn small.
+      expect(screen.getByRole("status").textContent).toBe("Saved 12:00");
+      rerender(<EditorBar tone="busy" status="Saving" primary={<button type="button">Go</button>} />);
+      expect(word().hasAttribute("data-show")).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("names the document's state once, beside the readout, when it is given one", () => {
+    bar({ label: "Edited" });
+    expect(screen.getAllByText("Edited")).toHaveLength(1);
   });
 
   it("puts the secondary actions in the menu and runs the one chosen", () => {

@@ -72,6 +72,7 @@ async function open(w, screen) {
 
 /* In the page: the typeable fields inside `root`, each given a stable label. */
 const FIELDS = `
+  for (const old of document.querySelectorAll("[data-sweep-index]")) old.removeAttribute("data-sweep-index");
   const root = document.querySelector(rootSel) || document.querySelector("main");
   const SKIP = /^(checkbox|radio|range|file|hidden|color|submit|button|reset|image|date|time|datetime-local|month|week)$/;
   const seen = new Map();
@@ -158,6 +159,28 @@ async function sweepField(page, tag, f, rootSel) {
 }
 
 let swept = 0;
+/* The post editor keeps its details in a side panel (a sheet on a phone), outside `main`: open it, sweep it. */
+async function sweepPanel(page, screen, tag, sweep = false) {
+  if (screen.id !== "post-editor") return 0;
+  /* On a phone Details is in the bar's More menu, on a desktop a header button. */
+  const btn = page.getByRole("button", { name: "Details" });
+  if (await btn.count()) await btn.click({ force: true });
+  else {
+    await page.getByRole("button", { name: "More actions" }).click({ force: true });
+    await page.getByRole("menuitem", { name: "Details" }).dispatchEvent("click");
+  }
+  await page.waitForTimeout(1200);
+  /* The panel is the dialog (or sheet) whose heading says Details; the page behind a sheet is inert. */
+  await page.evaluate(() => {
+    const h = [...document.querySelectorAll("h2, h3")].find((e) => e.textContent?.trim() === "Details");
+    h?.closest("[role=dialog], dialog")?.setAttribute("data-sweep-root", "");
+  });
+  const root = "[data-sweep-root]";
+  await openAll(page, root);
+  const fields = await fieldsIn(page, root);
+  if (sweep) for (const f of fields) if ((await sweepField(page, `${tag} details`, f, root)) !== "skipped") swept++;
+  return fields.length;
+}
 for (const screen of SCREENS) {
   /* ---------------------------------------------------------- desktop */
   {
@@ -165,8 +188,9 @@ for (const screen of SCREENS) {
     const { page, close } = await open(1280, screen);
     await openAll(page, "main");
     const fields = await fieldsIn(page, "main");
-    if (fields.length < 5) fail(`${tag}: found only ${fields.length} fields, the sweep is not reaching the page`);
     for (const f of fields) if ((await sweepField(page, tag, f, "main")) !== "skipped") swept++;
+    const inPanel = await sweepPanel(page, screen, tag, true);
+    if (fields.length + inPanel < 5) fail(`${tag}: found only ${fields.length + inPanel} fields, the sweep is not reaching the page`);
     await close();
   }
   /* ------------------------------------------------------------ phone */
@@ -176,6 +200,7 @@ for (const screen of SCREENS) {
       const { page, close } = await open(390, screen);
       await openAll(page, "main");
       for (const f of await fieldsIn(page, "main")) if ((await sweepField(page, tag, f, "main")) !== "skipped") swept++;
+      await sweepPanel(page, screen, tag, true);
       await close();
       continue;
     }

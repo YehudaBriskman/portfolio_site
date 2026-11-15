@@ -98,12 +98,12 @@ describe("the post editor on a phone", { timeout: 20000 }, () => {
     await waitFor(() => expect(document.activeElement).toBe(opener));
   });
 
-  it("moves Move to drafts under Advanced and unpublishes the same way", async () => {
+  it("keeps Move to drafts behind More, and unpublishes the same way", async () => {
     phone(true);
     await openEditor();
-    const btn = screen.getByRole("button", { name: "Move to drafts" });
-    expect(btn.closest("details")?.querySelector("summary")?.textContent ?? "").toMatch(/Advanced/);
-    fireEvent.click(btn);
+    expect(screen.queryByRole("button", { name: "Move to drafts" })).toBeNull();
+    fireEvent.keyDown(screen.getByRole("button", { name: "More actions" }), { key: "Enter" });
+    fireEvent.click(screen.getByRole("menuitem", { name: "Move to drafts" }));
     await waitFor(() => expect(api.save).toHaveBeenCalledWith("live-note", expect.objectContaining({ status: "draft" })));
   });
 
@@ -112,7 +112,7 @@ describe("the post editor on a phone", { timeout: 20000 }, () => {
     await openEditor();
     expect(screen.queryByRole("combobox", { name: "Editing" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Format" })).toBeNull();
-    expect(screen.getByRole("button", { name: "Side by side" })).toBeTruthy();
+    expect(screen.getByRole("radio", { name: "Side by side" })).toBeTruthy();
     expect(screen.getByLabelText("Title in Hebrew").closest("details")).toBeNull();
     expect(within(screen.getByRole("toolbar")).getAllByRole("button").length).toBeGreaterThanOrEqual(13);
   });
