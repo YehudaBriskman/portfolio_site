@@ -1,0 +1,4 @@
+/* The page actions sit 8px apart (A7); the kit's control gap is 4px. */
+.actions.actions {
+  gap: var(--a-s-2, 0.5rem);
+}
