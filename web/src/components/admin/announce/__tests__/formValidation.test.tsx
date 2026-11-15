@@ -32,7 +32,7 @@ describe("contact name inputs", () => {
     expect(document.querySelector("input[maxlength='80']")).not.toBeNull();
     cleanup();
     const c = { hash: "h", email: "a@example.com", name: "A", lang: "en", groups: [], status: "active", source: "manual", consentAt: "2026-01-01T00:00:00Z", consentNote: "x", topics: { blog: true, releases: true } } as never;
-    render(<ContactEditor contact={c} groups={[]} onClose={() => {}} onDone={() => {}} />);
+    render(<ContactEditor open contact={c} groups={[]} onClose={() => {}} onDone={() => {}} />);
     expect(document.querySelector("input[maxlength='120']")).toBeNull();
     expect(document.querySelector("input[maxlength='80']")).not.toBeNull();
   });
