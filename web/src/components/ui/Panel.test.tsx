@@ -164,3 +164,10 @@ describe("Panel and PanelGrid styles", () => {
     expect(css).not.toMatch(/\b(margin|padding)-(left|right)\b|\b(left|right)\s*:/);
   });
 });
+describe("Panel fit", () => {
+  it("stretches by default and sizes to its content on request", () => {
+    const { container } = grid(<><Panel id="a" title="A">x</Panel><Panel id="b" title="B" fit="content">y</Panel></>);
+    expect(container.querySelectorAll("[data-fit='content']").length).toBe(1);
+    expect(readCss(resolve(__dirname, "Panel.module.css"))).toMatch(/\[data-fit="content"\]\s*\{[^}]*align-self:\s*start/);
+  });
+});

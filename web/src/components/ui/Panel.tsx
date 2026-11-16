@@ -29,6 +29,8 @@ export interface PanelProps {
   /** The panel's own screen: gives the menu a View item. */
   to?: string;
   span?: PanelSpan;
+  /** "content" sizes the panel to its body instead of the tallest panel in its row (a short body would otherwise sit in empty space). */
+  fit?: "stretch" | "content";
   state?: PanelState;
   /** Shown in the body when state is "empty". */
   empty?: ReactNode;
@@ -46,7 +48,7 @@ const typing = (t: EventTarget | null) => {
   return !!el && (/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName) || el.isContentEditable);
 };
 
-export function Panel({ id, title, icon, to, span = 6, state = "ready", empty, error, meta, actions, children }: PanelProps) {
+export function Panel({ id, title, icon, to, span = 6, fit = "stretch", state = "ready", empty, error, meta, actions, children }: PanelProps) {
   const w = usePanelWords();
   const icons = useMobileWords().icons;
   const grid = usePanelGrid();
@@ -88,7 +90,7 @@ export function Panel({ id, title, icon, to, span = 6, state = "ready", empty, e
   const label = expanded ? icons.minimize : icons.maximize;
 
   return (
-    <div className={styles.slot} data-span={span}>
+    <div className={styles.slot} data-span={span} data-fit={fit === "content" ? "content" : undefined}>
       {expanded && <div className={styles.scrim} aria-hidden="true" onClick={() => setExpanded(null)} />}
       <section
         className={styles.panel}

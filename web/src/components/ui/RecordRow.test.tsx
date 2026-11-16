@@ -150,3 +150,17 @@ describe("RecordRow CSS", () => {
     expect(outside).not.toMatch(/\btransition\s*:|scale\(|\banimation\s*:/);
   });
 });
+
+describe("RecordRow title in a mixed-direction page", () => {
+  it("fills its column and aligns to its own start, so an English title in a Hebrew row does not ride the end edge", () => {
+    expect(css).toMatch(/\.title\s*\{[^}]*inline-size:\s*100%/);
+    expect(css).toMatch(/\.title\s*\{[^}]*text-align:\s*start/);
+    expect(css).toMatch(/\.title\s*\{[^}]*unicode-bidi:\s*plaintext/);
+  });
+});
+
+describe("RecordRow title edge", () => {
+  it("reserves the status column, so titles in one list start at the same edge whether or not a row has a status", () => {
+    expect(css).toMatch(/grid-template-columns:\s*auto minmax\(0, 1fr\) minmax\(1\.25rem, auto\) auto/);
+  });
+});

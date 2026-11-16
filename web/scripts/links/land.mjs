@@ -390,7 +390,7 @@ for (const w of WINDOWS) {
 
   /* CTA: the project's back action, from scrolled */
   await scrollTo(page, 600);
-  await click(page, 'main a[href="/projects"]');
+  await click(page, 'main a[href="/projects"], [data-floating-back] a[href="/projects"]');
   await waitPath(page, "/projects");
   await expectTop(page, "CTA (project back) -> top", win);
 
