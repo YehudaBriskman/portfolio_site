@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { Readable } from "node:stream";
-import { CouchError, couchConfig } from "./couch.js";
+import { CouchError, couchConfig, docPath } from "./couch.js";
 
 /*
  * Binary attachments on the content database, for the media library (#253).
@@ -63,7 +63,7 @@ export const attachments = {
   /** Creates or replaces the document and its whole attachment set. */
   async putWith(id: string, doc: Record<string, unknown>, files: NewAttachment[]): Promise<{ rev: string }> {
     const { boundary, body } = multipartBody(doc, files);
-    const path = `/${encodeURIComponent(id)}`;
+    const path = docPath(id);
     const res = await send(
       path,
       {
@@ -81,7 +81,7 @@ export const attachments = {
 
   /** Adds or replaces one attachment on an existing document; returns the new revision. */
   async putOne(id: string, rev: string, file: NewAttachment): Promise<{ rev: string }> {
-    const path = `/${encodeURIComponent(id)}/${encodeURIComponent(file.name)}?rev=${encodeURIComponent(rev)}`;
+    const path = `${docPath(id)}/${encodeURIComponent(file.name)}?rev=${encodeURIComponent(rev)}`;
     const res = await send(
       path,
       {
@@ -98,7 +98,7 @@ export const attachments = {
 
   /** One attachment's bytes, or null when the document or the name is absent. */
   async get(id: string, name: string): Promise<{ data: Buffer; contentType: string } | null> {
-    const path = `/${encodeURIComponent(id)}/${encodeURIComponent(name)}`;
+    const path = `${docPath(id)}/${encodeURIComponent(name)}`;
     const res = await send(path, { method: "GET" }, 10_000);
     if (res.status === 404) return null;
     if (!res.ok) throw new CouchError(res.status, `couch ${res.status} on ${path}`);
@@ -117,7 +117,7 @@ export const attachments = {
    * still true.
    */
   async range(id: string, name: string, start: number, end: number): Promise<Readable | null> {
-    const path = `/${encodeURIComponent(id)}/${encodeURIComponent(name)}`;
+    const path = `${docPath(id)}/${encodeURIComponent(name)}`;
     const res = await send(path, { method: "GET", headers: { Range: `bytes=${start}-${end}` } }, 60_000);
     if (res.status === 404) return null;
     if (res.status === 206 && res.body) return Readable.fromWeb(res.body as import("node:stream/web").ReadableStream);
@@ -128,7 +128,7 @@ export const attachments = {
 
   /** Deletes the document, and with it every attachment it holds. */
   async remove(id: string, rev: string): Promise<void> {
-    const path = `/${encodeURIComponent(id)}?rev=${encodeURIComponent(rev)}`;
+    const path = `${docPath(id)}?rev=${encodeURIComponent(rev)}`;
     const res = await send(path, { method: "DELETE", headers: { Accept: "application/json" } }, 8000);
     if (!res.ok) throw new CouchError(res.status, `couch ${res.status} on /${id}`);
   },

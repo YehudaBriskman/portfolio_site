@@ -2,6 +2,9 @@ import express, { Router, type Response } from "express";
 import { asyncHandler } from "../middlewares/asyncHandler.js";
 import { loadSettings } from "../announce/store.js";
 import { sendConfirmMail } from "./mail.js";
+import { canSendTransactional } from "../campaigns/budgetStore.js";
+import { releaseSignupMail, reserveSignupMail } from "../services/contactGuard.js";
+import { logger } from "../logger.js";
 import { CURRENT_CONSENT_TEXT_ID, getConsentText } from "./consent-texts.js";
 import {
   ManagePut,
@@ -30,6 +33,25 @@ router.use(express.urlencoded({ extended: false, limit: "4kb" }));
 const ACCEPTED = { ok: true } as const;
 /** Pending contacts re-sent to within this window are not mailed again (mail-bomb guard). */
 const RESEND_AFTER_MS = 2 * 60_000;
+/**
+ * Signup confirmation is anonymous traffic spending the shared mail quota, so it
+ * is admitted only under its own daily ceiling AND the reserved transactional
+ * budget. Runs after the response is decided: a refusal is silent and the
+ * visitor gets the same 202 whatever the answer here, so it leaks nothing.
+ */
+async function confirmIfAdmitted(contact: Contact, hash: string): Promise<void> {
+  try {
+    if (!reserveSignupMail()) return void logger.warn("signup confirmation daily ceiling reached; mail not sent");
+    if (!(await canSendTransactional())) {
+      releaseSignupMail();
+      return void logger.warn("transactional mail budget exhausted; signup confirmation not sent");
+    }
+    if (!(await sendConfirmMail(contact, hash))) releaseSignupMail();
+  } catch (err) {
+    logger.warn({ err: err instanceof Error ? err.message : String(err) }, "signup confirmation not sent");
+  }
+}
+
 const badLink = (res: Response) => res.status(400).json({ ok: false, error: "This link is invalid or has expired." });
 
 router.post(
@@ -103,7 +125,7 @@ router.post(
     }
     // active and suppressed: nothing happens, and nothing shows.
 
-    if (send && contact) void sendConfirmMail(contact, hash);
+    if (send && contact) void confirmIfAdmitted(contact, hash);
     return res.status(202).json(ACCEPTED);
   }),
 );

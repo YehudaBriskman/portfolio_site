@@ -196,6 +196,16 @@ function CodePre({ children, className = "", style }: { children: ReactNode; cla
 
 /* ------------------------------------------------------------------ links -- */
 
+/** Same site by parsed origin, never by string prefix: a look-alike host or userinfo trick shares the prefix, not the origin. An unparsable address is not ours. */
+function sameOrigin(href: string): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return new URL(href).origin === window.location.origin;
+  } catch {
+    return false;
+  }
+}
+
 function MarkdownLink({ href, children, ...rest }: { href?: string; children?: ReactNode; "data-wikilink"?: string }) {
   const [w] = useReaderWords();
   const target = internalTarget(href);
@@ -208,7 +218,7 @@ function MarkdownLink({ href, children, ...rest }: { href?: string; children?: R
     );
   }
   const isAbsolute = typeof href === "string" && /^https?:\/\//i.test(href);
-  const external = isAbsolute && !(typeof window !== "undefined" && href.startsWith(window.location.origin));
+  const external = isAbsolute && !sameOrigin(href);
   if (!external) return <a href={href}>{children}</a>;
   return (
     <a href={href} target="_blank" rel="noreferrer noopener" data-external="">

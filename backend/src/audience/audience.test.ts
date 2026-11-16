@@ -8,6 +8,8 @@ import { emailService } from "../services/email.service.js";
 import { DEFAULT_ANNOUNCE_SETTINGS, SETTINGS_DOC_ID } from "../announce/schemas.js";
 import { memoryLedgerStore, resetLedgerCache, useLedgerStore } from "./ledger.js";
 import { resetGuard } from "../campaigns/guard.js";
+import * as budgetStore from "../campaigns/budgetStore.js";
+import { reserveSignupMail, resetContactGuard } from "../services/contactGuard.js";
 import { fillTemplate, renderConfirmMail, unsubscribeUrls } from "./mail.js";
 import { backfillConsent, hashEmail, getContact, purgeExpiredPending, resetConsentBackfill, resetPurgeClock } from "./store.js";
 import { CURRENT_CONSENT_TEXT_ID, getConsentText } from "./consent-texts.js";
@@ -19,6 +21,10 @@ import { expiresIn, resetSecretCache, signToken, verifyToken } from "./tokens.js
  * stubbed ONLY so this file can load on a box without those native/optional
  * deps; CI has them and the stubs change nothing under test.
  */
+vi.mock("../campaigns/budgetStore.js", async (orig) => {
+  const real = await orig<typeof import("../campaigns/budgetStore.js")>();
+  return { ...real, canSendTransactional: vi.fn(real.canSendTransactional) };
+});
 vi.mock("../mcp/router.js", () => ({ createMcpRouter: () => (_q: unknown, _r: unknown, next: () => void) => next() }));
 vi.mock("../mcp/oauth/provider.js", () => ({ grantDocId: (i: string) => `mcpgrant:${i}`, grantLive: () => false, revokeGrant: async () => {} }));
 vi.mock("../services/mediaImage.js", () => ({}));
@@ -71,6 +77,8 @@ beforeEach(() => {
   ledger = memoryLedgerStore();
   useLedgerStore(ledger);
   resetGuard();
+  resetContactGuard();
+  vi.mocked(budgetStore.canSendTransactional).mockClear();
   vi.spyOn(emailService, "sendTo").mockImplementation(async (m) => {
     sent.push(m);
     return { ok: true, messageId: "m" };
@@ -118,6 +126,28 @@ describe("POST /api/subscribe", () => {
     expect(sent).toHaveLength(1);
     expect(sent[0].to).toBe("ann@example.com");
     expect(sent[0].text).toContain(`${env.SITE_URL}/subscribe/confirm?token=`);
+  });
+
+  it("sends the confirmation only when the transactional budget has room, and answers the same either way", async () => {
+    vi.mocked(budgetStore.canSendTransactional).mockResolvedValueOnce(false);
+    const refused = await signup(app());
+    await new Promise((r) => setTimeout(r, 20));
+    expect(budgetStore.canSendTransactional).toHaveBeenCalled();
+    expect(sent).toHaveLength(0);
+    const allowed = await signup(app(), { email: "bob@example.com" });
+    await flush();
+    expect(sent).toHaveLength(1);
+    expect([refused.status, refused.body]).toEqual([allowed.status, allowed.body]);
+    expect([refused.status, refused.body]).toEqual([202, { ok: true }]);
+  });
+
+  it("stops mailing at the daily signup ceiling and still answers 202", async () => {
+    for (let i = 0; i < env.SIGNUP_DAILY_MAIL_CEILING; i++) expect(reserveSignupMail()).toBe(true);
+    const r = await signup(app());
+    await new Promise((res) => setTimeout(res, 20));
+    expect(r.status).toBe(202);
+    expect(r.body).toEqual({ ok: true });
+    expect(sent).toHaveLength(0);
   });
 
   it("mails nobody for an active or suppressed address, and never re-adds a suppressed one", async () => {
