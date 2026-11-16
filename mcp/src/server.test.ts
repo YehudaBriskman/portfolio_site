@@ -437,6 +437,20 @@ describe("translation tools (#307)", () => {
     });
   });
 
+  it.each(["..", "../collections", "a/b", "hello%2F..", "a?x=1", "a#b", "A B"])("put_translation refuses the item id %j before any admin call is made", async (id) => {
+    const { call, api } = await connect(TOKEN, routes());
+    let refused = false;
+    try {
+      const r = await call("put_translation", { type: "post", id, units: { excerpt: "x" }, dryRun: false });
+      refused = !!r.isError;
+    } catch {
+      refused = true;
+    }
+    expect(refused).toBe(true);
+    expect(api.calls.filter((c) => c.path.startsWith("/api/admin/posts"))).toHaveLength(0);
+    expect(api.writes()).toHaveLength(0);
+  });
+
   it("put_translation reads a content document's revision, and sends an area with no rev, noting it goes live", async () => {
     const { call, api } = await connect(TOKEN, routes());
     await call("put_translation", { type: "project", id: "windom", units: { fact: "עובדה" }, dryRun: false });
