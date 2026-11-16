@@ -1335,6 +1335,15 @@
        `.float-glass` in index.css. */
   }
 
+  /* The glyph on colourless glass (#891): two 2px bars, each ringed by a 2px solid ring of the
+     opposite tone (--glass-halo) so it reads on black and on white alike. */
+  .toggle .bars::before,
+  .toggle .bars::after {
+    height: 2px;
+    border-radius: 1px;
+    box-shadow: 0 0 0 2px var(--glass-halo);
+  }
+
   .word {
     display: none;
   }

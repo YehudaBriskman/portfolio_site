@@ -25,11 +25,19 @@ describe("float-glass", () => {
     expect(block).toMatch(/-webkit-backdrop-filter:\s*var\(--glass-blur\)/);
   });
 
-  it("is translucent but dense enough that text behind is not readable (>= 0.78)", () => {
+  it("is colourless glass: a near-clear neutral tint (<= 0.2), a strong blur, no ground of its own (#891)", () => {
     const m = index.match(/--glass-bg:\s*rgb\(var\(--paper\)\s*\/\s*([\d.]+)\)/);
     expect(m).not.toBeNull();
-    expect(Number(m![1])).toBeGreaterThanOrEqual(0.78);
-    expect(Number(m![1])).toBeLessThan(1);
+    expect(Number(m![1])).toBeLessThanOrEqual(0.2);
+    expect(Number(m![1])).toBeGreaterThan(0);
+    expect(index).toMatch(/--glass-blur:\s*blur\((1[6-9]|[2-9]\d)px\)/);
+  });
+
+  it("keeps the label and icon legible on any backdrop with a halo, not a ground", () => {
+    expect(index).toMatch(/--glass-halo:\s*rgb\(var\(--paper\)\)/);
+    const block = index.slice(index.indexOf("html .float-glass {"));
+    expect(block).toMatch(/text-shadow:\s*var\(--glass-text-halo\)/);
+    expect(bare(src("components/Nav.module.css"))).toMatch(/\.toggle \.bars::(before|after)[^}]*var\(--glass-halo\)/);
   });
 
   it("falls back to a solid surface with no backdrop-filter or with reduced transparency", () => {

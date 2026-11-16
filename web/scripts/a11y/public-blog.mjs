@@ -11,7 +11,7 @@
  *   - the note rows are 64+ tall, whole row one target, with a chevron;
  *   - the filter still filters (the tag results are only that tag's notes);
  *   - the reader: Contents, Text size and Share in one fixed floating bar,
- *     shared float-glass (blur, dense fill), 44+ tall, above the safe area; Text size steps the
+ *     shared float-glass (blur, colourless: no ground of its own), 44+ tall, above the safe area; Text size steps the
  *     reading scale; the bar tucks when scrolled down, returns when scrolled
  *     up, and is shown by focus; it never covers the end of the page;
  *   - at 1280 and 768 none of it is there: no phone-only box has a size.
@@ -190,8 +190,9 @@ await Promise.all(
     else {
       if (!p.fixed) fail(tag, "reader bar is not fixed");
       if (!p.blur) fail(tag, "reader bar lost the shared glass (no backdrop blur)");
+      /* Colourless glass (#891): the text behind is hidden by the blur, not by a ground. */
       const alpha = /rgba?\(.*,\s*([\d.]+)\)\s*$/.exec(p.bg);
-      if (alpha && Number(alpha[1]) < 0.78) fail(tag, `reader bar fill too thin to hide text behind it: ${p.bg}`);
+      if (alpha && Number(alpha[1]) > 0.2) fail(tag, `reader bar has a ground of its own: ${p.bg}`);
       if (p.bottomGap < 8) fail(tag, `reader bar ${p.bottomGap}px from the bottom`);
       if (p.buttons.length !== 3) fail(tag, `reader bar has ${p.buttons.length} controls, want Contents, Text size, Share: ${JSON.stringify(p.buttons)}`);
       if (p.buttons.some((b) => b.h < 44 || b.w < 44)) fail(tag, `bar controls under 44: ${JSON.stringify(p.buttons)}`);
