@@ -54,6 +54,9 @@ const EnvSchema = z.object({
   // The remote MCP server (/mcp, with its own OAuth). Off: its paths answer 404.
   MCP_REMOTE: z.enum(['off', 'on']).default('off'),
   // A GitHub OAuth app of its own; callback <SITE_URL>/mcp/oauth/github/callback.
+  // Requests per minute per client address: /mcp/public (no sign-in) and /mcp (Bearer) are separate buckets.
+  MCP_PUBLIC_RATE_LIMIT: z.coerce.number().int().min(1).default(60),
+  MCP_RATE_LIMIT: z.coerce.number().int().min(1).default(120),
   MCP_GITHUB_CLIENT_ID: z.string().optional(),
   MCP_GITHUB_CLIENT_SECRET: z.string().optional(),
   // The owner's numeric GitHub id. Without it the id is recorded at the first sign-in and held to.

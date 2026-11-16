@@ -396,7 +396,11 @@ export function createMcpRouter(app: Express) {
   }
 
   const json = express.json({ limit: "1mb" });
-  const mcpLimiter = limiter(60_000, 120);
+  // Two buckets: an unauthenticated flood of /mcp/public must not spend a
+  // signed-in client's allowance, nor the reverse. Limits are per minute per
+  // address, from MCP_PUBLIC_RATE_LIMIT / MCP_RATE_LIMIT.
+  const publicLimiter = limiter(60_000, env.MCP_PUBLIC_RATE_LIMIT);
+  const mcpLimiter = limiter(60_000, env.MCP_RATE_LIMIT);
   const toDocs: RequestHandler = (req, res, next) => (wantsHtml(req) ? res.redirect(303, "/developers/mcp") : next());
   const notAllowed: RequestHandler = (_req, res) =>
     res.status(405).set("Allow", "POST").json({ jsonrpc: "2.0", error: { code: -32000, message: "Method not allowed." }, id: null });
@@ -410,12 +414,12 @@ export function createMcpRouter(app: Express) {
 
   router.options("/mcp/public", publicCors);
   router.options("/mcp", authCors);
-  router.get("/mcp/public", publicCors, toDocs, notAllowed);
-  router.delete("/mcp/public", publicCors, notAllowed);
+  router.get("/mcp/public", publicCors, publicLimiter, toDocs, notAllowed);
+  router.delete("/mcp/public", publicCors, publicLimiter, notAllowed);
   router.post(
     "/mcp/public",
     publicCors,
-    mcpLimiter,
+    publicLimiter,
     json,
     asyncHandler((req, res) => serve(req, res, "public", null)),
   );

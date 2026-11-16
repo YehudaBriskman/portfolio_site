@@ -21,7 +21,15 @@ RUN npm run build
 
 # Pinned by digest for the same reason as the builder; the floating
 # `nginx:alpine` meant a build was as old as whatever the builder had cached.
-FROM nginx:alpine@sha256:785835ea65db4bba6f021acc0f3be91b0fef76a53fe41f8588c6698d2aed0606 AS runner
+#
+# The unprivileged build of the same nginx: master and workers run as uid 101,
+# the pid file and temp paths are writable by that user, and it already listens
+# on 8080, which is the port this image has always served on (so no Service,
+# probe or Ingress changes). Dependabot moves the digest.
+FROM nginxinc/nginx-unprivileged:alpine@sha256:b5047b9b76845eac124358373c6852377c52e4b05834a47647e955dd91cb8f1e AS runner
+
+# Root only for the package step below and the file copies; the image ends as 101.
+USER root
 
 # `apk upgrade` because nearly every finding on this image is an Alpine
 # package (curl, libexpat, pcre2, libuuid, brotli) fixed upstream before the
@@ -78,6 +86,12 @@ COPY security-headers.conf /etc/nginx/snippets/security-headers.conf
 # The request headers every proxy_pass location sends upstream, for the same
 # reason and to the same place: proxy_set_header does not inherit either.
 COPY proxy-headers.conf /etc/nginx/snippets/proxy-headers.conf
+
+# conf.d is where the entrypoint writes the rendered template; the base image
+# makes it writable for uid 101, and this keeps that true for what was copied above.
+RUN chown -R 101:101 /etc/nginx/conf.d
+
+USER 101
 
 EXPOSE 8080
 
