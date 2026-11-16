@@ -7,9 +7,8 @@ import { logger } from "../logger.js";
  *
  *  - SEND_ENABLED=false in the environment holds EVERY outgoing mail (campaigns,
  *    test sends, confirmations, the contact form) at the provider. It needs a
- *    restart of the container, not a deploy. Unset or empty means on; so does an
- *    explicit on value (true/1/on/yes/enabled). Any other value, a typo included,
- *    holds mail: a kill switch that a typo leaves open is not one.
+ *    restart of the container, not a deploy. Only an explicit off value counts, so
+ *    a typo cannot silently turn sending off; unset means on.
  *  - The owner's pause (one click in Marketing > Campaigns) holds campaigns: the
  *    tick, test sends and queueing. Confirmation mails keep going, because a pause
  *    that swallowed them would lose people who signed up in good faith.
@@ -21,13 +20,10 @@ import { logger } from "../logger.js";
 export const SWITCH_ID = "sender:switch";
 export type SwitchDoc = { _id: typeof SWITCH_ID; _rev?: string; type: "sender-switch"; paused: boolean; at: string };
 
-const ON = new Set(["true", "1", "on", "yes", "enabled"]);
+const OFF = new Set(["false", "0", "off", "no", "disabled"]);
 
-/** True when the environment says no mail leaves, whatever the settings say. Unset/empty and the known on values send; every other value (the known off ones and anything unrecognised) holds. Read live so a test (or a restart with a new value) sees it. */
-export const sendDisabledByEnv = (): boolean => {
-  const v = (env.SEND_ENABLED ?? "").trim().toLowerCase();
-  return v !== "" && !ON.has(v);
-};
+/** True when the environment says no mail leaves, whatever the settings say. Read live so a test (or a restart with a new value) sees it. */
+export const sendDisabledByEnv = (): boolean => OFF.has((env.SEND_ENABLED ?? "").trim().toLowerCase());
 
 export async function readSwitch(): Promise<SwitchDoc | null> {
   try {

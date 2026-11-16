@@ -404,7 +404,7 @@ Two switches, both fail safe (`campaigns/killSwitch.ts`).
 | | What it holds | How | Lifted by |
 |---|---|---|---|
 | **Pause all sending** | every campaign: the tick, test sends, scheduling and send-now (423 `paused`) | one click in Marketing > Campaigns (`POST /api/admin/campaigns/sending {paused:true}`, stored in the doc `sender:switch`) | "Resume sending", with a confirm |
-| **`SEND_ENABLED=false`** | **every** outgoing mail: campaigns, tests, confirmations, the contact form, owner notices | environment of the API container; off values: `false`, `0`, `off`, `no`, `disabled`; on values: `true`, `1`, `on`, `yes`, `enabled`, or unset/empty. **Any other value, a typo included, holds mail (fails closed)** | removing it and restarting the container. No deploy, no code change. The admin page shows it but cannot lift it |
+| **`SEND_ENABLED=false`** | **every** outgoing mail: campaigns, tests, confirmations, the contact form, owner notices | environment of the API container; accepted off values: `false`, `0`, `off`, `no`, `disabled` (anything else, including a typo or unset, means on) | removing it and restarting the container. No deploy, no code change. The admin page shows it but cannot lift it |
 
 - A pause takes effect at the **next recipient**, not the next batch. Campaigns keep their
   status (`scheduled` or `sending`); resuming continues with the people not yet handled and
