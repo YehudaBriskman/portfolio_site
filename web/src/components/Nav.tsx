@@ -331,7 +331,7 @@ export default function Nav() {
           aria-expanded={open}
           aria-controls={panelId}
           aria-label={w.menu}
-          className={styles.toggle}
+          className={`${styles.toggle} float-glass`}
         >
           <span className={styles.word} aria-hidden="true">
             {w.menu}

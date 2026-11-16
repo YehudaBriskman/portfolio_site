@@ -1,4 +1,5 @@
 import { useState, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
 import { Link, useNavigate } from "react-router-dom";
 import { Icon } from "@/components/ui/Icon";
 import { NAV_GLYPH } from "@/components/ui/icons";
@@ -62,7 +63,11 @@ export default function FloatingBack({ to, label, gap }: { to: string; label: st
   return (
     <>
       <div className={styles.spacer} style={gap ? ({ "--back-row-gap": gap } as CSSProperties) : undefined} aria-hidden="true" />
-      <div className={styles.float} data-floating-back="">
+      {/* Portalled to <body>: a `position: fixed` box is still painted in the
+          stacking context of its ancestors, and the post's header is
+          `isolate`, which trapped this pill's z-index under the article. */}
+      {createPortal(
+      <div className={`${styles.float} float-glass`} data-floating-back="">
         <Link to={to} className={styles.link} aria-label={label} title={label} data-back-chip="">
           <span className={styles.arrow} aria-hidden="true">
             <Icon icon={NAV_GLYPH.back} size={20} className={styles.glyph} />
@@ -90,7 +95,9 @@ export default function FloatingBack({ to, label, gap }: { to: string; label: st
             )}
           </DropdownMenuContent>
         </DropdownMenu>
-      </div>
+      </div>,
+      document.body,
+      )}
     </>
   );
 }

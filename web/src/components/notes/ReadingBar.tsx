@@ -217,7 +217,7 @@ export default function ReadingBar({
         }}
       >
         {sizeOpen && prefs && setPrefs && (
-          <div id={sizeId} className={styles.sizePanel} role="group" aria-label={w.textSize}>
+          <div id={sizeId} className={`${styles.sizePanel} float-glass`} role="group" aria-label={w.textSize}>
             <span className={styles.toolLabel} aria-hidden="true">
               {w.textSize}
             </span>
@@ -250,7 +250,7 @@ export default function ReadingBar({
             </span>
           </div>
         )}
-        <div className={styles.barPill} data-cols={editTo ? 4 : 3}>
+        <div className={`${styles.barPill} float-glass`} data-cols={editTo ? 4 : 3}>
           <div
             ref={fillRef}
             aria-hidden="true"
