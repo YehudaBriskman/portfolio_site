@@ -29,6 +29,11 @@ const T = he
       body: "Content of the active tab",
     };
 
+/* ?newmenu=1 draws the split New button; on a phone its caret opens the bottom sheet (#864 shots). The kit words follow the document's language. */
+const params = new URLSearchParams(location.search);
+document.documentElement.lang = he ? "he" : "en";
+document.documentElement.dir = he ? "rtl" : "ltr";
+
 function Gallery() {
   const [tab, setTab] = useState("audience");
   const [confirm, setConfirm] = useState(new URLSearchParams(location.search).get("confirm") === "1");
@@ -43,6 +48,7 @@ function Gallery() {
         actionsLabel={T.actions}
         moreLabel={T.more}
         primary={{ id: "new", label: T.primary, icon: Plus, onSelect: () => {} }}
+        newMenu={params.get("newmenu") === "1"}
         secondary={{ id: "export", label: T.secondary, icon: Download, onSelect: () => {} }}
         more={[
           { id: "c", label: T.m1, onSelect: () => {} },

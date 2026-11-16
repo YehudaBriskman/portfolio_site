@@ -84,6 +84,8 @@ export function RowActions({ label, moreLabel, primary, actions, disabled = fals
   return (
     <span data-row-actions="" className={[styles.root, className].filter(Boolean).join(" ")} inert={disabled || table?.disabled || undefined}>
       <ControlBar label={label} moreLabel={moreLabel} items={items} max={pinned.size} size={size} density="compact" />
+      {/* In a table the More slot is kept when no menu is drawn, so the icons end at the same place in every row. */}
+      {table && items.length <= pinned.size && <span aria-hidden="true" data-row-actions-spacer="" className={`${styles.spacer} ${styles[size]}`} />}
     </span>
   );
 }

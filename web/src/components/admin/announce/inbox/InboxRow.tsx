@@ -5,7 +5,6 @@ import { iconOf } from "@/components/ui/Icon";
 import { StatusGlyph } from "@/components/ui/StatusGlyph";
 import { RowActions } from "@/components/ui/RowActions";
 import { useMobileWords } from "@/i18n/mobile";
-import { sortIssues, type Readiness } from "./readiness";
 import { kindWord } from "../kind";
 import { useMarketingWords } from "./words";
 
@@ -25,23 +24,22 @@ const DONE = ["linkedin", "instagram", "email", "x"] as const;
 
 /*
  * One line per event: kind, title, age, ONE status glyph, and the actions.
- * The status says something only when there is something to say: a warning
- * when the page has an issue, a check when every channel is sent; a row that
- * is simply waiting shows nothing. The title opens the composer; Copy LinkedIn
+ * The status says something only when there is something to say: a check when
+ * every channel is sent; a row that is simply waiting shows nothing. A page
+ * issue is not drawn per row: the inbox groups those rows under one warning
+ * header (A5, say it once). The title opens the composer; Copy LinkedIn
  * is the one action drawn, Copy X sits in More. Per-channel progress and the
  * issue chips live in the composer.
  */
 export default function InboxRow({
   event,
   selected,
-  readiness,
   onOpen,
   onCopy,
   note,
 }: {
   event: AnnounceSummary;
   selected: boolean;
-  readiness: Readiness | undefined;
   onOpen: () => void;
   onCopy: (channel: "linkedin" | "x") => void;
   note?: string;
@@ -50,10 +48,7 @@ export default function InboxRow({
   const more = useMobileWords().selection.more;
   const Icon = ICONS[event.kind] ?? ICONS.custom;
   const unread = !event.readAt;
-  const issues = readiness?.state === "ready" ? sortIssues(readiness.issues) : [];
   const sent = DONE.every((c) => Boolean(c === "email" ? event.done.email ?? event.done.gmail : event.done[c as AnnounceChannel]));
-  const worst = issues.some((i) => i.severity === "error");
-  const issueText = issues.map((i) => w.chips[i.code]).join(", ");
   return (
     <li className="mk-row" data-selected={selected || undefined} data-unread={unread || undefined} data-id={event.id}>
       <button type="button" className="mk-row-main" onClick={onOpen} aria-label={w.openComposer(event.title)} aria-current={selected ? "true" : undefined}>
@@ -74,11 +69,7 @@ export default function InboxRow({
         </span>
       </button>
       <span className="mk-status1">
-        {issues.length > 0 ? (
-          <StatusGlyph kind="attention" tone={worst ? "danger" : "attention"} label={issueText} />
-        ) : sent ? (
-          <StatusGlyph kind="sent" label={w.channelsState} />
-        ) : null}
+        {sent ? <StatusGlyph kind="sent" label={w.channelsState} /> : null}
       </span>
       <RowActions
         label={event.title}

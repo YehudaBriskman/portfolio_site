@@ -154,11 +154,8 @@ export default function AudienceDesktop() {
 
   return (
     <div className="max-w-5xl space-y-6" data-testid="audience">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h2 className="display-tight text-xl">{w.heading}</h2>
-          <p className="a-hint">{w.intro}</p>
-        </div>
+      {/* The hub's description already says what this part is for (A5). */}
+      <div className="flex flex-wrap items-start justify-end gap-3">
         <ControlBar label={w.actionsLabel} moreLabel={w.more} items={actions} max={2} className="!gap-2" />
       </div>
 

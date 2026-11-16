@@ -75,8 +75,6 @@ export default function LibraryPanel() {
 
   return (
     <div className="max-w-5xl space-y-8" data-testid="library">
-      {/* The hub names the page; this is the part's name for a screen reader (Campaigns does the same). */}
-      <h2 className="sr-only">{w.heading}</h2>
       <LibraryPhone wide doc={doc} events={events} footerBar={<>{issuesBlock}{saveBar}</>} />
       <VisitorTemplates />
     </div>
