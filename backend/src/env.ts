@@ -72,6 +72,10 @@ const EnvSchema = z.object({
   // Canonical origin, trailing slash stripped; every absolute URL is built from it.
   // Signs confirm/unsubscribe links. Unset: a generated secret in the admin-only store.
   SUBSCRIBE_SECRET: z.string().min(16).optional(),
+  // Key for the suppression ledger's address hash (HMAC-SHA256). Generate with `openssl rand -hex 32`. Unset: the legacy unkeyed hash, one warning at boot.
+  EMAIL_HASH_KEY: z.string().min(32).optional().or(z.literal('').transform(() => undefined)),
+  // How long a confirmation link lives, in days. Unsubscribe links never expire.
+  CONFIRM_TTL_DAYS: z.coerce.number().int().min(1).max(365).default(30),
   // Fails CLOSED: mail sends only when this is an explicit on value (true/1/yes/on, case-insensitive). Unset, empty, off or a typo holds every send. Needs a restart, not a deploy.
   SEND_ENABLED: z.string().optional(),
   // Resend webhook signing secret (`whsec_...`). Unset: the provider-event route answers 404.
