@@ -740,6 +740,11 @@ jobs:
       - name: Public matrix self-test
         if: matrix.shard == 1
         run: npm run a11y:public-matrix:selftest
+      # The floating menu circle is colourless glass (#891): legible over
+      # black and white, light and dark, en and he.
+      - name: Menu circle contrast over black and white
+        if: matrix.shard == 1
+        run: npm run a11y:public-glass
       - name: Public phone matrix, shard ${{ matrix.shard }} of ${{ matrix.of }}
         env:
           SHARD: ${{ matrix.shard }}/${{ matrix.of }}
