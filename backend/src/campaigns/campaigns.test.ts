@@ -1297,13 +1297,18 @@ describe("the kill switch", () => {
     expect(sent).toHaveLength(2);
   });
 
-  it.each(["false", "FALSE", " 0 ", "off", "no", "disabled"])("%j counts as off, and a typo or true does not", async (v) => {
+  it.each(["false", "FALSE", " 0 ", "off", "no", "disabled"])("%j counts as off, and an explicit on value or unset does not", async (v) => {
     env.SEND_ENABLED = v;
     expect((await sendingState()).envDisabled).toBe(true);
-    for (const ok of ["true", "1", "on", "fasle", ""]) {
+    for (const ok of ["true", "TRUE", " 1 ", "on", "yes", "enabled", "", "  ", undefined]) {
       env.SEND_ENABLED = ok;
       expect((await sendingState()).envDisabled).toBe(false);
     }
+  });
+
+  it.each(["fasle", "flase", "of", "nope", "2", "maybe", "null"])("an unknown value %j fails closed (sending held)", async (v) => {
+    env.SEND_ENABLED = v;
+    expect((await sendingState()).envDisabled).toBe(true);
   });
 
   it("fails closed: an unreadable switch holds the campaigns instead of sending", async () => {
