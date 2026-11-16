@@ -1,9 +1,10 @@
 import { couch } from "../db/couch.js";
 import { auditEntry } from "../services/audit.js";
+import { env } from "../env.js";
 import { logger } from "../logger.js";
 import { deleteContact, deleteSendDocs, scanContacts, updateContact } from "../audience/store.js";
 import type { Contact } from "../audience/schemas.js";
-import { ledgerClear, ledgerEntries, ledgerPut, writeReport, type LedgerEntry, type LedgerKind } from "../audience/ledger.js";
+import { findEntry, keyedHash, ledgerClear, ledgerEntries, ledgerPut, writeReport, type LedgerEntry, type LedgerKind } from "../audience/ledger.js";
 
 /*
  * The sender guard: the sender does not run unless the suppression ledger can
@@ -26,7 +27,8 @@ export type GuardResult = { ok: true; repaired: number } | { ok: false; reason: 
 
 let lastBackfill = 0;
 let lastWarn = 0;
-export const resetGuard = () => { lastBackfill = 0; lastWarn = 0; };
+let lastKeyedScan = 0;
+export const resetGuard = () => { lastBackfill = 0; lastWarn = 0; lastKeyedScan = 0; };
 
 const expired = (e: LedgerEntry, nowMs: number) => e.kind === "erased" && !!e.expiresAt && Date.parse(e.expiresAt) <= nowMs;
 
@@ -38,8 +40,8 @@ async function backfill(known: ReadonlyMap<string, LedgerEntry>, nowMs: number):
   for await (const c of scanContacts()) {
     if (c.status !== "unsubscribed" && c.status !== "suppressed") continue;
     const hash = c._id.slice("contact:".length);
-    if (known.has(hash)) continue;
-    await ledgerPut(hash, c.status);
+    if (findEntry(known, hash, c.email)) continue;
+    await ledgerPut(hash, c.status, new Date(), c.email);
     n++;
   }
   return n;
@@ -75,6 +77,16 @@ export async function ledgerGuard(nowMs = Date.now()): Promise<GuardResult> {
       const docs = await couch.docs<Contact>([...part.keys()].map((h) => `contact:${h}`));
       for (const c of docs) {
         const e = part.get(c._id.slice("contact:".length));
+        if (e && (await repairOne(c, e))) repaired[e.kind]++;
+      }
+    }
+    /* Keyed lines carry no contact id: match them by scanning, at the backfill pace (the sender's per-recipient check is the gate in between). */
+    if (env.EMAIL_HASH_KEY && live.length > 0 && nowMs - lastKeyedScan >= BACKFILL_EVERY_MS) {
+      lastKeyedScan = nowMs;
+      const byKey = new Map(live);
+      for await (const c of scanContacts()) {
+        const k = c.status === "active" && c.email ? keyedHash(c.email) : null;
+        const e = k ? byKey.get(k) : undefined;
         if (e && (await repairOne(c, e))) repaired[e.kind]++;
       }
     }

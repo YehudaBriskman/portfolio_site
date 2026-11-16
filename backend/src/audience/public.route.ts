@@ -84,7 +84,7 @@ router.post(
     const consent: Consent = { textId: text.id, textHash: text.sha256, lang: b.lang, at: now, source: "site" };
     const ttl = (await loadSettings()).sender.pendingTtlDays;
     // A suppressed address stays suppressed even when its contact document is gone (a restore, a deletion): same silent answer.
-    if ((await ledgerGet(hash).catch(() => null))?.kind === "suppressed") {
+    if ((await ledgerGet(hash, b.email).catch(() => null))?.kind === "suppressed") {
       countSignup("suppressed");
       return res.status(202).json(ACCEPTED);
     }
@@ -172,9 +172,9 @@ router.post(
       return badLink(res);
     }
     // The ledger is read, and cleared, BEFORE the contact turns active: a crash between leaves a pending contact, never a mailable one the ledger still blocks.
-    const held = await ledgerGet(hash);
+    const held = await ledgerGet(hash, contact.email);
     if (held?.kind === "suppressed") return badLink(res);
-    if (held) await ledgerClear(hash);
+    if (held) await ledgerClear(hash, contact.email);
     const now = new Date().toISOString();
     const updated = await updateContact(hash, (c) => {
       if (c.status !== "pending") return false;
@@ -209,7 +209,7 @@ router.post(
     const { hash, contact } = found;
     if (contact.status !== "unsubscribed" && contact.status !== "suppressed") {
       // Ledger first. A mail client's one-click POST is not retried, so an outage here must not undo the person's choice: the guard backfills it.
-      await ledgerPutQuietly(hash, "unsubscribed");
+      await ledgerPutQuietly(hash, "unsubscribed", contact.email);
       countSignup("unsubscribed");
       await updateContact(hash, (c) => {
         if (c.status === "suppressed" || c.status === "unsubscribed") return false;

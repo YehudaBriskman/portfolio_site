@@ -10,13 +10,12 @@ import { resolveSender } from "../campaigns/config.js";
 import { expiresIn, signToken } from "./tokens.js";
 
 const DAY = 86_400;
-export const UNSUB_TTL_SECONDS = 3 * 365 * DAY;
 export const MANAGE_TTL_SECONDS = 3 * 365 * DAY;
 
 export const pageUrl = (path: string, token: string) => `${env.SITE_URL}${path}?token=${encodeURIComponent(token)}`;
 
 export async function unsubscribeUrls(hash: string) {
-  const token = await signToken({ t: "unsub", h: hash, exp: expiresIn(UNSUB_TTL_SECONDS) });
+  const token = await signToken({ t: "unsub", h: hash });
   return {
     page: pageUrl("/unsubscribe", token),
     /* RFC 8058 target: a POST with `List-Unsubscribe=One-Click`; the token rides in the query. */
@@ -99,7 +98,7 @@ export async function sendConfirmMail(contact: Contact, hash: string): Promise<b
   try {
     const sender = (await loadSettings()).sender;
     const from = resolveSender(sender);
-    const token = await signToken({ t: "confirm", h: hash, exp: expiresIn(sender.pendingTtlDays * DAY) });
+    const token = await signToken({ t: "confirm", h: hash, exp: expiresIn(env.CONFIRM_TTL_DAYS * DAY) });
     const mail = renderConfirmMail(contact, pageUrl("/subscribe/confirm", token), sender);
     const r = await emailService.sendTo({ to: contact.email, ...mail, from: from.from, replyTo: from.replyTo });
     // The provider's error text can quote the recipient, a stranger's address: log its class only.
