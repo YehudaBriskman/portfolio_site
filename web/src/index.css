@@ -1362,6 +1362,32 @@
     scrollbar-gutter: stable;
   }
 
+  /*
+   * A modal popup must not move the page (#889).
+   *
+   * Radix menus lock scroll through react-remove-scroll, which injects
+   * `body[data-scroll-locked] { overflow: hidden; padding-right: Npx; margin-right: Npx }`
+   * (all !important). Here that is harmful twice over. `html` is
+   * `overflow-x: clip`, so a `hidden` body is NOT handed to the viewport: it
+   * becomes a scroll container of its own, every `position: sticky` (the admin
+   * top bar and sidebar) re-anchors to it and rides up by exactly the page's
+   * scrollY, and with `scrollbar-gutter: stable` above it also reserves a
+   * gutter, narrowing the page by a scrollbar. And the viewport keeps its own
+   * scrollbar, so the padding it adds to "replace" it is a second shift.
+   *
+   * The lock itself is not lost: the library still swallows wheel, touch and
+   * key scrolling outside the popup. So the page keeps the overflow it has
+   * and gets no compensation. A layered !important beats the library's
+   * unlayered one (the cascade inverts for !important), whatever order the
+   * style tag lands in.
+   */
+  html body[data-scroll-locked] {
+    overflow: clip visible !important;
+    scrollbar-gutter: auto !important;
+    padding-right: 0 !important;
+    margin-right: 0 !important;
+  }
+
   :focus-visible {
     outline: 2px solid rgb(var(--bone));
     outline-offset: 3px;
