@@ -630,6 +630,12 @@ jobs:
       - name: Admin sidebar
         if: matrix.check == 'admin-matrix' && matrix.shard == 2
         run: npm run a11y:admin-sidebar
+      # Opening any admin menu or dialog leaves the top bar, sidebar, main and
+      # scroll position where they were (#889), page scrolled or not, 1280 and
+      # 390, both languages and themes.
+      - name: Admin popup stability
+        if: matrix.check == 'admin-matrix' && matrix.shard == 2
+        run: npm run a11y:admin-popup-stability
       # The measurable admin rules (#833): sticky table header, one h1, no
       # repeated text, no clipped text, 8px between controls and no overlap,
       # 44px primary targets on a phone, names on icon-only controls, no red
