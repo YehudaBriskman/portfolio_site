@@ -40,8 +40,8 @@
   overflow: hidden;
 }
 
-/* The rows of a group inside a group start 8px (--a-s-2, A7) below its own heading. */
-.children .collapse > .children {
+/* The rows of a group start 8px (--a-s-2, A7) below its own heading, at every level. */
+.collapse > .children {
   padding-block-start: 0.5rem;
 }
 

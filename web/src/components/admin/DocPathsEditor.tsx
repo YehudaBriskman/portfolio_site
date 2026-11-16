@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useAreaEditorWords, type AreaEditorWords } from "@/i18n/areaEditor";
 
 /*
  * The repository publish allowlist.
@@ -22,23 +23,24 @@ export type DocPathsEditorProps = {
   onChange: (paths: string[]) => void;
 };
 
-function validate(value: string, existing: string[]): string | null {
+function validate(value: string, existing: string[], w: AreaEditorWords): string | null {
   const v = value.trim();
-  if (!v) return "Enter a path.";
-  if (v.length > MAX_LENGTH) return `Longer than ${MAX_LENGTH} characters.`;
-  if (v.startsWith("/")) return "Use a path relative to the repository root.";
-  if (v.split("/").includes("..")) return "Paths may not climb out of the repository.";
-  if (existing.includes(v)) return "Already listed.";
-  if (existing.length >= MAX_PATHS) return `At most ${MAX_PATHS} paths.`;
+  if (!v) return w.enterPath;
+  if (v.length > MAX_LENGTH) return w.pathLong(MAX_LENGTH);
+  if (v.startsWith("/")) return w.pathRelative;
+  if (v.split("/").includes("..")) return w.pathClimb;
+  if (existing.includes(v)) return w.pathListed;
+  if (existing.length >= MAX_PATHS) return w.pathMax(MAX_PATHS);
   return null;
 }
 
 export default function DocPathsEditor({ paths, repoLabel, onChange }: DocPathsEditorProps) {
+  const w = useAreaEditorWords();
   const [entry, setEntry] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   function add() {
-    const problem = validate(entry, paths);
+    const problem = validate(entry, paths, w);
     if (problem) {
       setError(problem);
       return;
@@ -55,14 +57,12 @@ export default function DocPathsEditor({ paths, repoLabel, onChange }: DocPathsE
   return (
     <div className={`a-card border-l-2 p-4 ${paths.length ? "border-l-sodium" : "border-l-edge"}`}>
       <p className="mono text-sm uppercase tracking-[0.22em] text-clay">
-        {paths.length ? `${paths.length} of ${MAX_PATHS} paths published` : "Allowlist empty"}
+        {paths.length ? w.pathsCount(paths.length, MAX_PATHS) : w.allowEmpty}
       </p>
 
       {paths.length === 0 ? (
         <p className="mt-2 text-sm leading-relaxed text-bone/75">
-          Nothing is published from <span className="mono text-bone">{repoLabel || "this repository"}</span>.
-          Add a path only when you have read what is in it. A repository holds plenty that was
-          never meant to be public.
+          {w.nothingA}<bdi className="mono text-bone" dir="ltr">{repoLabel || w.thisRepo}</bdi>{w.nothingB}
         </p>
       ) : (
         <ul className="mt-3 space-y-2">
@@ -72,13 +72,13 @@ export default function DocPathsEditor({ paths, repoLabel, onChange }: DocPathsE
               <span className="mono shrink-0 text-sm uppercase tracking-[0.16em] text-clay">
                 {/* The trailing slash decides folder-vs-file, and that is not
                     something anyone should have to guess. */}
-                {p.endsWith("/") ? "everything under this folder" : "one file"}
+                {p.endsWith("/") ? w.folder : w.oneFile}
               </span>
               <button
                 type="button"
                 onClick={() => remove(p)}
                 className="a-btn a-btn-ghost a-icon-btn shrink-0"
-                aria-label={`Remove ${p} from the allowlist`}
+                aria-label={w.removePath(p)}
               >
                 <span aria-hidden="true">✕</span>
               </button>
@@ -89,7 +89,7 @@ export default function DocPathsEditor({ paths, repoLabel, onChange }: DocPathsE
 
       <div className="mt-4 flex flex-col gap-2 sm:flex-row">
         <label className="min-w-0 flex-1">
-          <span className="sr-only">Path to publish</span>
+          <span className="sr-only">{w.pathToPublish}</span>
           <input
             value={entry}
             onChange={(e) => { setEntry(e.target.value); setError(null); }}
@@ -102,12 +102,11 @@ export default function DocPathsEditor({ paths, repoLabel, onChange }: DocPathsE
             aria-invalid={error ? "true" : undefined}
           />
         </label>
-        <button type="button" onClick={add} className="a-btn shrink-0">Add path</button>
+        <button type="button" onClick={add} className="a-btn shrink-0">{w.addPath}</button>
       </div>
       {error && <p className="a-error">{error}</p>}
       <p className="a-hint">
-        A trailing slash publishes a whole folder; without one it is a single file. Wildcards are
-        not expanded; they match literally.
+        {w.pathsHint}
       </p>
     </div>
   );

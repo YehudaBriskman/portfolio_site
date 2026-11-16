@@ -2853,7 +2853,7 @@
   /* ---- top bar */
   .a-top {
     position: sticky; top: 0; z-index: 40;
-    display: flex; align-items: center; gap: .375rem;
+    display: flex; align-items: center; gap: .5rem;
     /* A row of 3.5rem that grows: large text wraps the end group to a second row
        rather than squeezing the page title to a letter or pushing a button off screen. */
     flex-wrap: wrap; min-height: 3.5rem;
@@ -2888,6 +2888,7 @@
   .a-crumbs bdi { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .a-crumbs a { color: rgb(var(--ink-soft)); }
   .a-crumbs a:hover { background: var(--a-hover); color: rgb(var(--ink)); }
+  .a-crumbs .a-crumb-h1 { display: block; min-width: 0; margin: 0; font: inherit; }
   .a-crumbs [aria-current] { font-weight: 700; color: rgb(var(--ink)); }
   /* A phone keeps the page it is on; the trail is one tap away in the drawer. */
   @media (max-width: 767.98px) {

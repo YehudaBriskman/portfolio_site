@@ -84,11 +84,12 @@ export default function EditorFrame<T>({ title: rawTitle, section, intro: rawInt
       section={section}
       barEverywhere
       bottomBar={bar}
+      titleH1={phone}
     >
       <div className="a-wrap-narrow">
       {/* A phone's first screen is for the work: the top bar already says where you are, so the
-          title stays for assistive tech and the intro sentence is for the desktop. */}
-      {phone ? <h1 className="sr-only">{title}</h1> : <PageHeader title={title} description={intro} />}
+          title is the bar's own h1 and the intro sentence is for the desktop. */}
+      {!phone && <PageHeader title={title} description={intro} />}
 
       {loadError && <ErrorState message={loadError} />}
       {!loadError && view === null && <LoadingRows rows={3} />}

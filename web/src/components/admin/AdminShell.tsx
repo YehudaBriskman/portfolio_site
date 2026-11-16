@@ -101,6 +101,8 @@ export type AdminShellProps = {
   barEverywhere?: boolean;
   /** Right-hand side of the mobile top bar. */
   actions?: ReactNode;
+  /** A phone screen with no header of its own: the bar's page title is the one visible h1 (A2). */
+  titleH1?: boolean;
   children: ReactNode;
 };
 
@@ -168,24 +170,24 @@ const sameCounts = (a: ShellProps["counts"], b: ShellProps["counts"]) => {
 export default function AdminShell({ children, ...props }: AdminShellProps) {
   const slot = useContext(ShellSlotContext);
   const publish = slot?.publish;
-  const { title, section, counts, bottomBar, backTo, barEverywhere, actions } = props;
+  const { title, section, counts, bottomBar, backTo, barEverywhere, actions, titleH1 } = props;
   useLayoutEffect(() => {
     publish?.((cur) =>
-      cur && cur.title === title && cur.section === section && cur.bottomBar === bottomBar && cur.backTo === backTo && cur.barEverywhere === barEverywhere && cur.actions === actions && sameCounts(cur.counts, counts)
+      cur && cur.title === title && cur.section === section && cur.bottomBar === bottomBar && cur.backTo === backTo && cur.barEverywhere === barEverywhere && cur.actions === actions && cur.titleH1 === titleH1 && sameCounts(cur.counts, counts)
         ? cur
-        : { title, section, counts, bottomBar, backTo, barEverywhere, actions },
+        : { title, section, counts, bottomBar, backTo, barEverywhere, actions, titleH1 },
     );
   });
   /* The next page publishes its own; until it does (a chunk still loading) keep the title and drop what belongs to a screen's own controls. */
   useLayoutEffect(
-    () => () => publish?.((cur) => (cur ? { ...cur, bottomBar: undefined, backTo: undefined, barEverywhere: undefined, actions: undefined } : cur)),
+    () => () => publish?.((cur) => (cur ? { ...cur, bottomBar: undefined, backTo: undefined, barEverywhere: undefined, actions: undefined, titleH1: undefined } : cur)),
     [publish],
   );
   if (slot) return <>{children}</>;
   return <ShellFrame {...props}>{children}</ShellFrame>;
 }
 
-export function ShellFrame({ title, section, counts, bottomBar, backTo, barEverywhere, actions, children }: AdminShellProps) {
+export function ShellFrame({ title, section, counts, bottomBar, backTo, barEverywhere, actions, titleH1, children }: AdminShellProps) {
   const { pathname, search } = useLocation();
   const w = useAdminWords();
   const mobile = useMobileWords();
@@ -402,7 +404,7 @@ export function ShellFrame({ title, section, counts, bottomBar, backTo, barEvery
                 {c.to && i !== last ? (
                   <Link to={c.to}><bdi>{c.label}</bdi></Link>
                 ) : (
-                  <span aria-current="page"><bdi>{c.label}</bdi></span>
+                  <span aria-current="page">{titleH1 ? <h1 className="a-crumb-h1"><bdi>{c.label}</bdi></h1> : <bdi>{c.label}</bdi>}</span>
                 )}
               </li>
             ))}

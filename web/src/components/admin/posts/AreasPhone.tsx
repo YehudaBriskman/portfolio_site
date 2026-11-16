@@ -134,9 +134,8 @@ export default function AreasPhone() {
   const filtered = Boolean(status || kind || he || q.trim());
 
   return (
-    <AdminShell title={w.nav.areas} section="areas" counts={{ posts: posts?.length, areas: cols?.length }}>
+    <AdminShell title={w.nav.areas} section="areas" counts={{ posts: posts?.length, areas: cols?.length }} titleH1>
       <div className="a-wrap flex min-w-0 flex-col gap-3" data-testid="areas-phone">
-        <h1 className="sr-only">{w.nav.areas}</h1>
 
         {selection.on ? (
           <SelectionHeader selection={selection} total={visible.length} />

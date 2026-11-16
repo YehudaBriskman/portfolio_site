@@ -1,3 +1,5 @@
+import { useAreaEditorWords } from "@/i18n/areaEditor";
+
 /** `he` is the label in Hebrew (#306), for an editor that offers it. */
 export type LinkRow = { label: string; url: string; he?: string };
 
@@ -32,29 +34,30 @@ export default function LinkEditor({
   /** Offer each label in Hebrew too (#306): a note's links. */
   hebrew?: boolean;
 }) {
+  const w = useAreaEditorWords();
   const set = (i: number, k: keyof LinkRow, v: string) =>
     onChange(links.map((l, n) => (n === i ? { ...l, [k]: v } : l)));
 
   return (
     <div>
-      <span className="a-label">Links</span>
+      <span className="a-label">{w.links}</span>
       <ul className="space-y-3">
         {links.map((l, i) => (
           /* Stacked on a phone: a label, a URL and a remove button side by side
              left each field about 90px, which no URL survives. */
           <li key={i} className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <label className="sm:max-w-[12rem] sm:flex-1">
-              <span className="sr-only">Link label</span>
+              <span className="sr-only">{w.linkLabel}</span>
               <input
                 value={l.label}
                 onChange={(e) => set(i, "label", e.target.value)}
                 className="a-input"
-                placeholder="Source"
+                placeholder={w.linkSource}
               />
             </label>
             {hebrew && (
               <label className="sm:max-w-[12rem] sm:flex-1" data-path={`links.${i}.label`}>
-                <span className="sr-only">Link label in Hebrew</span>
+                <span className="sr-only">{w.linkLabelHe}</span>
                 <input
                   value={l.he ?? ""}
                   onChange={(e) => set(i, "he", e.target.value)}
@@ -66,7 +69,7 @@ export default function LinkEditor({
               </label>
             )}
             <label className="min-w-0 sm:flex-1">
-              <span className="sr-only">Link URL</span>
+              <span className="sr-only">{w.linkUrl}</span>
               <input
                 value={l.url}
                 onChange={(e) => set(i, "url", e.target.value)}
@@ -81,7 +84,7 @@ export default function LinkEditor({
               type="button"
               onClick={() => onChange(links.filter((_, n) => n !== i))}
               className="a-btn a-btn-ghost a-icon-btn shrink-0 self-end sm:self-auto"
-              aria-label={`Remove link ${l.label || i + 1}`}
+              aria-label={w.removeLink(l.label || String(i + 1))}
             >
               <span aria-hidden="true">✕</span>
             </button>
@@ -93,7 +96,7 @@ export default function LinkEditor({
         onClick={() => onChange([...links, hebrew ? { label: "", url: "", he: "" } : { label: "", url: "" }])}
         className="a-btn mt-4"
       >
-        Add link
+        {w.addLink}
       </button>
     </div>
   );
