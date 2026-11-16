@@ -263,9 +263,11 @@ jobs:
           API_IMAGE: ghcr.io/example/api@sha256:0000000000000000000000000000000000000000000000000000000000000000
         run: |
           set -Eeuo pipefail
-          # A mutable tag in a compose file is a deploy nobody chose.
-          if grep -nE '^[[:space:]]*image:.*:latest' docker-compose*.yml; then
-            echo "::error title=Mutable image tag in a compose file::Name the image by digest or by a pinned tag, not :latest."
+          # The CI compose file pulls from the registry: a mutable tag there is a
+          # deploy nobody chose. (docker-compose.yml's :latest is a locally built
+          # dev tag, not a pull, so it is outside this rule.)
+          if grep -nE '^[[:space:]]*image:.*:latest' docker-compose.ci.yml; then
+            echo "::error title=Mutable image tag in the CI compose file::Name the image by digest or by a pinned tag, not :latest."
             exit 1
           fi
           for files in \
