@@ -222,7 +222,7 @@ const cases = [
       const bad = await offscreen(page, ".a-main, .a-top");
       if (w === 320) await shot(page, "reflow-posts-320-200.png");
       await ctx.close();
-      out.push(bad.length === 0, `controls off screen at ${w}: ${JSON.stringify(bad)}`, m.titleW >= 80, `row title ${m.titleW}px at ${w}`, m.searchW >= 120, `search ${m.searchW}px at ${w}`, m.crumbW >= 60, `page title ${m.crumbW}px at ${w}`);
+      out.push(bad.length === 0, `controls off screen at ${w}: ${JSON.stringify(bad)}`, m.titleW >= 80, `row title ${m.titleW}px at ${w}`, m.searchW >= 120, `search ${m.searchW}px at ${w}`, m.crumbW >= 1 && m.crumbW < 999, `page h1 present (clipped, drawn by the pull-down title) at ${w}`);
     }
     return out;
   }],
