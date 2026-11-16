@@ -88,12 +88,26 @@ const groupView = (g: Group) => ({ slug: g._id.slice("audience:".length), name: 
 
 /* ---------------------------------------------------------------- groups -- */
 
+/*
+ * The housekeeping that used to ride on reading the lists: make sure the system
+ * group exists, add consent records to old contacts, drop expired pending
+ * signups. A POST, because it writes; the API also runs the first two at boot
+ * and the hourly sweep runs the third.
+ */
+router.post(
+  "/maintenance",
+  asyncHandler(async (_req, res) => {
+    await ensureSystemGroup();
+    const backfilled = await backfillConsent();
+    const purged = await purgeExpiredPending(Date.now(), true);
+    res.locals.audit = { target: "audience:maintenance", before: null, after: { backfilled, purged } };
+    res.json({ ok: true, backfilled, purged });
+  }),
+);
+
 router.get(
   "/groups",
   asyncHandler(async (_req, res) => {
-    await ensureSystemGroup();
-    void backfillConsent();
-    void purgeExpiredPending();
     const counts = new Map<string, { total: number; active: number }>();
     for await (const c of scanContacts()) {
       for (const g of c.groups) {
@@ -103,7 +117,13 @@ router.get(
         counts.set(g, n);
       }
     }
-    const groups = (await listGroups()).map((g) => {
+    // A read: the system group is created at boot and by POST /maintenance, so
+    // a store that has not had either yet still lists it.
+    const stored = await listGroups();
+    if (!stored.some((g) => g._id === `audience:${SYSTEM_GROUP}`)) {
+      stored.unshift({ _id: `audience:${SYSTEM_GROUP}`, type: "audience", name: "Subscribers", kind: "system", createdAt: new Date(0).toISOString() });
+    }
+    const groups = stored.map((g) => {
       const v = groupView(g);
       return { ...v, ...(counts.get(v.slug) ?? { total: 0, active: 0 }) };
     });
@@ -157,9 +177,10 @@ router.delete(
   asyncHandler(async (req, res) => {
     const slug = Slug.safeParse(req.params.slug);
     if (!slug.success) return invalid(res);
+    if (slug.data === SYSTEM_GROUP) return bad(res, "A system group cannot be deleted.", 409);
     const g = await getGroup(slug.data);
     if (!g) return bad(res, "No such group.", 404);
-    if (g.kind === "system" || slug.data === SYSTEM_GROUP) return bad(res, "A system group cannot be deleted.", 409);
+    if (g.kind === "system") return bad(res, "A system group cannot be deleted.", 409);
     // Contacts keep existing; they just stop being in the group.
     for await (const c of scanContacts()) {
       if (c.groups.includes(slug.data)) await updateContact(c._id.slice("contact:".length), (x) => { x.groups = x.groups.filter((s) => s !== slug.data); });
@@ -184,7 +205,6 @@ router.get(
   asyncHandler(async (req, res) => {
     const q = ContactsQuery.safeParse(req.query);
     if (!q.success) return invalid(res);
-    void purgeExpiredPending();
     const needle = q.data.q?.toLowerCase();
     const out: ReturnType<typeof view>[] = [];
     let next: string | null = null;

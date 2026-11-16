@@ -180,6 +180,31 @@ describe("the admin gate's identity headers (oci-free #22)", () => {
   });
 });
 
+describe("the internal MCP ticket header", () => {
+  const proxied = locations.filter((loc) => loc.block!.some((d) => d.name === "proxy_pass"));
+
+  it("is blanked on every proxied location, so a client cannot send one through the edge", () => {
+    // An empty value is not sent at all, which is how a client-supplied copy is dropped.
+    const wrong = proxied.filter((loc) => upstreamHeaders(loc).get("x-mcp-ticket") !== "").map(label);
+    expect(wrong).toEqual([]);
+  });
+});
+
+describe("the image runs unprivileged", () => {
+  const dockerfile = read("Dockerfile");
+
+  it("is built on the unprivileged nginx base, pinned by digest", () => {
+    expect(dockerfile).toMatch(/^FROM nginxinc\/nginx-unprivileged:[\w.-]+@sha256:[0-9a-f]{64} AS runner$/m);
+  });
+
+  it("ends as a non-root user and still listens on 8080", () => {
+    const users = [...dockerfile.matchAll(/^USER\s+(\S+)/gm)].map((m) => m[1]);
+    expect(users.at(-1)).toMatch(/^(101|nginx)$/);
+    expect(TEMPLATE).toMatch(/listen 8080;/);
+    expect(dockerfile).toMatch(/^EXPOSE 8080$/m);
+  });
+});
+
 describe("Content-Security-Policy (#124)", () => {
   const csp = new Map(
     responseHeaders(locations[0])

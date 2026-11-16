@@ -1,6 +1,10 @@
 services:
   web:
-    image: ${WEB_IMAGE:-ghcr.io/yehudabriskman/portfolio_site/web:latest}
+    # No default, and never `:latest`: a mutable tag means this file runs whatever
+    # was pushed last. Name the exact image, by digest, from the release manifest
+    # (`.github/scripts/release.sh fetch`), e.g.
+    #   WEB_IMAGE=ghcr.io/yehudabriskman/portfolio_site/web@sha256:<digest>
+    image: ${WEB_IMAGE:?set WEB_IMAGE to a digest-pinned image reference}
     container_name: portfolio_site_web
     ports:
       - "8080:8080"
@@ -11,7 +15,7 @@ services:
     restart: unless-stopped
 
   api:
-    image: ${API_IMAGE:-ghcr.io/yehudabriskman/portfolio_site/api:latest}
+    image: ${API_IMAGE:?set API_IMAGE to a digest-pinned image reference}
     container_name: portfolio_site_api
     expose:
       - "5000"

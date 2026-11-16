@@ -354,7 +354,7 @@ describe("admin routes need the admin gate", () => {
     ["get", "/groups"], ["post", "/groups"], ["patch", `/groups/x`], ["delete", `/groups/x`],
     ["get", "/contacts"], ["post", "/contacts"], ["patch", `/contacts/${hash}`], ["delete", `/contacts/${hash}`],
     ["post", "/contacts/import"], ["get", "/contacts/export.csv"],
-    ["get", "/suppression"], ["post", "/suppression"], ["post", "/suppression/bulk"], ["delete", `/suppression/${hash}`],
+    ["post", "/maintenance"], ["get", "/suppression"], ["post", "/suppression"], ["post", "/suppression/bulk"], ["delete", `/suppression/${hash}`],
   ];
   it.each(routes)("%s /api/admin/audience%s is refused without it", async (method, path) => {
     seed();
@@ -366,6 +366,17 @@ describe("admin routes need the admin gate", () => {
 
 describe("admin audience", () => {
   const A = "/api/admin/audience";
+  it("reading the lists writes nothing; POST /maintenance does the housekeeping", async () => {
+    seed();
+    store.delete("audience:subscribers");
+    await admin(request(app()).get(`${A}/groups`));
+    await admin(request(app()).get(`${A}/contacts`));
+    expect(store.has("audience:subscribers")).toBe(false);
+    const m = await admin(request(app()).post(`${A}/maintenance`));
+    expect(m.status).toBe(200);
+    expect(store.has("audience:subscribers")).toBe(true);
+  });
+
   it("groups: system group listed with counts, manual create/rename/delete, system not deletable", async () => {
     seed();
     const list = await admin(request(app()).get(`${A}/groups`));

@@ -20,7 +20,7 @@ import type {
 import { couch, CouchError } from "../../db/couch.js";
 import { logger } from "../../logger.js";
 import { hashToken, mintToken, parsePrefixedToken, tokenMatches } from "../../services/apiTokenFormat.js";
-import { githubAuthorizeUrl, pkceChallenge } from "./github.js";
+import { githubAuthorizeUrl, identityIsOwner, pkceChallenge } from "./github.js";
 import { tryGet } from "./util.js";
 import {
   ACCESS_TTL_S,
@@ -310,6 +310,8 @@ export function resetSweep() {
 
 /* --------------------------------------------------------------- grants -- */
 
+const OWNER_CHANGED = "owner identity changed";
+
 export async function revokeGrant(grantId: string, reason: string) {
   for (let attempt = 0; attempt < 3; attempt++) {
     const g = await tryGet<McpGrantDoc>(grantDocId(grantId));
@@ -489,6 +491,10 @@ export const provider: OAuthServerProvider = {
       if (!g || g.type !== "mcpgrant" || g.clientId !== client.client_id || g.revokedAt) {
         throw new InvalidGrantError("Invalid refresh token");
       }
+      if (!(await identityIsOwner(g.login, g.githubId))) {
+        await revokeGrant(g.id, OWNER_CHANGED);
+        throw new InvalidGrantError("Invalid refresh token");
+      }
       if (!tokenMatches(refreshToken, g.refresh.hash)) {
         const presented = Buffer.from(hashToken(refreshToken), "hex");
         const reused = g.usedRefresh.some((h) => {
@@ -540,6 +546,11 @@ export const provider: OAuthServerProvider = {
     for (const a of g.access) if (tokenMatches(token, a.hash)) match = a;
     if (!match) throw new InvalidTokenError("Invalid access token");
     if (Date.parse(match.expiresAt) <= now) throw new InvalidTokenError("Access token expired");
+    // Re-checked at use: the owner setting may have changed since this was issued.
+    if (!(await identityIsOwner(g.login, g.githubId))) {
+      await revokeGrant(g.id, OWNER_CHANGED).catch(() => undefined);
+      throw new InvalidTokenError("Invalid access token");
+    }
     touchGrant(g, now);
     return {
       token,
