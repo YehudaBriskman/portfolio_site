@@ -20,6 +20,8 @@ import { useCommandWords } from "./commandWords";
 import { toDo, useTranslationReport } from "@/services/translations";
 import { useAnnounceUnread } from "@/services/adminAnnounce";
 import { SidebarNav } from "@/components/ui/SidebarGroup";
+import { usePhone } from "@/hooks/usePhone";
+import { PullTitle } from "@/components/ui/PullTitle";
 import { useMobileWords } from "@/i18n/mobile";
 import { useMarketingWords } from "@/components/admin/announce/inbox/words";
 import { useAudienceWords } from "@/components/admin/announce/audience/words";
@@ -221,6 +223,7 @@ export function ShellFrame({ title, section, counts, bottomBar, backTo, barEvery
      control to undo it. Close it at that moment, while rendering like the route
      change below, and read "open" through the width so it can never be stale. */
   const docked = useSidebarDocked();
+  const phone = usePhone();
   if (docked && open) setOpen(false);
   const drawerOpen = open && !docked;
   /* The rail is a desktop state: the drawer is always the full tree, whatever was saved. */
@@ -404,12 +407,23 @@ export function ShellFrame({ title, section, counts, bottomBar, backTo, barEvery
         {w.skip}
       </a>
 
+      {/* The menu is the floating glass circle (the public phone site's, shared in ui/FloatingMenu), and a detail
+          screen's way back is its pill: the section it returns to. Under 600px (#896) there is no top bar: both are
+          fixed to the screen, and the circle's panel holds search, notifications, display, the account and the nav tree. */}
+      {!docked && (
+        <FloatingCircle ref={toggle} open={open} controls={drawerId} label={w.menu} onClick={() => setOpen((v) => !v)} />
+      )}
+      {phone && backTo && (
+        <div className="a-float-back">
+          <FloatingPill to={backTo} label={sectionLabel} name={`${w.back}: ${sectionLabel}`} />
+        </div>
+      )}
+
+      {/* Phone only: gone (listeners and node) the moment the window is 600px or wider. */}
+      <PullTitle title={title || sectionLabel} enabled={phone} isBlocked={() => drawerOpen || paletteOpen} />
+
+      {!phone && (
       <header className="a-top">
-        {/* On a phone the menu is the floating glass circle (the public phone site's, shared in ui/FloatingMenu), and
-            a detail screen's way back is its pill: the section it returns to, drawn in the bar's first place. */}
-        {!docked && (
-          <FloatingCircle ref={toggle} open={open} controls={drawerId} label={w.menu} onClick={() => setOpen((v) => !v)} />
-        )}
         {!docked && backTo && <FloatingPill to={backTo} label={sectionLabel} name={`${w.back}: ${sectionLabel}`} />}
 
         {/* The favicon alone: who is signed in is said once, by the account menu. */}
@@ -473,6 +487,7 @@ export function ShellFrame({ title, section, counts, bottomBar, backTo, barEvery
           )}
         </div>
       </header>
+      )}
 
       <div className="a-frame">
         <div className="a-scrim" hidden={!open} onClick={() => setOpen(false)} aria-hidden="true" />
@@ -543,6 +558,9 @@ export function ShellFrame({ title, section, counts, bottomBar, backTo, barEvery
         </div>
 
         <main id="admin-content" tabIndex={-1} className="a-main" inert={drawerOpen || undefined}>
+          {/* A phone screen with no header of its own: its one h1, hidden to the eye like every h1 in main on a phone
+              (index.css) and shown by the pull-down title (PullTitle). */}
+          {phone && titleH1 && <h1 className="a-h1" dir="auto">{title}</h1>}
           {children}
         </main>
       </div>

@@ -202,7 +202,12 @@ export function collect({ coarse, motion }) {
 
   /* headings */
   for (const h of document.querySelectorAll("h1, h2, h3, h4, h5, h6, [role=heading]")) {
-    if (!ok(h)) continue;
+    if (!ok(h)) {
+      /* The phone's page h1 is clipped to 1px (the pull-down title draws it, #896): still the page's one h1 in the accessibility tree. */
+      const cs = getComputedStyle(h);
+      if (h.tagName === "H1" && cs.display !== "none" && cs.visibility !== "hidden" && !h.closest('[aria-hidden="true"], [hidden], [inert]')) out.h1.push(text(h));
+      continue;
+    }
     const level = h.tagName.length === 2 && h.tagName[0] === "H" ? +h.tagName[1] : +h.getAttribute("aria-level") || 2;
     if (level === 1) out.h1.push(text(h));
     out.headings.push(text(h));

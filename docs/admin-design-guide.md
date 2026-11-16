@@ -470,6 +470,7 @@ Icon controls come from one kit in `components/ui/`; do not add another `.a-btn`
 | `Chip`, `ChipRow` | `@/components/ui/Chip` | a toggle chip (`aria-pressed`, drawn mark) or a static fact, optional tabular `count`; `ChipRow` is a named group, `scroll` for one line | filter sets with a sheet (`FilterChips`) |
 | `Dock` | `@/components/ui/Dock` | a floating opaque pill (raised surface, hairline, one shadow) above the safe area | a full-width bar |
 | `FloatingBack` | `@/components/ui/FloatingBack` | the public phone's one way up from a detail page: fixed, same box as the menu circle (`--float-h`, `--float-top`, `--float-z`), tap = parent, chevron = menu (parent, Home, Work, Blog, Share). Reached as `components/BackChip` | an in-flow back row, a second copy of the circle's size or offset |
+| `PullTitle`, `usePullReveal` (`PullTitle`, `pullReveal`, #896) | `@/components/ui/PullTitle`, `@/components/ui/pullReveal` | the phone's page title, shown only while the page is pulled down from its top: aria-hidden, transform + opacity from one `--pull` (0..1) written to the node, damped (cap 72px, 8px threshold), released by touchend/touchcancel, a negative `scrollY` (iOS rubber-band) as a second source, off while a popup or the nav panel is open, opacity-only under reduced motion. Phone only (`usePhone`): not drawn and no listeners above 599px. The real h1 stays in the page. See `docs/admin-pull-title.md` | a visible title strip or a top bar on a phone, a scroll-linked title written in JS per frame |
 | `FloatingCircle`, `FloatingPill` (`FloatingMenu`, #886) | `@/components/ui/FloatingMenu` | the phone's floating glass controls, shared by the admin shell: the menu circle (fixed at the inline-end, `--float-h`/`--float-top`/`--float-z`, safe-area aware, two hairlines that cross into an X, `aria-expanded` + `aria-controls`, no visible word) and the back pill (arrow that mirrors, the section it returns to; `aria-label` contains the drawn text). The caller owns what the circle opens and says; the public Nav keeps its own circle rule text and shares the tokens | a text "Menu" button in a top bar, a copy of the circle's size or glass |
 | `StatChip` | `@/components/ui/StatChip` | glyph + number, the word sr-only | a number that needs its label drawn |
 
@@ -799,6 +800,16 @@ Each one was measured in a real screen. Fix by pointing at the section.
 | **Text under 14px that carries meaning** | hints 13, pills 12, `th` 12 | unreadable at arm's length | `--a-fs-meta` |
 
 ---
+
+## 9b. The phone shell has no top bar (#896)
+
+Below 600px (`usePhone`) the admin draws no top bar: no "Admin" label, no breadcrumb, no title strip. Above 600px nothing changed.
+
+- **What is left:** the floating glass circle (menu, inline-end) and, on a detail screen, the back pill (inline-start, `.a-float-back`, fixed, names the section). Both are fixed and safe-area aware.
+- **Where the bar's functions went:** into the circle's panel, the footer of the nav drawer (it already held them): Search (command palette), Notifications, View site, Display settings (theme, language, density), the signed-in name and Sign out. No new floating element, no new wording.
+- **The title:** the page's own `h1` stays in the document and the accessibility tree, clipped to 1px by `.a-main h1` on a phone. Its text is drawn by `PullTitle` only while the page is pulled down at its top (docs/admin-pull-title.md). Where you are is also told by the back pill, the active drawer item and `document.title`.
+- **Space:** `main` starts below the circle (`padding-block-start` = `--float-top` + `--float-h` + 10px), which is also the band the pulled title fills, so no first row is ever under a control, in LTR or RTL. A page's primary action stays in its PageHeader row, in flow.
+- **Screens with no PageHeader** (the phone Posts and Areas lists, the content editors) pass `titleH1`, which renders their one h1 in `main`.
 
 ## 10. Admin design programme: state (Round 3, #878)
 

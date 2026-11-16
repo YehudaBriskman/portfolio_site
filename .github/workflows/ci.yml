@@ -642,6 +642,16 @@ jobs:
       - name: Admin sidebar
         if: matrix.check == 'admin-matrix' && matrix.shard == 2
         run: npm run a11y:admin-sidebar
+      # The admin phone has no top bar (#896): one clipped h1, a pull-down title
+      # that follows a real touch drag and returns, nothing under the circle or
+      # the back pill, every bar function in the circle's panel; and at 768 and
+      # 1280 the top bar, PageHeader h1 and layout are as they were.
+      - name: Admin phone, no top bar
+        if: matrix.check == 'admin-matrix' && matrix.shard == 2
+        run: npm run a11y:admin-phone-no-topbar
+      - name: Admin desktop parity
+        if: matrix.check == 'admin-matrix' && matrix.shard == 2
+        run: npm run a11y:admin-desktop-parity
       # Opening any admin menu or dialog leaves the top bar, sidebar, main and
       # scroll position where they were (#889), page scrolled or not, 1280 and
       # 390, both languages and themes.
