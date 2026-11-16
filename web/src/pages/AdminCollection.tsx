@@ -205,6 +205,8 @@ export default function AdminCollection() {
             value={d.title}
             onChange={(e) => patch({ title: e.target.value, slug: slugTouched ? d.slug : slugify(e.target.value) })}
             className="a-input a-input-title"
+            lang="en"
+            dir="ltr"
             aria-invalid={fieldErrors.title ? "true" : undefined}
             placeholder="WindoM"
           />
@@ -218,6 +220,8 @@ export default function AdminCollection() {
             onChange={(e) => patch({ tagline: e.target.value })}
             className="a-input"
             placeholder="Every new tab becomes a dashboard"
+            lang="en"
+            dir="ltr"
           />
         </label>
 
@@ -227,6 +231,8 @@ export default function AdminCollection() {
             value={d.description}
             onChange={(e) => patch({ description: e.target.value })}
             className="a-textarea min-h-[6rem]"
+            lang="en"
+            dir="ltr"
           />
         </label>
 
