@@ -207,7 +207,7 @@ const POST_HE = new Set<string>(POST_HE_PATHS);
 const AREA_HE = new Set<string>(COLLECTION_FIELDS.map((f) => f.field));
 
 /** The `Text` at `path` inside one item of a content document, or undefined. */
-function locate(key: ContentKey, root: unknown, id: string, path: string): unknown {
+export function locate(key: ContentKey, root: unknown, id: string, path: string): unknown {
   if (!root || typeof root !== "object") return undefined;
   const r = root as Raw;
   if (key === "projects") {
@@ -224,7 +224,7 @@ function locate(key: ContentKey, root: unknown, id: string, path: string): unkno
     if ((id === "images" || id === "interludes") && path.startsWith(`${id}.`)) return atPath(r, path);
     return undefined;
   }
-  return id in SITE_COPY_SECTIONS ? atPath(r[id], path) : undefined;
+  return Object.hasOwn(SITE_COPY_SECTIONS, id) ? atPath(r[id], path) : undefined;
 }
 
 /** A note or an area, read loosely: only its Hebrew and the fields beside it matter here. */
