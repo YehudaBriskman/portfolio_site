@@ -64,7 +64,7 @@ export default function EditorFrame<T>({ title: rawTitle, section, intro: rawInt
     words.leaveConfirm,
   );
 
-  const { tone, text } = barStatus(state);
+  const { tone, text } = barStatus(state, lang);
   const bar = (
     <EditorBar
       tone={tone}
