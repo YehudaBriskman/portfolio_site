@@ -1,6 +1,7 @@
 import type { SenderSettings } from "../announce/schemas.js";
 import { loadSendSettings } from "../announce/store.js";
 import { couch } from "../db/couch.js";
+import { campaignQueueDepth, mailSends, senderLastTick } from "../metrics.js";
 import { listRecipients, getContact, isSuppressed, updateContact } from "../audience/store.js";
 import { cachedKind, ledgerPutQuietly } from "../audience/ledger.js";
 import { logger } from "../logger.js";
@@ -282,6 +283,7 @@ async function runCampaign(c: Campaign, settings: SenderSettings, deps: Required
     /* Never to anyone no longer active or on the suppression list: checked on the fresh record, not the scan. */
     if (!contact || contact.status !== "active" || cachedKind(t.hash) || (await isSuppressed(contact.email))) {
       await finishSend({ ...base, status: "suppressed" });
+      mailSends.inc({ result: "suppressed" });
       suppressed++;
       continue;
     }
@@ -378,6 +380,10 @@ export async function runSenderTick(deps: SenderDeps = {}): Promise<void> {
     if (inQuietHours(settings.quietHours, ms)) return;
     if (ms < holdUntil) return;
     const { docs } = await couch.find<Campaign>({ selector: { _id: { $gt: "campaign:", $lt: "campaign:\uffff" }, status: { $in: ["scheduled", "sending"] } }, limit: 200 });
+    /* Gauges only (a count and a time): they let the monitoring tell "nothing queued" from "queued and not moving". */
+    campaignQueueDepth.set({ state: "scheduled" }, docs.filter((c) => c.status === "scheduled").length);
+    campaignQueueDepth.set({ state: "sending" }, docs.filter((c) => c.status === "sending").length);
+    senderLastTick.set(Date.now() / 1000);
     /* No readable ledger, or contacts it protects that cannot be put right: nothing is claimed or continued. */
     if (docs.length > 0 && !(await ledgerGuard(ms)).ok) return;
     for (const c of docs.sort((a, b) => (a.sendAt ?? a.createdAt).localeCompare(b.sendAt ?? b.createdAt))) {

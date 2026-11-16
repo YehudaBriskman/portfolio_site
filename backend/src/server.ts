@@ -6,6 +6,7 @@ import type { Collection } from "./schemas/content.js";
 import { loadSiteReleases } from "./services/activity.js";
 import { createApp } from "./app";
 import { env } from './env.js';
+import { createMetricsApp } from './metrics.js';
 import { logger } from './logger.js';
 import { startSender } from './campaigns/sender.js';
 import { startComplaintPause } from "./campaigns/complaintPause.js";
@@ -21,6 +22,19 @@ const { PORT: port, HOST: host } = env;
 const server = app.listen(port, host, () => {
   logger.info(`API listening on ${host}:${port} (email: ${env.EMAIL_PROVIDER})`);
 });
+
+/*
+ * Prometheus, on a listener of its own (#890): the Service and Ingress publish
+ * PORT only, so /metrics is reachable from inside the cluster and nowhere else.
+ * METRICS_PORT=0 turns it off.
+ */
+const metricsServer =
+  env.METRICS_PORT === 0
+    ? undefined
+    : createMetricsApp(env.METRICS_TOKEN).listen(env.METRICS_PORT, "0.0.0.0", () => {
+        logger.info(`metrics listening on :${env.METRICS_PORT}`);
+      });
+metricsServer?.on("error", (err) => logger.error({ err: err.message }, "metrics listener failed; the API keeps running"));
 
 /*
  * Node is PID 1 in the container and has no default SIGTERM action there, so
@@ -39,6 +53,7 @@ function shutdown(signal: string): void {
     process.exit(1);
   }, SHUTDOWN_TIMEOUT_MS);
   force.unref();
+  metricsServer?.close();
   server.close((err) => process.exit(err ? 1 : 0));
   server.closeIdleConnections?.();
 }

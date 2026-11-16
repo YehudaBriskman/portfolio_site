@@ -30,6 +30,7 @@ import { errorHandler } from './middlewares/errorHandler.js';
 import { couch } from './db/couch.js';
 import { createMcpRouter } from './mcp/router.js';
 import { env } from './env.js';
+import { httpMetrics } from './metrics.js';
 
 export function createApp() {
   const app = express();
@@ -37,6 +38,7 @@ export function createApp() {
   // Express advertises itself on every response; nothing needs to know.
   app.disable("x-powered-by");
   app.use(requestLogger);
+  app.use(httpMetrics);
 
   /*
    * The remote MCP server and its OAuth endpoints (#263), ahead of the site's
