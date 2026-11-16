@@ -83,3 +83,10 @@ describe("QuickLinks", () => {
     expect(screen.getByRole("region", { name: "קיצורים" })).toBeTruthy();
   });
 });
+
+describe("QuickLinks height", () => {
+  it("sizes to its tiles instead of stretching to the tallest panel in its row", () => {
+    const { container } = mount();
+    expect(container.querySelector("[data-span][data-fit='content']")).toBeTruthy();
+  });
+});

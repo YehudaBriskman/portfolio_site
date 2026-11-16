@@ -15,6 +15,7 @@
 }
 
 .row {
+  --chip-fade: 1.5rem;
   display: flex;
   flex: 1 1 auto;
   align-items: center;
@@ -25,10 +26,10 @@
   scroll-snap-type: x proximity;
   scrollbar-width: none;
   /* The row clips on its OWN box (no negative margin: that ran it 8px under the Select button beside it and cut a word there). The fade is as wide as the padding, so at rest nothing is faded and a scrolled chip leaves as a peek. */
-  padding-inline: var(--a-s-2, 0.5rem);
-  scroll-padding-inline: var(--a-s-2, 0.5rem);
-  mask-image: linear-gradient(to right, transparent, #000 0.5rem, #000 calc(100% - 0.5rem), transparent);
-  -webkit-mask-image: linear-gradient(to right, transparent, #000 0.5rem, #000 calc(100% - 0.5rem), transparent);
+  padding-inline: var(--chip-fade);
+  scroll-padding-inline: var(--chip-fade);
+  mask-image: linear-gradient(to right, transparent, #000 var(--chip-fade), #000 calc(100% - var(--chip-fade)), transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 var(--chip-fade), #000 calc(100% - var(--chip-fade)), transparent);
 }
 
 .row::-webkit-scrollbar {

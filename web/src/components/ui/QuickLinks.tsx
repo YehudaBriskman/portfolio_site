@@ -66,6 +66,7 @@ export function QuickLinks({ id, storageKey, links, defaultPinned, span = 4 }: Q
       title={w.quickLinks}
       icon={ICON.home}
       span={span}
+      fit="content"
       actions={
         <IconButton
           icon={editing ? ICON.markPosted : ICON.reorder}
