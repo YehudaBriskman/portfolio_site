@@ -256,8 +256,20 @@ jobs:
       # why it went unchecked until `make up` started depending on it.
       - name: Compose files parse
         if: ${{ !cancelled() }}
+        env:
+          # docker-compose.ci.yml has no default image on purpose (it must name
+          # a digest); these only let `config` resolve it.
+          WEB_IMAGE: ghcr.io/example/web@sha256:0000000000000000000000000000000000000000000000000000000000000000
+          API_IMAGE: ghcr.io/example/api@sha256:0000000000000000000000000000000000000000000000000000000000000000
         run: |
           set -Eeuo pipefail
+          # The CI compose file pulls from the registry: a mutable tag there is a
+          # deploy nobody chose. (docker-compose.yml's :latest is a locally built
+          # dev tag, not a pull, so it is outside this rule.)
+          if grep -nE '^[[:space:]]*image:.*:latest' docker-compose.ci.yml; then
+            echo "::error title=Mutable image tag in the CI compose file::Name the image by digest or by a pinned tag, not :latest."
+            exit 1
+          fi
           for files in \
             "-f docker-compose.yml" \
             "-f docker-compose.ci.yml" \
@@ -1415,6 +1427,8 @@ jobs:
       # Reading the release manifest, and moving `:latest` once prod runs
       # the release.
       packages: write
+      # Reading the build provenance, to verify it before anything rolls out.
+      attestations: read
     # What differs between the two environments, resolved once here so no step
     # below has to ask which one it is in. The third difference — what the
     # rollout is called — is computed in the rollout step itself, because
@@ -1589,6 +1603,37 @@ jobs:
       - name: Read the release manifest
         id: manifest
         run: .github/scripts/release.sh fetch "$DEPLOY_SHA" "$RUNNER_TEMP/release"
+
+      # Verified where the image is consumed, not only where it is made: the
+      # digests about to be rolled out must carry build provenance signed by
+      # THIS repository's ci.yml (written by Publish image, #206). A digest
+      # that someone pushed to the registry by other means has no such
+      # attestation and stops the deploy here, before anything changes.
+      #
+      # Guarded: set the repository variable ATTESTATION_VERIFY to `off` to
+      # skip it (with a warning), e.g. if GitHub's attestation API is down or
+      # this runner cannot reach it. Unset or anything else means verify.
+      - name: Verify image attestations
+        if: ${{ vars.ATTESTATION_VERIFY != 'off' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          WEB_IMAGE: ${{ steps.manifest.outputs.web_image }}
+          API_IMAGE: ${{ steps.manifest.outputs.api_image }}
+        run: |
+          set -Eeuo pipefail
+          for ref in "$WEB_IMAGE" "$API_IMAGE"; do
+            case "$ref" in
+              ghcr.io/"${GITHUB_REPOSITORY,,}"/*@sha256:*) ;;
+              *) echo "::error title=Unexpected image reference::$ref is not a digest-pinned image of this repository."; exit 1;;
+            esac
+            echo "verifying $ref"
+            gh attestation verify "oci://$ref" \
+              --repo "$GITHUB_REPOSITORY" \
+              --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/ci.yml"
+          done
+      - name: Attestation check skipped
+        if: ${{ vars.ATTESTATION_VERIFY == 'off' }}
+        run: echo "::warning title=Image attestations not verified::ATTESTATION_VERIFY is off for this repository."
 
       # Inside the deploy lock, before anything changes: is this still the
       # release to roll out? Preprod skips (green, with a notice) when a newer

@@ -5,10 +5,10 @@ import { emailjsProvider } from './emailjs.provider.js';
 import { instrumentProvider } from '../metrics.js';
 import { sendDisabledByEnv } from '../campaigns/killSwitch.js';
 
-/* The one door every outgoing mail passes (campaign, test, confirmation, contact form, owner notice). SEND_ENABLED=false closes it for all of them, checked on each lookup so no path can forget. */
+/* The one door every outgoing mail passes (campaign, test, confirmation, contact form, owner notice). SEND_ENABLED not being on closes it for all of them, checked on each lookup so no path can forget. */
 const held: EmailProvider = {
   async send() {
-    return { ok: false, error: 'Sending is disabled (SEND_ENABLED=false)', kind: 'policy' };
+    return { ok: false, error: 'Sending is disabled (SEND_ENABLED is not true)', kind: 'policy' };
   },
 };
 

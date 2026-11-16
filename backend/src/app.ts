@@ -115,6 +115,15 @@ export function createApp() {
   // Signup is the tight one; confirm/unsubscribe/manage share a looser bucket.
   app.post("/api/subscribe", createSubscribeLimiter());
   app.use("/api/subscribe", createSubscribeLinkLimiter(), express.json({ limit: "8kb" }), subscribeRoutes);
+  /*
+   * The admin API sits ahead of the general parser: its limiter and gate run
+   * first, and only a caller that got past them has a body read, at the same
+   * 1 MB as everything else. An unauthenticated or over-limit caller is
+   * answered without the server parsing what it sent.
+   * The gate holds, but an unmetered endpoint is an oracle for guessing the
+   * proxy secret. Every write past the gate is recorded, refusals included (#252).
+   */
+  app.use('/api/admin', adminLimiter, createBearerFailureLimiter(), requireAdmin, express.json({ limit: "1mb" }), auditWrites, indexNowOnWrite, announceOnWrite, adminRoutes);
   app.use(express.json({ limit: "1mb" }));
   app.use("/api/images", readLimiter);
 
@@ -127,10 +136,6 @@ export function createApp() {
   app.use('/api/areas', readLimiter, areasRouter);
   app.use('/api/seo/feed', seoLimiter, feedRoutes);
   app.use('/api/seo', seoLimiter, seoRoutes);
-  // The gate holds, but an unmetered endpoint is an oracle for guessing the
-  // proxy secret.
-  // Every write past the gate is recorded, refusals included (#252).
-  app.use('/api/admin', adminLimiter, createBearerFailureLimiter(), requireAdmin, auditWrites, indexNowOnWrite, announceOnWrite, adminRoutes);
   app.use('/api/email', emailRoutes);
   app.use("/api/images", createImagesRouter());
   // The signature image files only (never a setting): switched off, they answer 404.

@@ -33,6 +33,8 @@ const item = (id: string, extra: Partial<MediaItem> = {}): MediaItem => ({
   bytes: 120_000,
   createdAt: "2026-11-01T00:00:00.000Z",
   updatedAt: "2026-11-01T00:00:00.000Z",
+  visibility: "public",
+  live: true,
   url: `https://yehudabriskman.com/api/images/media/${id}`,
   preview: `/api/images/m/${id}/w400-${"a".repeat(16)}.webp`,
   srcset: { avif: "", webp: "" },
@@ -46,6 +48,8 @@ const fresh = (): MediaItem[] => [
   item("free-1", { alt: "An orange sports car" }),
   item("free-2", { alt: "A quiet harbour" }),
   item("noalt-1", { alt: "" }),
+  item("draft-1", { alt: "A private sketch", visibility: "draft", live: false }),
+  item("draft-live-1", { alt: "A sketch a page uses", visibility: "draft", live: true, usedBy: [USE] }),
   item("leaf-1", { alt: "A leaf", kind: "icon", format: "svg", mime: "image/svg+xml", file: `/api/images/m/leaf-1/icon-${"b".repeat(16)}.svg`, monochrome: true }),
 ];
 
@@ -79,6 +83,12 @@ beforeEach(() => {
         return new Promise((_, reject) => init?.signal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError"))));
       }
       if (method === "DELETE") return ok({ ok: true });
+      if (method === "PUT") {
+        const id = url.split("/").pop()!;
+        const sent = JSON.parse(String(init?.body)) as { visibility: "draft" | "public" };
+        const cur = stored.find((m) => m.id === id)!;
+        return ok({ ok: true, item: { ...cur, visibility: sent.visibility, live: sent.visibility === "public" || cur.live, _rev: "2-b" } });
+      }
       return ok({ ok: false, error: "unexpected" });
     }),
   );
@@ -218,5 +228,48 @@ describe("the phone toolbar", () => {
     const tsx = readFileSync(resolve(__dirname, "../MediaPhone.tsx"), "utf8");
     expect(tsx.indexOf("<SelectionHeader")).toBeLessThan(tsx.indexOf("<FilterChips"));
     expect(css).toMatch(/\.chips\s*\{[^}]*overflow:\s*hidden/);
+  });
+});
+
+describe("drafts (#876)", () => {
+  it("marks a draft nobody can see with an icon and the word, once; a draft a published page uses is public and unmarked", async () => {
+    page();
+    const list = await grid();
+    expect(within(list).getAllByText("Draft")).toHaveLength(1);
+    expect(within(within(list).getByRole("button", { name: /A private sketch/ })).getByText("Draft")).toBeInTheDocument();
+    expect(within(within(list).getByRole("button", { name: /A sketch a page uses/ })).queryByText("Draft")).toBeNull();
+  });
+
+  it("filters to drafts", async () => {
+    page("/admin/media");
+    await grid();
+    await userEvent.click(screen.getByRole("button", { name: "Drafts" }));
+    const list = await screen.findByRole("list", { name: "1 item" });
+    expect(within(list).getByRole("button", { name: /A private sketch/ })).toBeInTheDocument();
+  });
+
+  it("switches an item between Draft and Public in its panel, and says why a used draft is public", async () => {
+    page("/admin/media?id=draft-1");
+    const panel = await screen.findByRole("dialog", { name: "draft-1.jpg" });
+    const group = within(panel).getByRole("group", { name: "Visibility" });
+    expect(within(group).getByRole("radio", { name: "Draft" })).toBeChecked();
+    expect(within(group).getByText(/Only you can see it/)).toBeInTheDocument();
+    await userEvent.click(within(group).getByRole("radio", { name: "Public" }));
+    await waitFor(() => expect(calls.some((c) => c.method === "PUT" && c.url === "/api/admin/media/draft-1")).toBe(true));
+    expect(await within(panel).findByRole("radio", { name: "Public" })).toBeChecked();
+  });
+
+  it("a draft that a published page uses reads as public now", async () => {
+    page("/admin/media?id=draft-live-1");
+    const panel = await screen.findByRole("dialog", { name: "draft-live-1.jpg" });
+    expect(within(panel).getByText(/Public now, because a published page uses it/)).toBeInTheDocument();
+  });
+
+  it("the upload dialog says new uploads start as drafts", async () => {
+    page();
+    await grid();
+    const input = document.querySelector<HTMLInputElement>('input[type="file"]')!;
+    await userEvent.upload(input, new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], "new.png", { type: "image/png" }));
+    expect(await screen.findByText(/New uploads start as drafts/)).toBeInTheDocument();
   });
 });

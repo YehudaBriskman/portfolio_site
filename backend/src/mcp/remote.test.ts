@@ -151,7 +151,7 @@ function fakeGithub() {
 
 /* ---------------------------------------------------------------- setup -- */
 
-const saved = { remote: env.MCP_REMOTE, id: env.MCP_GITHUB_CLIENT_ID, secret: env.MCP_GITHUB_CLIENT_SECRET, ghId: env.ADMIN_GITHUB_ID };
+const saved = { remote: env.MCP_REMOTE, id: env.MCP_GITHUB_CLIENT_ID, secret: env.MCP_GITHUB_CLIENT_SECRET, ghId: env.ADMIN_GITHUB_ID, login: env.ADMIN_GITHUB_LOGIN, pub: env.MCP_PUBLIC_RATE_LIMIT, auth: env.MCP_RATE_LIMIT };
 let logged: unknown[] = [];
 
 beforeEach(() => {
@@ -178,6 +178,9 @@ afterEach(() => {
   env.MCP_GITHUB_CLIENT_ID = saved.id;
   env.MCP_GITHUB_CLIENT_SECRET = saved.secret;
   env.ADMIN_GITHUB_ID = saved.ghId;
+  env.ADMIN_GITHUB_LOGIN = saved.login;
+  env.MCP_PUBLIC_RATE_LIMIT = saved.pub;
+  env.MCP_RATE_LIMIT = saved.auth;
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
@@ -719,6 +722,66 @@ describe("scopes on /mcp", () => {
   it("an mcp ticket that is unknown is a 401 on the admin API, never a fall-through", async () => {
     const res = await request(createApp()).get("/api/admin/me").set("X-Mcp-Ticket", "forged");
     expect(res.status).toBe(401);
+  });
+});
+
+describe("a grant follows the owner identity setting", () => {
+  const refreshWith = (app: ReturnType<typeof createApp>, t: Awaited<ReturnType<typeof tokensFor>>) =>
+    request(app).post("/mcp/oauth/token").type("form").send({ grant_type: "refresh_token", refresh_token: t.refresh_token, client_id: t.client.client_id });
+
+  it("stops working when ADMIN_GITHUB_ID moves to another account", async () => {
+    const app = createApp();
+    const t = await tokensFor(app);
+    expect((await rpc(app, "/mcp", "tools/list", {}, t.access_token)).status).toBe(200);
+    env.ADMIN_GITHUB_ID = "999999";
+    expect((await rpc(app, "/mcp", "tools/list", {}, t.access_token)).status).toBe(401);
+    expect(byType("mcpgrant")[0]).toMatchObject({ revokedReason: "owner identity changed" });
+  });
+
+  it("stops working when ADMIN_GITHUB_LOGIN names someone else", async () => {
+    const app = createApp();
+    const t = await tokensFor(app);
+    env.ADMIN_GITHUB_LOGIN = "a-new-owner";
+    expect((await rpc(app, "/mcp", "tools/list", {}, t.access_token)).status).toBe(401);
+  });
+
+  it("cannot be refreshed once the owner identity changed", async () => {
+    const app = createApp();
+    const t = await tokensFor(app);
+    env.ADMIN_GITHUB_LOGIN = "a-new-owner";
+    const r = await refreshWith(app, t);
+    expect(r.status).toBe(400);
+    expect(r.body.error).toBe("invalid_grant");
+  });
+
+  it("keeps working while the setting is unchanged", async () => {
+    const app = createApp();
+    const t = await tokensFor(app);
+    env.ADMIN_GITHUB_ID = String(OWNER.id);
+    expect((await rpc(app, "/mcp", "tools/list", {}, t.access_token)).status).toBe(200);
+    expect((await refreshWith(app, t)).status).toBe(200);
+  });
+});
+
+describe("/mcp/public and /mcp are metered apart", () => {
+  const call = (app: ReturnType<typeof createApp>, path: string) =>
+    request(app).post(path).send({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} });
+
+  it("have defaults, and each runs out on its own", async () => {
+    expect(saved.pub).toBe(60);
+    expect(saved.auth).toBe(120);
+    env.MCP_PUBLIC_RATE_LIMIT = 3;
+    env.MCP_RATE_LIMIT = 5;
+    const app = createApp();
+    const pub: number[] = [];
+    for (let i = 0; i < 4; i++) pub.push((await call(app, "/mcp/public")).status);
+    expect(pub[3]).toBe(429);
+    expect(pub.slice(0, 3)).not.toContain(429);
+    // The public bucket being empty says nothing about /mcp's.
+    const auth: number[] = [];
+    for (let i = 0; i < 6; i++) auth.push((await call(app, "/mcp")).status);
+    expect(auth.slice(0, 5)).toEqual([401, 401, 401, 401, 401]);
+    expect(auth[5]).toBe(429);
   });
 });
 

@@ -37,7 +37,7 @@ export const httpDuration = new Histogram({
 
 export const mailSends = new Counter({
   name: "mail_send_total",
-  help: "Mail send attempts by outcome: ok, failed, suppressed (not sent: address suppressed) or blocked (policy: SEND_ENABLED off).",
+  help: "Mail send attempts by outcome: ok, failed, suppressed (not sent: address suppressed) or blocked (policy: SEND_ENABLED not on).",
   labelNames: ["result"] as const,
   registers: [metricsRegistry],
 });

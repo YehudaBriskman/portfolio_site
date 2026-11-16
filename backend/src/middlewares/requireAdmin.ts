@@ -5,6 +5,7 @@ import { couch, CouchError } from "../db/couch.js";
 import { env } from "../env.js";
 import { logger } from "../logger.js";
 import { redeemTicket } from "../mcp/internal.js";
+import { auditEntry } from "../services/audit.js";
 import {
   parseToken,
   tokenDocId,
@@ -180,6 +181,19 @@ export const requireAdmin: RequestHandler = (req, res, next) => {
 };
 
 /*
+ * Is this request from the signed-in owner's browser session, judged exactly as
+ * the proxy path of requireAdmin judges it? For public routes that show the
+ * owner more than a visitor (a draft media file, #876). Never an error, never
+ * a token: a visitor's request is simply "no".
+ */
+export function isAdminSession(req: Request): boolean {
+  const proof = req.header("x-admin-proxy-secret");
+  if (!env.ADMIN_PROXY_SECRET || !safeEqual(proof ?? "", env.ADMIN_PROXY_SECRET)) return false;
+  const login = req.header("x-auth-request-user") ?? "";
+  return login !== "" && login.toLowerCase() === env.ADMIN_GITHUB_LOGIN.toLowerCase();
+}
+
+/*
  * Failed bearer attempts, limited far harder than adminLimiter's 240 a
  * minute: ten 401s per address per fifteen minutes. Only requests carrying a
  * Bearer header count, and only the ones refused as unauthenticated, so a
@@ -202,4 +216,40 @@ export const requireProxySession: RequestHandler = (req, res, next) => {
     return res.status(403).json({ ok: false, error: "This needs the admin sign-in, not a token." });
   }
   next();
+};
+
+/*
+ * Areas that hold other people's data or can send mail in the owner's name:
+ * the audience (subscribers, groups, suppression, export), campaigns, and the
+ * announce settings. Only the signed-in admin session reaches them; a bearer
+ * API token, whatever its scope, and an MCP grant are refused, because a leaked
+ * credential of that kind must not be able to read the list or send mail.
+ * Matched on whole path segments, relative to /api/admin, case-insensitively.
+ */
+export const SESSION_ONLY_PREFIXES = ["/audience", "/campaigns", "/announce/settings"] as const;
+
+export const sessionOnlyArea = (path: string): string | null => {
+  const p = path.toLowerCase().replace(/\/+$/, "");
+  return SESSION_ONLY_PREFIXES.find((f) => p === f || p.startsWith(`${f}/`)) ?? null;
+};
+
+/* Mounted inside the admin router, after the gate, so `req.admin` is set. */
+export const denyTokensOnSessionOnlyAreas: RequestHandler = (req, res, next) => {
+  const area = sessionOnlyArea(req.path);
+  if (!area || req.admin?.via === "proxy") return next();
+  const a = req.admin;
+  logger.warn({ area, via: a?.via, tokenId: a?.tokenId ?? null }, "admin token refused on a session-only area");
+  /* Recorded here for every method (a refused read is worth seeing), by area only: no address or id from the path. */
+  res.locals.noAudit = true;
+  const entry = auditEntry({
+    at: new Date(),
+    actor: { login: a?.login ?? "unknown", via: a?.via ?? "token", tokenId: a?.tokenId ?? null, ...(a?.via === "mcp-oauth" ? { client: a.client } : {}) },
+    method: req.method,
+    path: `/api/admin${area}`,
+    status: 403,
+  });
+  couch.append(entry._id, entry).catch((err: unknown) => {
+    logger.error({ err: err instanceof Error ? err.message : String(err), entry }, "audit entry could not be written");
+  });
+  return res.status(403).json({ ok: false, error: "This area needs the admin sign-in, not a token." });
 };

@@ -177,9 +177,9 @@ export async function minimiseUnsubscribed(now = Date.now()): Promise<number> {
     if (!isMinimisable(c, now)) continue;
     const hash = c._id.slice(CONTACT.length);
     // Ledger first: if it cannot be written the address stays, because the line is what keeps a returning address blocked after a restore.
-    if (!(await ledgerGet(hash).catch(() => null))) {
+    if (!(await ledgerGet(hash, c.email).catch(() => null))) {
       try {
-        await ledgerPut(hash, "unsubscribed");
+        await ledgerPut(hash, "unsubscribed", new Date(), c.email);
       } catch {
         continue;
       }

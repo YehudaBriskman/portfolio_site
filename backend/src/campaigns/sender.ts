@@ -127,8 +127,8 @@ async function refund(s: SenderSettings, n: number, ms: number): Promise<void> {
 const scrub = (msg: string) => msg.replace(/[^\s<>"',;]+@[^\s<>"',;]+/g, "[address]").slice(0, 200);
 
 /** Takes an address off the mailing list for good reason. Only an active contact is touched; never deletes. Never logs the address. */
-async function suppressBounced(hash: string, reason: "hard-bounce" | "soft-bounces"): Promise<void> {
-  await ledgerPutQuietly(hash, "suppressed");
+async function suppressBounced(hash: string, reason: "hard-bounce" | "soft-bounces", email?: string): Promise<void> {
+  await ledgerPutQuietly(hash, "suppressed", email);
   try {
     await updateContact(hash, (c) => {
       if (c.status !== "active") return false;
@@ -144,16 +144,18 @@ async function suppressBounced(hash: string, reason: "hard-bounce" | "soft-bounc
 /** Counts one more soft failure for the contact and suppresses it on the SOFT_LIMIT-th in a row. */
 async function noteSoftBounce(hash: string): Promise<void> {
   let reached = false;
+  let email: string | undefined;
   try {
     await updateContact(hash, (c) => {
       if (c.status !== "active") return false;
+      email = c.email;
       c.softBounces = (c.softBounces ?? 0) + 1;
       reached = c.softBounces >= SOFT_LIMIT;
     });
   } catch {
     return;
   }
-  if (reached) await suppressBounced(hash, "soft-bounces");
+  if (reached) await suppressBounced(hash, "soft-bounces", email);
 }
 
 async function clearSoftBounces(hash: string): Promise<void> {
@@ -266,7 +268,7 @@ async function runCampaign(c: Campaign, settings: SenderSettings, deps: Required
     /* Cancel (or any other change of state) stops the run at the next recipient. */
     const live = await getCampaign(id);
     if (!live || live.status !== "sending") break;
-    /* The owner's pause (or SEND_ENABLED=false) takes effect at the next recipient, not the next batch. */
+    /* The owner's pause (or SEND_ENABLED not on) takes effect at the next recipient, not the next batch. */
     if (await campaignsBlocked()) break;
     const contact = await getContact(t.hash);
     const base: SendResult = { _id: sendId(id, t.hash), type: "send", campaignId: id, contact: t.hash, status: "attempting", at: new Date(deps.now()).toISOString() };
@@ -281,7 +283,7 @@ async function runCampaign(c: Campaign, settings: SenderSettings, deps: Required
       }
     } else if (!(await claimSend(base))) continue;
     /* Never to anyone no longer active or on the suppression list: checked on the fresh record, not the scan. */
-    if (!contact || contact.status !== "active" || cachedKind(t.hash) || (await isSuppressed(contact.email))) {
+    if (!contact || contact.status !== "active" || cachedKind(t.hash, contact.email) || (await isSuppressed(contact.email))) {
       await finishSend({ ...base, status: "suppressed" });
       mailSends.inc({ result: "suppressed" });
       suppressed++;
@@ -326,7 +328,7 @@ async function runCampaign(c: Campaign, settings: SenderSettings, deps: Required
       h.failed++;
       if (kind === "hard") {
         h.hard++;
-        await suppressBounced(t.hash, "hard-bounce");
+        await suppressBounced(t.hash, "hard-bounce", contact.email);
       } else if (kind === "soft") await noteSoftBounce(t.hash);
     }
     pause = kind === "auth" ? "auth" : pauseReason(h);

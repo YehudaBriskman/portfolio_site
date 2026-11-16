@@ -98,3 +98,16 @@ export async function isOwner(user: GithubUser): Promise<boolean> {
     throw e;
   }
 }
+
+/**
+ * Does an identity recorded on a grant still match the owner setting? The same
+ * two facts as `isOwner` (login by name, then numeric id), read from the
+ * setting as it is NOW and without recording anything: a grant issued to the
+ * old owner must not outlive a change of ADMIN_GITHUB_LOGIN / ADMIN_GITHUB_ID.
+ */
+export async function identityIsOwner(login: string, githubId: number): Promise<boolean> {
+  if (!safeEqual(login.toLowerCase(), env.ADMIN_GITHUB_LOGIN.toLowerCase())) return false;
+  if (env.ADMIN_GITHUB_ID) return safeEqual(String(githubId), env.ADMIN_GITHUB_ID);
+  const recorded = await tryGet<OwnerDoc>("mcpowner");
+  return recorded ? safeEqual(String(githubId), String(recorded.githubId)) : true;
+}

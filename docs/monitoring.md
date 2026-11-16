@@ -28,7 +28,7 @@ Default process and Node.js runtime metrics (`process_*`, `nodejs_*`), plus:
 |---|---|---|
 | `http_requests_total` | `method`, `route`, `status_class` | finished requests; `route` is the matched template (`/api/subscribe/confirm`), or `unmatched` for 404s, scanners and rate-limit refusals |
 | `http_request_duration_seconds` | same | histogram |
-| `mail_send_total` | `result` = `ok` `failed` `suppressed` `blocked` | every send through the provider door; `blocked` is the `SEND_ENABLED=false` policy hold, `suppressed` a campaign recipient skipped because they are suppressed |
+| `mail_send_total` | `result` = `ok` `failed` `suppressed` `blocked` | every send through the provider door; `blocked` is the `SEND_ENABLED` policy hold (anything but an explicit on), `suppressed` a campaign recipient skipped because they are suppressed |
 | `signup_total` | `result` = `created` `resent` `known` `suppressed` `bot` `invalid` `confirmed` `unsubscribed` | list outcomes (`known`: active, pending too recently or already handled) |
 | `rate_limit_hits_total` | `route` = limiter name (`email_burst`, `subscribe`, `subscribe_link`, `seo`, `admin`, `read`) | requests refused by a limiter |
 | `campaign_queue_depth` | `state` = `scheduled` `sending` | as of the last sender tick |

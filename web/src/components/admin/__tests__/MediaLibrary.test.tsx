@@ -28,6 +28,8 @@ const item = (id: string, extra: Partial<MediaItem> = {}): MediaItem => ({
   bytes: 120_000,
   createdAt: "2026-11-01T00:00:00.000Z",
   updatedAt: "2026-11-01T00:00:00.000Z",
+  visibility: "public",
+  live: true,
   url: `https://yehudabriskman.com/api/images/media/${id}`,
   preview: `/api/images/m/${id}/w400-${"a".repeat(16)}.webp`,
   srcset: { avif: "", webp: "" },

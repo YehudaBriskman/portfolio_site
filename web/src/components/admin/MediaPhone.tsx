@@ -11,7 +11,7 @@ import { useUndoable } from "@/lib/toast/useUndoable";
 import { useSavedFilters } from "@/components/ui/useSavedFilters";
 import { useSelection } from "@/components/ui/useSelection";
 import { tidy, type FilterDef, type Filters } from "@/components/ui/filters";
-import { filterMedia, MEDIA_KINDS, media, type MediaItem, type MediaKind } from "@/services/media";
+import { isDraft, filterMedia, MEDIA_KINDS, media, type MediaItem, type MediaKind } from "@/services/media";
 import { useMediaPhoneWords } from "./mediaPhoneWords";
 import styles from "./Media.phone.module.css";
 
@@ -57,7 +57,7 @@ export default function MediaPhone({
       { id: "kind", kind: "segmented", label: p.kindFilter, options: MEDIA_KINDS.map((k) => ({ value: k, label: p.kinds[k] })) },
       {
         id: "only", kind: "multi", label: p.onlyFilter,
-        options: [{ value: "unused", label: p.unused }, { value: "noalt", label: p.noAlt }],
+        options: [{ value: "unused", label: p.unused }, { value: "drafts", label: p.drafts }, { value: "noalt", label: p.noAlt }],
       },
     ],
     [p],
@@ -68,7 +68,7 @@ export default function MediaPhone({
     const kind = typeof f.kind === "string" && (MEDIA_KINDS as readonly string[]).includes(f.kind) ? (f.kind as MediaKind) : null;
     const only = Array.isArray(f.only) ? f.only : [];
     return filterMedia(items, q, kind ? [kind] : null).filter(
-      (m) => !hidden.has(m.id) && (!only.includes("unused") || isUnused(m)) && (!only.includes("noalt") || !hasAlt(m)),
+      (m) => !hidden.has(m.id) && (!only.includes("unused") || isUnused(m)) && (!only.includes("drafts") || isDraft(m)) && (!only.includes("noalt") || !hasAlt(m)),
     );
   };
   const visible = matches(filters);
@@ -146,6 +146,8 @@ export default function MediaPhone({
             const picked = selection.has(m.id);
             const glyph = !hasAlt(m) ? (
               <StatusGlyph kind="attention" label={p.noAlt} size={16} />
+            ) : isDraft(m) ? (
+              <StatusGlyph kind="draft" size={16} />
             ) : (uses(m) ?? 0) > 0 ? (
               <StatusGlyph kind="used" size={16} />
             ) : null;

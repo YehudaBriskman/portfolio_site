@@ -1,6 +1,8 @@
 import type { Request, Response } from "express";
 import { pipeline } from "node:stream/promises";
 import { captionTracks, captionsUrl, fileUrl, mediaStore, publicMedia, variantUrl, MEDIA_ID, type MediaDoc } from "../services/media.js";
+import { isAdminSession } from "../middlewares/requireAdmin.js";
+import { isLive, visibilityOf } from "../services/media-visibility.js";
 import { EXT, MIME, VARIANT_FORMATS, type Variant, type VariantFormat } from "../services/mediaImage.js";
 
 /*
@@ -54,6 +56,27 @@ function notFound(res: Response) {
   return res.status(404).json({ ok: false, error: "Not Found" });
 }
 
+/*
+ * A draft (#876) is the owner's alone: a visitor gets the very 404 of a file
+ * that is not there (same body, same headers), so the answer is no oracle for
+ * which ids exist. Public means public by the item's own say-so, by the field
+ * being absent (an old item), or by a published page naming it. The owner's
+ * session may fetch a draft, uncached, so the library can show it.
+ */
+async function visible(req: Request, res: Response, doc: MediaDoc): Promise<boolean> {
+  if (visibilityOf(doc) === "public") return true;
+  if (isAdminSession(req)) {
+    res.locals.draft = true;
+    return true;
+  }
+  return isLive(doc);
+}
+
+/** A draft's answer is for one browser only; everything else keeps what it promised. */
+function cache(res: Response, value: string) {
+  res.setHeader("Cache-Control", res.locals.draft ? "private, no-store" : value);
+}
+
 /** The variant nearest `width` from above (or the widest), in `format`. */
 export function pick(variants: Variant[], format: VariantFormat, width: number | null): Variant | undefined {
   const of = variants.filter((v) => v.format === format).sort((a, b) => a.width - b.width);
@@ -69,7 +92,7 @@ function wants(req: Request): VariantFormat {
 
 function fileHeaders(res: Response, contentType: string, csp: string, hash: string) {
   res.setHeader("Content-Type", contentType);
-  res.setHeader("Cache-Control", FOREVER);
+  cache(res, FOREVER);
   res.setHeader("ETag", `"${hash}"`);
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("Content-Security-Policy", csp);
@@ -151,8 +174,8 @@ export const mediaController = {
     const id = req.params.id;
     if (!MEDIA_ID.test(id)) return notFound(res);
     const doc = await mediaStore.get(id);
-    if (!doc) return notFound(res);
-    res.setHeader("Cache-Control", SHORT);
+    if (!doc || !(await visible(req, res, doc))) return notFound(res);
+    cache(res, SHORT);
     const own = fileUrl(doc);
     if (own && !(doc.kind === "video" && req.query.poster !== undefined)) return res.redirect(302, own);
     const w = Number(req.query.w);
@@ -166,9 +189,9 @@ export const mediaController = {
     const id = req.params.id;
     if (!MEDIA_ID.test(id)) return notFound(res);
     const doc = await mediaStore.get(id);
-    if (!doc) return notFound(res);
+    if (!doc || !(await visible(req, res, doc))) return notFound(res);
     const m = publicMedia(doc);
-    res.setHeader("Cache-Control", SHORT);
+    cache(res, SHORT);
     res.json({
       ok: true,
       item: {
@@ -199,7 +222,7 @@ export const mediaController = {
     const m = FILE.exec(req.params.file ?? "");
     if (!MEDIA_ID.test(id) || !m) return notFound(res);
     const doc = await mediaStore.get(id);
-    if (!doc) return notFound(res);
+    if (!doc || !(await visible(req, res, doc))) return notFound(res);
 
     if (m[1]) {
       const [, width, hash, format] = m;
@@ -207,7 +230,7 @@ export const mediaController = {
       if (!v || v.hash !== hash) {
         const now = pick(doc.variants, format as VariantFormat, Number(width));
         if (!now) return notFound(res);
-        res.setHeader("Cache-Control", SHORT);
+        cache(res, SHORT);
         return res.redirect(302, variantUrl(doc.id, now));
       }
       return sendWhole(req, res, id, v.name, MIME[v.format], CSP.image, v.hash);
@@ -219,7 +242,7 @@ export const mediaController = {
       const cap = captionTracks(doc).find((t) => t.hash === hash) ?? doc.captions;
       if (!cap || ext !== "vtt") return notFound(res);
       if (cap.hash !== hash) {
-        res.setHeader("Cache-Control", SHORT);
+        cache(res, SHORT);
         return res.redirect(302, captionsUrl(doc)!);
       }
       return sendWhole(req, res, id, cap.name, "text/vtt; charset=utf-8", CSP.text, cap.hash);
@@ -228,7 +251,7 @@ export const mediaController = {
     // or an SVG icon replaced by a PNG) is redirected to what it is now.
     if (doc.kind !== part) return notFound(res);
     if (doc.hash !== hash || EXT[doc.format] !== ext) {
-      res.setHeader("Cache-Control", SHORT);
+      cache(res, SHORT);
       return res.redirect(302, fileUrl(doc)!);
     }
     if (doc.kind === "video") return sendVideo(req, res, doc);

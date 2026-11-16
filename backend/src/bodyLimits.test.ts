@@ -1,6 +1,7 @@
 import request from "supertest";
 import { describe, expect, it, vi } from "vitest";
 import { createApp } from "./app";
+import { env } from "./env.js";
 
 // Stubbed only so this file loads on a box without those optional deps; CI has them.
 vi.mock("./mcp/router.js", () => ({ createMcpRouter: () => (_q: unknown, _r: unknown, next: () => void) => next() }));
@@ -26,5 +27,30 @@ describe("public write routes read small bodies", () => {
   it("still takes a normal signup body", async () => {
     const r = await request(createApp()).post("/api/subscribe").set("Content-Type", "application/json").send(JSON.stringify({ email: "a@example.org", lang: "en", website: "bot" }));
     expect(r.status).toBe(202);
+  });
+});
+
+describe("the admin gate runs before the body is parsed", () => {
+  const asAdmin = (req: request.Test) =>
+    req.set("X-Admin-Proxy-Secret", env.ADMIN_PROXY_SECRET).set("X-Auth-Request-User", env.ADMIN_GITHUB_LOGIN);
+
+  it("answers an unauthenticated caller before reading a malformed body", async () => {
+    const r = await request(createApp()).put("/api/admin/posts/x").set("Content-Type", "application/json").send("{ not json");
+    expect([401, 403]).toContain(r.status);
+  });
+
+  it("answers an unauthenticated caller before reading a body over the limit", async () => {
+    const r = await request(createApp())
+      .put("/api/admin/posts/x")
+      .set("Content-Type", "application/json")
+      .send(JSON.stringify({ body: "x".repeat(2 * 1024 * 1024) }));
+    expect([401, 403]).toContain(r.status);
+  });
+
+  it("still holds an authenticated caller to the 1 MB limit", async () => {
+    const r = await asAdmin(request(createApp()).put("/api/admin/posts/x"))
+      .set("Content-Type", "application/json")
+      .send(JSON.stringify({ body: "x".repeat(2 * 1024 * 1024) }));
+    expect(r.status).toBe(413);
   });
 });

@@ -115,8 +115,13 @@ and the headers `List-Unsubscribe: <…/api/subscribe/unsubscribe?token=…>`,
 `status: "unsubscribed"` and `unsubscribedAt`. Already-unsubscribed and
 suppressed contacts get the same success answer.
 
-Unsubscribe and manage links are valid for 3 years (`mail.ts`); the
-confirmation link for `pendingTtlDays`.
+Unsubscribe links **never expire** (a legal requirement): they are signed without
+an `exp`, and a token that carries one (the 3-year links already delivered) is
+still honoured for ever. Manage links are valid for 3 years (`mail.ts`). The
+confirmation link lives `CONFIRM_TTL_DAYS` (default 30); past that, or past
+`pendingTtlDays` (the contact is deleted), the page shows the usual "invalid or
+has expired, subscribe again from the form" message. A token with no `exp` at
+all still verifies.
 
 The manage page (`/subscribe/manage`) shows a masked address, and lets the
 person change language and topics. A suppressed contact cannot use it.
@@ -227,6 +232,8 @@ environment only and are never shown or returned by any route:
 - `MAIL_FROM` (required) and `MAIL_REPLY_TO`: the fallback sender.
 - `SITE_URL`: the origin every link in a mail is built from.
 - `SUBSCRIBE_SECRET`: optional, at least 16 characters (`backend/src/env.ts`).
+- `EMAIL_HASH_KEY`: optional, at least 32 characters (`openssl rand -hex 32`). Keys the suppression ledger's address hash (see "The suppression ledger"). Unset: the old unkeyed hash and one warning at boot.
+- `CONFIRM_TTL_DAYS`: optional, default 30, 1 to 365. How long a confirmation link lives.
 - `RESEND_WEBHOOK_SECRET`: optional, the `whsec_...` value of the Resend webhook (see "Bounces and complaints"). Unset: the endpoint answers 404.
 
 The screen shows a warning (never a block) when the From domain differs from the
@@ -239,7 +246,7 @@ unsubscribe note in campaigns: if its `{link}` is deleted the footer has no link
 
 ### Signed links
 
-Confirm, unsubscribe and manage links carry `{t, h, exp}` signed with
+Confirm, unsubscribe and manage links carry `{t, h, exp?}` (no `exp` on an unsubscribe link) signed with
 HMAC-SHA256, compared in constant time; `h` is the contact hash, never an
 address (`audience/tokens.ts`). Every failure (bad signature, wrong kind,
 expired, unknown contact) gets the same "invalid or expired" answer.
@@ -247,7 +254,7 @@ expired, unknown contact) gets the same "invalid or expired" answer.
 The key is `SUBSCRIBE_SECRET` when set. Otherwise it is a random 32-byte secret
 generated on first use and stored in the CouchDB document `secret:subscribe`; no
 API returns it. Rotating it invalidates **every outstanding link**, including the
-unsubscribe link in every mail already delivered (valid 3 years until then). See
+unsubscribe link in every mail already delivered (which otherwise never expires). See
 the runbook before doing it.
 
 ## Sending
@@ -404,16 +411,16 @@ Two switches, both fail safe (`campaigns/killSwitch.ts`).
 | | What it holds | How | Lifted by |
 |---|---|---|---|
 | **Pause all sending** | every campaign: the tick, test sends, scheduling and send-now (423 `paused`) | one click in Marketing > Campaigns (`POST /api/admin/campaigns/sending {paused:true}`, stored in the doc `sender:switch`) | "Resume sending", with a confirm |
-| **`SEND_ENABLED=false`** | **every** outgoing mail: campaigns, tests, confirmations, the contact form, owner notices | environment of the API container; accepted off values: `false`, `0`, `off`, `no`, `disabled` (anything else, including a typo or unset, means on) | removing it and restarting the container. No deploy, no code change. The admin page shows it but cannot lift it |
+| **`SEND_ENABLED` not `true`** | **every** outgoing mail: campaigns, tests, confirmations, the contact form, owner notices | environment of the API container; fails closed (owner decision, #876): mail leaves only when the value is an explicit on value (`true`, `1`, `yes`, `on`, case-insensitive, trimmed); unset, `false` or a typo holds everything, and an unrecognised non-empty value logs one warning | setting `SEND_ENABLED=true` and restarting the container. No deploy, no code change. The admin page shows it but cannot lift it |
 
 - A pause takes effect at the **next recipient**, not the next batch. Campaigns keep their
   status (`scheduled` or `sending`); resuming continues with the people not yet handled and
   nobody is mailed twice.
 - A pause does **not** stop confirmation mails for new signups (that would lose people who
-  signed up in good faith); only `SEND_ENABLED=false` does, at the provider
+  signed up in good faith); only `SEND_ENABLED` not being on does, at the provider
   (`providers/index.ts`), so no send path can forget to check it.
 - If the switch document cannot be read, campaigns are held (fails closed).
-- Compose example: set `SEND_ENABLED: "false"` under the API service's `environment:` and
+- Compose example: set `SEND_ENABLED: "true"` (or `"false"` to hold) under the API service's `environment:` and
   `docker compose up -d api` (a recreate with the new value, not an image deploy). Kubernetes:
   set the env var on the Deployment; the pod restarts.
 
@@ -428,7 +435,7 @@ Enforced by the server when a campaign is scheduled or sent now (`campaigns/rout
 | Suppression ledger readable and writable (a fresh read plus one probe write, `ledgerWritable`) | 503 |
 | A test send to **all** test recipients that carried exactly this text (`campaigns/readiness.ts` fingerprint of subject, preview text, body, blocks, language; any edit makes it untested) | 422 `test` |
 | The audience size the owner confirmed (`confirmCount`, sent by the confirm button) equal to the server's count now | 422 `confirm`, 409 `count` |
-| Not paused and not `SEND_ENABLED=false` | 423 `paused` |
+| Not paused and `SEND_ENABLED` on | 423 `paused` |
 | At least one active recipient; nobody over the monthly limit unless skipped or overridden | 422 / 409 `cap` |
 
 Nothing sends by itself: auto-drafts only create drafts, and the tick only picks up
@@ -447,7 +454,7 @@ until you press send; nothing sends by itself (auto-drafts only create drafts).
 4. Make a campaign for one group that holds only you; **Send a test**, read it in a mail client (the server will not send without it).
 5. Check the recipient count in the confirm step is the number you expect, then send (the server holds you to that number).
 6. Unsubscribe from the mail and check it stops.
-7. Anything wrong: **Pause all sending** (one click), or `SEND_ENABLED=false` and restart.
+7. Anything wrong: **Pause all sending** (one click), or set `SEND_ENABLED=false` and restart.
 
 ## Backups, restore and erasure
 
@@ -482,6 +489,27 @@ holding only `kind` (`unsubscribed`, `suppressed` or `erased`), the time, and fo
 `erased` an expiry 30 days out (the 14 nightly dumps plus a fortnight). No address,
 no name, no reason text. It is still pseudonymous personal data (the hash can be
 recomputed from a known address), kept for one purpose: honouring a refusal.
+
+**Keyed hash (#876).** With `EMAIL_HASH_KEY` set, new lines are keyed by
+HMAC-SHA256(key, normalised address), first 32 hex (`keyedHash` in `ledger.ts`), so
+whoever can guess an address can no longer recompute the key of a line. Lines written
+before the key existed use the old unkeyed hash. Every check (signup, confirm,
+import, admin add, the sender's per-recipient check, the guard) tests BOTH keys and
+blocks when either matches; writes use the keyed one and drop the person's legacy
+line. Key unset: exactly the old behaviour, one warning at boot. Contact ids
+(`contact:<hash>`) are unchanged: the contact document holds the address anyway, and
+the ledger is the part that outlives it. Residue to know: a contact id and the audit
+entries that name it still carry the unkeyed hash.
+
+*Re-key* (`backend/scripts/rekey-ledger.ts`, run from a machine with a port-forward to
+CouchDB, dry run by default, `--apply` to write): for every contact whose address is
+held, moves its legacy line to the keyed hash (new line written first, old removed
+second). Idempotent. Lines whose address is gone (erased tombstones, minimised
+unsubscribers) stay under the legacy hash and keep blocking through the legacy
+check. Prints counts only. Order on production: set the secret, deploy, run the
+re-key, verify (a second dry run reports `would move 0`). Changing the key later
+orphans every keyed line: keep it with the other secrets and do not rotate it
+without re-running the re-key from the old key.
 
 - **Written first.** Unsubscribe, one-click, admin unsubscribe, suppress, lift,
   hard bounce and erase write the ledger line before the contact document, so a

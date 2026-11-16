@@ -54,6 +54,9 @@ const EnvSchema = z.object({
   // The remote MCP server (/mcp, with its own OAuth). Off: its paths answer 404.
   MCP_REMOTE: z.enum(['off', 'on']).default('off'),
   // A GitHub OAuth app of its own; callback <SITE_URL>/mcp/oauth/github/callback.
+  // Requests per minute per client address: /mcp/public (no sign-in) and /mcp (Bearer) are separate buckets.
+  MCP_PUBLIC_RATE_LIMIT: z.coerce.number().int().min(1).default(60),
+  MCP_RATE_LIMIT: z.coerce.number().int().min(1).default(120),
   MCP_GITHUB_CLIENT_ID: z.string().optional(),
   MCP_GITHUB_CLIENT_SECRET: z.string().optional(),
   // The owner's numeric GitHub id. Without it the id is recorded at the first sign-in and held to.
@@ -72,7 +75,11 @@ const EnvSchema = z.object({
   // Canonical origin, trailing slash stripped; every absolute URL is built from it.
   // Signs confirm/unsubscribe links. Unset: a generated secret in the admin-only store.
   SUBSCRIBE_SECRET: z.string().min(16).optional(),
-  // Hard stop for all outgoing mail. Any of false/0/off/no/disabled holds every send; unset or anything else sends. Needs a restart, not a deploy.
+  // Key for the suppression ledger's address hash (HMAC-SHA256). Generate with `openssl rand -hex 32`. Unset: the legacy unkeyed hash, one warning at boot.
+  EMAIL_HASH_KEY: z.string().min(32).optional().or(z.literal('').transform(() => undefined)),
+  // How long a confirmation link lives, in days. Unsubscribe links never expire.
+  CONFIRM_TTL_DAYS: z.coerce.number().int().min(1).max(365).default(30),
+  // Fails CLOSED: mail sends only when this is an explicit on value (true/1/yes/on, case-insensitive). Unset, empty, off or a typo holds every send. Needs a restart, not a deploy.
   SEND_ENABLED: z.string().optional(),
   // Resend webhook signing secret (`whsec_...`). Unset: the provider-event route answers 404.
   RESEND_WEBHOOK_SECRET: z

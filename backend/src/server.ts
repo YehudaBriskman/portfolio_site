@@ -13,6 +13,7 @@ import { startComplaintPause } from "./campaigns/complaintPause.js";
 import { startAudienceSweep } from './audience/sweep.js';
 import { ensureSendIndex } from './campaigns/store.js';
 import { bootLedger } from './audience/ledger.js';
+import { backfillConsent, ensureSystemGroup } from './audience/store.js';
 import { startOwnerNotifier } from './notify/notifier.js';
 
 const app = createApp();
@@ -154,6 +155,11 @@ startSender();
 startComplaintPause();
 /* List hygiene: unconfirmed signups expire on their own, not only when the admin is opened. */
 startAudienceSweep();
+
+// Housekeeping that used to run when an admin list was read (a GET must not write).
+void ensureSystemGroup()
+  .then(() => backfillConsent())
+  .catch((err) => logger.warn({ err: err instanceof Error ? err.message : String(err) }, "audience boot housekeeping failed"));
 
 /* Owner notifications: subscribes to the event seams; nothing it does can fail a send. */
 startOwnerNotifier();

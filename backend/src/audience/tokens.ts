@@ -8,14 +8,18 @@ import { env } from "../env.js";
  * The payload carries a contact HASH, never an address.
  * Secret: SUBSCRIBE_SECRET if set, else one generated on first use and kept in
  * the admin-only doc `secret:subscribe`. No route returns that doc.
+ *
+ * Expiry: `exp` is optional. Confirm links carry one (CONFIRM_TTL_DAYS); unsubscribe links are
+ * signed WITHOUT one and are never refused for age, whatever `exp` an older link carries
+ * (the law requires an unsubscribe link to keep working). A token with no `exp` still verifies.
  */
 
 export const SECRET_DOC = "secret:subscribe";
 export const TOKEN_KINDS = ["confirm", "unsub", "manage"] as const;
 export type TokenKind = (typeof TOKEN_KINDS)[number];
-export type TokenPayload = { t: TokenKind; h: string; exp: number };
+export type TokenPayload = { t: TokenKind; h: string; exp?: number };
 
-const Payload = z.object({ t: z.enum(TOKEN_KINDS), h: z.string().regex(/^[a-f0-9]{32}$/), exp: z.number().int() }).strict();
+const Payload = z.object({ t: z.enum(TOKEN_KINDS), h: z.string().regex(/^[a-f0-9]{32}$/), exp: z.number().int().optional() }).strict();
 
 let cached: string | null = null;
 /** Forget the cached secret (tests, and a future "rotate"). */
@@ -47,11 +51,11 @@ const mac = (key: string, body: string) => createHmac("sha256", key).update(body
 export const expiresIn = (seconds: number, now = Date.now()) => Math.floor(now / 1000) + Math.floor(seconds);
 
 export async function signToken(p: TokenPayload): Promise<string> {
-  const body = Buffer.from(JSON.stringify({ t: p.t, h: p.h, exp: p.exp })).toString("base64url");
+  const body = Buffer.from(JSON.stringify({ t: p.t, h: p.h, ...(p.exp === undefined ? {} : { exp: p.exp }) })).toString("base64url");
   return `${body}.${mac(await secret(), body).toString("base64url")}`;
 }
 
-/** The payload when the signature is genuine, the kind matches and it has not expired; else null (one answer for every failure). */
+/** The payload when the signature is genuine, the kind matches and it has not expired (unsubscribe links never do); else null (one answer for every failure). */
 export async function verifyToken(token: string, kind: TokenKind, now = Date.now()): Promise<TokenPayload | null> {
   const parts = token.split(".");
   if (parts.length !== 2 || !parts[0] || !parts[1]) return null;
@@ -64,6 +68,7 @@ export async function verifyToken(token: string, kind: TokenKind, now = Date.now
   } catch {
     return null;
   }
-  if (parsed.t !== kind || parsed.exp * 1000 <= now) return null;
+  if (parsed.t !== kind) return null;
+  if (kind !== "unsub" && parsed.exp !== undefined && parsed.exp * 1000 <= now) return null;
   return parsed;
 }

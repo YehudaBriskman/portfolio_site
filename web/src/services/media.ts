@@ -29,6 +29,10 @@ const MediaSchema = z.object({
   width: z.number(),
   height: z.number(),
   bytes: z.number(),
+  /* #876: a new upload is a draft; an item with no word from the server (an older API) is public. */
+  visibility: z.enum(["draft", "public"]).default("public"),
+  /* Whether the public can fetch it now: public, or used by a published page. */
+  live: z.boolean().default(true),
   createdAt: z.string(),
   updatedAt: z.string(),
   url: z.string(),
@@ -50,6 +54,9 @@ const MediaSchema = z.object({
 });
 
 export type MediaItem = z.infer<typeof MediaSchema>;
+export type MediaVisibility = MediaItem["visibility"];
+/** A draft the public cannot fetch: draft, and no published page uses it. */
+export const isDraft = (m: Pick<MediaItem, "visibility" | "live">) => m.visibility === "draft" && !m.live;
 
 /*
  * What may go into a media element's src. Only two things ever should: the
@@ -181,6 +188,12 @@ export const media = {
   update: async (item: MediaItem, meta: MediaMeta | MediaDetails) => {
     const r = await call<{ item: unknown }>(`/${item.id}`, json("PUT", { ...meta, _rev: item._rev }));
     invalidateTranslations();
+    return MediaSchema.parse(r.item);
+  },
+  /** Draft or public, on its own: the saved words go back unchanged. */
+  setVisibility: async (item: MediaItem, visibility: MediaVisibility) => {
+    const he = item.he && (item.he.alt || item.he.caption) ? { alt: item.he.alt, caption: item.he.caption } : null;
+    const r = await call<{ item: unknown }>(`/${item.id}`, json("PUT", { alt: item.alt, caption: item.caption, credit: item.credit, he, visibility, _rev: item._rev }));
     return MediaSchema.parse(r.item);
   },
   /** A video's captions in one language, added or replaced (#306). */

@@ -66,6 +66,9 @@ services:
       # effect. A developer who has filled in real Gmail credentials for a
       # production deploy should not discover them by receiving a test
       # message from their own laptop.
+      # Mail fails closed: it only leaves when this is an explicit on value.
+      # Here it all lands in the local sink, so it is on.
+      - SEND_ENABLED=true
       - EMAIL_PROVIDER=smtp
       - SMTP_HOST=mail
       - SMTP_PORT=1025
