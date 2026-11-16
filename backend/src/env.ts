@@ -28,6 +28,8 @@ const EnvSchema = z.object({
   CONTACT_DAILY_MAIL_CEILING: z.coerce.number().int().min(0).default(30),
   // Hard ceiling on owner notices (the messages themselves) a day; auto-replies stop first, at the mail ceiling above.
   CONTACT_DAILY_NOTICE_CEILING: z.coerce.number().int().min(0).default(40),
+  // Most confirmation mails the public signup may send a day, every visitor together. Past it the signup is still answered 202, and the mail is not sent.
+  SIGNUP_DAILY_MAIL_CEILING: z.coerce.number().int().min(0).default(100),
 
   // Content store. Defaults point at the in-cluster service; the API must start
   // even when CouchDB is unreachable, so nothing here is required at boot.

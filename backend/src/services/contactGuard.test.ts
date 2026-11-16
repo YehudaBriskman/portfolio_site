@@ -5,7 +5,7 @@ import emailRoutes from "../routes/email.route.js";
 import * as providers from "../providers/index.js";
 import { logger } from "../logger.js";
 import { env } from "../env.js";
-import { resetContactGuard, CLIENT_LIMIT, GLOBAL_LIMIT, ADDRESS_WINDOW_MS, allowAutoReply, reserveNotice, reserveAutoReply } from "./contactGuard.js";
+import { resetContactGuard, CLIENT_LIMIT, GLOBAL_LIMIT, ADDRESS_WINDOW_MS, allowAutoReply, reserveNotice, reserveAutoReply, reserveSignupMail, releaseSignupMail } from "./contactGuard.js";
 
 const body = (replyTo: string, extra: Record<string, unknown> = {}) => ({
   subject: "Hi",
@@ -166,5 +166,21 @@ describe("contact form limits", () => {
     expect(all).toContain("auto-reply failed");
     expect(all).not.toMatch(/stranger@example\.invalid/);
     expect(all).not.toContain(env.CONTACT_TO);
+  });
+});
+
+describe("public signup daily ceiling", () => {
+  it("allows the configured number a day, refuses past it, and gives a slot back", () => {
+    for (let i = 0; i < env.SIGNUP_DAILY_MAIL_CEILING; i++) expect(reserveSignupMail()).toBe(true);
+    expect(reserveSignupMail()).toBe(false);
+    releaseSignupMail();
+    expect(reserveSignupMail()).toBe(true);
+  });
+  it("starts again on the next UTC day and is independent of the contact form's counters", () => {
+    const t = Date.UTC(2026, 0, 1, 12);
+    for (let i = 0; i < env.SIGNUP_DAILY_MAIL_CEILING; i++) reserveSignupMail(t);
+    expect(reserveSignupMail(t)).toBe(false);
+    expect(reserveNotice(t)).toBe(true);
+    expect(reserveSignupMail(t + 86_400_000)).toBe(true);
   });
 });
