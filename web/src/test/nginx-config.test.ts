@@ -180,6 +180,33 @@ describe("the admin gate's identity headers (oci-free #22)", () => {
   });
 });
 
+describe("the identity switch's default and its two settings", () => {
+  const top = parse(TEMPLATE, SNIPPETS);
+  const dockerfile = read("Dockerfile");
+  const VARS = ["$fwd_auth_request_user", "$fwd_auth_request_email", "$fwd_admin_proxy_secret"];
+
+  /** What nginx's `map` yields for a value of the switch: the matching entry, else `default`. */
+  const mapped = (variable: string, value: string | undefined) => {
+    const map = top.find((d) => d.name === "map" && d.args[1] === variable)!;
+    const entries = new Map(map.block!.map((d) => [d.name, d.args[0]]));
+    return (value !== undefined && entries.get(value)) || entries.get("default");
+  };
+
+  it("the image defaults to off, so a new environment fails closed", () => {
+    expect(dockerfile).toMatch(/^ENV NGINX_FORWARD_IDENTITY=off$/m);
+  });
+
+  it("the default drops the headers; `on` hands the client's value on", () => {
+    const image = dockerfile.match(/^ENV NGINX_FORWARD_IDENTITY=(\S+)$/m)![1];
+    for (const v of VARS) {
+      expect(mapped(v, image), `${v} with the image default`).toBe("");
+      expect(mapped(v, "")).toBe("");
+      expect(mapped(v, "ON")).toBe("");
+      expect(mapped(v, "on"), `${v} with on`).toMatch(/^\$http_/);
+    }
+  });
+});
+
 describe("the internal MCP ticket header", () => {
   const proxied = locations.filter((loc) => loc.block!.some((d) => d.name === "proxy_pass"));
 

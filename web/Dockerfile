@@ -71,11 +71,12 @@ ENV NGINX_ENVSUBST_FILTER=NGINX_
 # survives substitution literally and stops nginx at startup.
 ENV NGINX_API_HOST=api
 # Whether the admin gate's identity headers reach the API through this nginx:
-# `on` keeps preprod's admin working (its gate runs in Traefik, in front of
-# here), and production's public web Deployment sets `off`. Why, at the maps in
+# `off` fails closed, so a new environment drops them unless it opts in. `on` is
+# the explicit opt-in for preprod, whose admin gate runs in Traefik in front of
+# here; production's public web Deployment sets `off`. Why, at the maps in
 # nginx.conf.template. Declared for the same reason as NGINX_API_HOST: unset,
 # it would survive envsubst literally and stop nginx at startup.
-ENV NGINX_FORWARD_IDENTITY=on
+ENV NGINX_FORWARD_IDENTITY=off
 COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 # Not under /etc/nginx/templates and not under conf.d, on purpose. templates/
 # is envsubst's input and this file has no variables to substitute; conf.d/ is
