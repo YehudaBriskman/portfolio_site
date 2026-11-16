@@ -11,6 +11,8 @@ import { admin, slugify, AdminValidationError } from "@/services/admin";
 import MediaPicker from "@/components/admin/MediaPicker";
 import { Disclosure } from "@/components/ui/Disclosure";
 import { useAdminWords } from "@/i18n/admin";
+import { useAreaEditorWords } from "@/i18n/areaEditor";
+import { useLang } from "@/components/dashboard/i18n";
 import { usePhone } from "@/hooks/usePhone";
 import { usePostsPhoneWords } from "@/components/admin/posts/words";
 import { formatWhen } from "@/lib/safeTime";
@@ -47,6 +49,8 @@ const EMPTY: Draft = {
 
 export default function AdminCollection() {
   const w = useAdminWords();
+  const a = useAreaEditorWords();
+  const lang = useLang();
   const { slug } = useParams();
   const isNew = !slug || slug === "new";
   const nav = useNavigate();
@@ -158,7 +162,7 @@ export default function AdminCollection() {
         setSave({ kind: "invalid", message: e.message });
         return;
       }
-      const message = e instanceof Error ? e.message : "Save failed";
+      const message = e instanceof Error ? e.message : a.saveFailed;
       setSave(/changed elsewhere/i.test(message) ? { kind: "conflict" } : { kind: "failed", message });
     }
   }
@@ -167,14 +171,14 @@ export default function AdminCollection() {
   /** The server's complaint about one field, shown under it. */
   const fieldError = (name: string) =>
     fieldErrors[name] ? <span className="a-error">{fieldErrors[name]}</span> : null;
-  const heading = isNew ? "New area" : titleOf(d.title, d.slug);
+  const heading = isNew ? w.newArea : titleOf(d.title, d.slug);
   const repoLabel = d.repoOwner && d.repoName ? `${d.repoOwner}/${d.repoName}` : "";
 
   const bottomBar = (
     <div className="flex items-center gap-3 px-4 py-2">
       <StatusPill state={save_} />
       <button type="button" onClick={() => void commit()} disabled={!canSave} className="a-btn a-btn-primary ml-auto">
-        {save_.kind === "saving" ? "Saving" : "Save"}
+        {save_.kind === "saving" ? a.saving : a.save}
       </button>
     </div>
   );
@@ -192,15 +196,17 @@ export default function AdminCollection() {
       <form className="max-w-[40rem]" onSubmit={(e) => { e.preventDefault(); if (canSave) void commit(); }}>
         <PageHeader
           title={heading}
-          description={<>An area is a shelf of posts: the site&rsquo;s own notes, or one project&rsquo;s.</>}
+          description={a.intro}
         />
 
         <label className="mt-8 block">
-          <span className="a-label">Title</span>
+          <span className="a-label">{a.title}</span>
           <input
             value={d.title}
             onChange={(e) => patch({ title: e.target.value, slug: slugTouched ? d.slug : slugify(e.target.value) })}
             className="a-input a-input-title"
+            lang="en"
+            dir="ltr"
             aria-invalid={fieldErrors.title ? "true" : undefined}
             placeholder="WindoM"
           />
@@ -208,28 +214,31 @@ export default function AdminCollection() {
         </label>
 
         <label className="mt-6 block">
-          <span className="a-label">Tagline</span>
+          <span className="a-label">{a.tagline}</span>
           <input
             value={d.tagline}
             onChange={(e) => patch({ tagline: e.target.value })}
             className="a-input"
             placeholder="Every new tab becomes a dashboard"
+            lang="en"
+            dir="ltr"
           />
         </label>
 
         <label className="mt-6 block">
-          <span className="a-label">Description</span>
+          <span className="a-label">{a.description}</span>
           <textarea
             value={d.description}
             onChange={(e) => patch({ description: e.target.value })}
             className="a-textarea min-h-[6rem]"
+            lang="en"
+            dir="ltr"
           />
         </label>
 
         <Disclosure summary={w.areaHebrew} className="mt-10">
           <p className="a-hint mt-2">
-            Optional, field by field. A field left empty shows the English on the Hebrew page, marked
-            as English.
+            {a.hebrewHint}
           </p>
           <div className="mt-4 grid grid-cols-1 gap-5" lang="he" dir="rtl">
             <label className="block">
@@ -255,21 +264,21 @@ export default function AdminCollection() {
         <Disclosure open={!phone || isNew ? true : undefined} summary={w.areaDetails} meta={phone && !isNew ? `${pw.kinds[d.kind]} · ${w.status[d.status]}` : undefined} className="mt-10">
           <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2">
             <label className="block">
-              <span className="a-label">Kind</span>
+              <span className="a-label">{a.kind}</span>
               <Select value={d.kind} onChange={(e) => patch({ kind: e.target.value as Draft["kind"] })}>
-                <option value="project">Project</option>
-                <option value="site">My blog</option>
+                <option value="project">{a.kindProject}</option>
+                <option value="site">{a.kindSite}</option>
               </Select>
             </label>
             <label className="block">
-              <span className="a-label">Visibility</span>
+              <span className="a-label">{a.visibility}</span>
               <Select value={d.status} onChange={(e) => patch({ status: e.target.value as Draft["status"] })}>
-                <option value="published">Published</option>
-                <option value="hidden">Hidden</option>
+                <option value="published">{w.status.published}</option>
+                <option value="hidden">{w.status.hidden}</option>
               </Select>
             </label>
             <label className="block">
-              <span className="a-label">Order (lower comes first)</span>
+              <span className="a-label">{a.order}</span>
               <input
                 value={d.order}
                 onChange={(e) => patch({ order: e.target.value })}
@@ -278,7 +287,7 @@ export default function AdminCollection() {
               />
             </label>
             <label className="block">
-              <span className="a-label">Slug (the URL)</span>
+              <span className="a-label">{a.slug}</span>
               <input
                 value={d.slug}
                 onChange={(e) => { setSlugTouched(true); patch({ slug: e.target.value }); }}
@@ -292,12 +301,11 @@ export default function AdminCollection() {
               />
               {fieldError("slug")}
               <span className="a-hint">
-                Lowercase words separated by single hyphens. No dots or spaces &mdash; this becomes
-                the URL, so &ldquo;windom.app&rdquo; would not resolve. Tidied when you leave the field.
+                {a.slugHintA}<bdi dir="ltr">&ldquo;windom.app&rdquo;</bdi>{a.slugHintB}
               </span>
             </label>
             <label className="block sm:col-span-2">
-              <span className="a-label">Cover image URL</span>
+              <span className="a-label">{a.coverUrl}</span>
               <input
                 value={d.coverImage}
                 onChange={(e) => patch({ coverImage: e.target.value })}
@@ -307,35 +315,33 @@ export default function AdminCollection() {
               />
               {fieldError("coverImage")}
               <span className="a-hint">
-                Must be a full https:// URL that returns an image. A GitHub{" "}
-                <span className="mono">/blob/</span> link is an HTML page, not an image &mdash; it is saved as
-                its <span className="mono">raw.githubusercontent.com</span> address.
+                {a.coverHintA}<bdi className="mono" dir="ltr">/blob/</bdi>{a.coverHintB}<bdi className="mono" dir="ltr">raw.githubusercontent.com</bdi>{a.coverHintC}
               </span>
             </label>
             <div className="sm:col-span-2 -mt-3">
               <MediaPicker value={d.coverImage} onChange={(url) => patch({ coverImage: url })} />
             </div>
             <div className="block sm:col-span-2">
-              <span className="a-label" id="area-icon-label">Icon</span>
+              <span className="a-label" id="area-icon-label">{a.icon}</span>
               <div className="flex flex-wrap items-center gap-3" aria-labelledby="area-icon-label" role="group">
                 {d.icon ? (
                   <img src={d.icon} alt="" width={32} height={32} className="rounded-[var(--a-r-ctl)] border border-edge object-contain p-1" />
                 ) : (
-                  <span className="a-hint m-0">None.</span>
+                  <span className="a-hint m-0">{a.none}</span>
                 )}
                 <MediaPicker
                   value={d.icon}
                   onChange={(url) => patch({ icon: url })}
                   kinds={["icon"]}
-                  label={d.icon ? "Change icon" : "Choose an icon"}
+                  label={d.icon ? a.changeIcon : a.chooseIcon}
                 />
                 {d.icon && (
                   <button type="button" className="a-btn a-btn-ghost mt-2" onClick={() => patch({ icon: "" })}>
-                    Remove icon
+                    {a.removeIcon}
                   </button>
                 )}
               </div>
-              <span className="a-hint">A small mark for this area, from the library&rsquo;s icons. A one-colour icon takes the text colour around it.</span>
+              <span className="a-hint">{a.iconHint}</span>
             </div>
           </div>
 
@@ -351,24 +357,24 @@ export default function AdminCollection() {
         <Disclosure open={repoLabel ? true : undefined} summary={w.areaRepository} className="mt-6">
           <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-3">
             <label className="block">
-              <span className="a-label">Owner</span>
+              <span className="a-label">{a.owner}</span>
               <input value={d.repoOwner} onChange={(e) => patch({ repoOwner: e.target.value })}
                 className="a-input a-input-mono" autoCapitalize="off" spellCheck={false} placeholder="YehudaBriskman" />
             </label>
             <label className="block">
-              <span className="a-label">Repo</span>
+              <span className="a-label">{a.repo}</span>
               <input value={d.repoName} onChange={(e) => patch({ repoName: e.target.value })}
                 className="a-input a-input-mono" autoCapitalize="off" spellCheck={false} placeholder="WindoM" />
             </label>
             <label className="block">
-              <span className="a-label">Branch</span>
+              <span className="a-label">{a.branch}</span>
               <input value={d.repoBranch} onChange={(e) => patch({ repoBranch: e.target.value })}
                 className="a-input a-input-mono" autoCapitalize="off" spellCheck={false} placeholder="main" />
             </label>
           </div>
 
           <div className="mt-5">
-            <span className="a-label">Published paths</span>
+            <span className="a-label">{a.paths}</span>
             <DocPathsEditor paths={d.docPaths} repoLabel={repoLabel} onChange={(docPaths) => patch({ docPaths })} />
           </div>
 
@@ -384,30 +390,30 @@ export default function AdminCollection() {
                     setStats(r.stats as Record<string, unknown>);
                     setSave({ kind: "saved", at: new Date() });
                   } catch (e) {
-                    setSave({ kind: "failed", message: e instanceof Error ? e.message : "Sync failed" });
+                    setSave({ kind: "failed", message: e instanceof Error ? e.message : a.syncFailed });
                   } finally {
                     setSyncing(false);
                   }
                 }}
               >
-                {syncing ? "Syncing" : "Sync from GitHub"}
+                {syncing ? a.syncing : a.sync}
               </button>
             </div>
           )}
 
           {stats && (
             <div className="a-card mt-5 p-4">
-              <p className="mono text-sm uppercase tracking-[0.22em] text-clay">From GitHub</p>
+              <p className="mono text-sm uppercase tracking-[0.22em] text-clay">{a.fromGithub}</p>
               {stats.error ? (
                 <p className="a-error">{String(stats.error)}</p>
               ) : (
                 <p className="mono mt-2 text-sm text-bone/85">
-                  {`${stats.stars ?? "—"} stars · ${stats.language ?? "—"} · ${stats.license ?? "—"} · fetched ${
-                    stats.fetchedAt ? formatWhen(String(stats.fetchedAt), "en", { dateStyle: "short", timeStyle: "medium" }) : "never"
-                  }`}
+                  {`${a.stars(String(stats.stars ?? "—"))} · ${stats.language ?? "—"} · ${stats.license ?? "—"} · ${a.fetched(
+                    stats.fetchedAt ? formatWhen(String(stats.fetchedAt), lang, { dateStyle: "short", timeStyle: "medium" }) : a.never,
+                  )}`}
                 </p>
               )}
-              <p className="a-hint">Refreshed automatically every 15 minutes. Never read during a page load.</p>
+              <p className="a-hint">{a.refreshHint}</p>
             </div>
           )}
         </Disclosure>
@@ -415,7 +421,7 @@ export default function AdminCollection() {
         <div className="mt-10 hidden items-center gap-3 lg:flex">
           <StatusPill state={save_} />
           <button type="button" onClick={() => void commit()} disabled={!canSave} className="a-btn a-btn-primary ml-auto">
-            {save_.kind === "saving" ? "Saving" : "Save area"}
+            {save_.kind === "saving" ? a.saving : a.saveArea}
           </button>
         </div>
       </form>

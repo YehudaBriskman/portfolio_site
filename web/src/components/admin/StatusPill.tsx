@@ -7,6 +7,7 @@
  * colours, and failure gets its own ink.
  */
 
+import { useAreaEditorWords } from "@/i18n/areaEditor";
 import { clock } from "./saveReadout";
 
 export type SaveState =
@@ -19,6 +20,7 @@ export type SaveState =
   | { kind: "conflict" };
 
 export default function StatusPill({ state }: { state: SaveState }) {
+  const w = useAreaEditorWords();
   const isProblem = state.kind === "failed" || state.kind === "conflict" || state.kind === "invalid";
 
   return (
@@ -30,19 +32,19 @@ export default function StatusPill({ state }: { state: SaveState }) {
       {state.kind === "dirty" && (
         <>
           <span className="a-dot bg-bone/40" aria-hidden="true" />
-          <span className="text-clay">Unsaved</span>
+          <span className="text-clay">{w.unsaved}</span>
         </>
       )}
       {state.kind === "saving" && (
         <>
           <span className="a-dot scrub-pulse bg-sodium" aria-hidden="true" />
-          <span className="text-clay">Saving</span>
+          <span className="text-clay">{w.saving}</span>
         </>
       )}
       {state.kind === "saved" && (
         <>
           <span className="a-dot bg-sodium" aria-hidden="true" />
-          <span className="text-clay">Saved {clock(state.at)}</span>
+          <span className="text-clay">{w.saved(clock(state.at))}</span>
         </>
       )}
       {state.kind === "invalid" && (
@@ -51,7 +53,7 @@ export default function StatusPill({ state }: { state: SaveState }) {
       {state.kind === "failed" && (
         <span className="text-[rgb(var(--destructive-ink))]">{state.message}</span>
       )}
-      {state.kind === "conflict" && <span className="text-sodium">Changed elsewhere</span>}
+      {state.kind === "conflict" && <span className="text-sodium">{w.elsewhere}</span>}
     </span>
   );
 }

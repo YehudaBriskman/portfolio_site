@@ -731,17 +731,17 @@ Two parts. **`web/scripts/a11y/admin-rules.mjs`** (npm `a11y:admin-rules`, CI Br
 
 | Guard | Rule | Fails when | Baseline today |
 |---|---|---|---|
-| `sticky` | A11 | a table of 10 or more rows (or taller than the page) has no `position: sticky` header | 4 tables: Audience, Campaigns, Posts, Translations |
-| `h1` | A2 | a page does not have exactly one `h1` | 5 pages with none: Areas, Posts, Projects, Site copy, Story |
+| `sticky` | A11 | a table of 10 or more rows (or taller than the page) has no `position: sticky` header | 0 (Round 3, #878) |
+| `h1` | A2 | a page does not have exactly one `h1` | 0 (Round 3: on a phone the top bar's page title is the h1 for Posts, Areas, Projects, Site copy, Story, through `AdminShell titleH1`) |
 | `dup-head` | A2 | two visible headings have the same text | 0 |
-| `dup-text` | A5 | two visible text nodes over 12 characters are equal (lists, tables and menus are exempt) | 1: "Discard changes" in Library |
+| `dup-text` | A5 | two visible text nodes over 12 characters are equal (lists, tables and menus are exempt) | 0 |
 | `overflow` | A8 | text is clipped by `overflow: hidden` with no ellipsis and no line clamp (the box itself or a clipping ancestor up to four levels) | 0 |
-| `gap` | A7 | two interactive boxes are under 8px (`--a-s-2`) apart; items of one menu, list, tab strip or table are joined on purpose. The shell (sidebar, top bar) counts once for every route (`*`) | 48 |
-| `overlap` | A7 | two interactive boxes intersect | 3: the Select button over the last chip in Media and Campaigns on a phone |
+| `gap` | A7 | two interactive boxes are under 8px (`--a-s-2`) apart; items of one menu, list, tab strip or table are joined on purpose. The shell (sidebar, top bar) counts once for every route (`*`) | 0 (Round 3: a group's rows start 8px under its heading; the phone top bar's gap is 8px) |
+| `overlap` | A7 | two interactive boxes intersect | 0 |
 | `target` | A33 | `.a-btn`, `.a-btn-primary` or `.a-icon-btn` is under 44px on either side at 390 | 0 |
 | `icon-label` | A9 | an icon-only button or link has no `aria-label`, `title`, `alt` or `sr-only` text | 0 |
-| `destructive` | A1, A12 | a danger button (class or tone, or a red text or fill) sits at rest on two or more rows of one list | 1: Revoke on Connected apps |
-| `hebrew` | A34 | an English word of 4+ letters in a `/he/admin` screen that is not in `HEBREW_ALLOW` (brand and code names), not an identifier (path, address, id, anything with a digit), not inside `dir="ltr"`, `code`, `kbd`, `.a-path`, and not a word of the user content the fixtures return | 69 words (Areas, Connections, Media and more) |
+| `destructive` | A1, A12 | a danger button (class or tone, or a red text or fill) sits at rest on two or more rows of one list | 0 |
+| `hebrew` | A34 | an English word of 4+ letters in a `/he/admin` screen that is not in `HEBREW_ALLOW` (brand and code names), not an identifier (path, address, id, anything with a digit), not inside `dir="ltr"`, `code`, `kbd`, `.a-path`, and not a word of the user content the fixtures return | 0 (Round 3: the area form, links and published-paths editors, the save readout and Connected apps now read in Hebrew: `i18n/areaEditor.ts`, `i18n/adminPhone.ts`) |
 | `motion` | M6 | something transitions or animates under `reduce` (computed `transition-duration` or `animation-duration` above 1ms) | 0 |
 | reduced-motion CSS | M6 | a transition or animation is declared outside `@media (prefers-reduced-motion: no-preference)` in an admin stylesheet (`adminMotionRules.guard.test.ts`, counted per file) | 6 files: `Action`, `Dock`, `FloatingBack`, `IconButton`, `SegmentedControl`, `popup.css` |
 | `animationend` allow-list | M7 | code outside the list waits for `animationend` or `transitionend` | 2 files, both public site: `useHelpMotion.ts`, `EntryShutter.tsx`; the admin has none |
@@ -796,3 +796,24 @@ Each one was measured in a real screen. Fix by pointing at the section.
 | **Hover-only affordance** | tooltips, hover rows | touch never hovers | `@media (hover: hover)` for styling only |
 | **`transition: all`**, raw durations, motion outside `no-preference` | various | animates layout, ignores the user | tokens, section 6 |
 | **Text under 14px that carries meaning** | hints 13, pills 12, `th` 12 | unreadable at arm's length | `--a-fs-meta` |
+
+---
+
+## 10. Admin design programme: state (Round 3, #878)
+
+The programme ran in three rounds: the rulebook and the kit (W1 to W4), the screens (S1 to S10), then the dashboard and table work (D1, D2) and the closing pass (F1 to F3). `docs/design/admin-final/` holds the final contact sheet: every admin screen at 1280 in English, light, and at 390 in Hebrew, dark.
+
+**Done.**
+
+- The rulebook (A1 to A34, M1 to M12) and the guards that measure it. The `admin-rules` baseline is **empty** and every ceiling in `adminRules.guard.test.ts` is 0: a new offender fails the build, and there is nothing left to fix first.
+- The kit, all in `components/ui/` and wordless: `PageHeader`, `Tabs`, `Banner`, `ConfirmDialog`, `DataTable`, `RowActions`, `FilterBar`, `SidePanel`, `CommandPalette`, `IconButton`, `ControlBar`, and from the dashboard programme `PanelGrid`, `Panel`, `CollapsibleRow`, `KpiTile`, `Sparkline`, `QuickLinks`, `NewMenu`, `EditableCell`, `DensitySwitch`, `ColumnsMenu` and `useTablePrefs` (section 3.1 has each row).
+- Screens moved onto the kit: Marketing hub and Inbox (S1), Audience (S2), Campaigns (S3), Library, Marketing settings and Sender (S4), Overview needs-you and Connected apps (S5), Posts and Areas (S6), Media (S7), Translations (S8), the post editor and the area editor (S9), Projects, Settings, Story and Site copy (S10). The Overview is a panel dashboard (D1) and the tables are denser, with icon row actions, a split New menu and per-table preferences (D2).
+- Hebrew: every `/he/admin` screen passes the A34 guard with no allow-listed English word beyond brand and code names.
+- Motion: the exit tokens (`--a-dur-exit-*`, `--a-ease-exit`), the one dashboard keyframe (`panel-expand`), all gated and checked by `admin-motion` (`docs/motion-contract.md` sections 13, 14 and 16).
+
+**Known leftovers.**
+
+1. `EditableCell` is in the kit and tested but **no screen uses it yet**: the tables still open the side panel for every edit. Wire it to Order (Areas, Projects) and Status first.
+2. **Duplicate post** needs an endpoint (a server copy that returns the new draft's slug); the menu entry waits for it rather than faking it on the client.
+3. **Saved views** (a named set of filters and columns per table) are not wired: `useTablePrefs` keeps tier, pinned actions and hidden columns only, and the filters live in the address.
+4. `barStatus` (the one-row editor bar's save readout in `saveReadout.ts`) still words its states in English; only `StatusPill` reads the language.

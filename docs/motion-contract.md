@@ -2258,6 +2258,8 @@ reveal), and never runs in the test modes. No keyframes.
 6. Direction mirrors in RTL (`--dir`).
 7. An element has one entrance. Nav elements get none (a scroll-driven animation is the entrance there); nothing has both.
 
+**Exit tokens (Round 3, #878).** What leaves is about 30% shorter than what arrived and accelerates, with no bounce: `--a-dur-exit-fast` 90ms, `--a-dur-exit-base` 125ms and `--a-dur-exit-sheet` 195ms pair with the entrances 120, 180 and 280 ms, and `--a-ease-exit` is `--a-ease-in`. They live in `index.css` beside `--a-dur-*`; `SidePanel` and the control kit use them, and `IconButton.busy.test.tsx` holds the pairing. Rule 3 above means these for every exit.
+
 **Desktop (>= 600px)** keeps this contract exactly as it was.
 
 **Nav audit.** Drawer, sidebar groups, top bar and tabs were checked for first-appearance entrances alongside scroll-driven ones. `Nav.module.css`, `DisplayMenu.module.css` and `SidebarGroup.module.css` hold no keyframes; the only entrance on the admin nav was the drawer, which is now a state transition (`index.css`, `.a-side:not([data-open])`) rather than a mount animation. Guarded by `web/src/components/ui/motionStateChange.guard.test.ts` (no element with both a time-driven entrance and a scroll-driven animation; no new transition outside the phone gate).
@@ -2280,6 +2282,8 @@ Same rule as section 13 (phones only, `prefers-reduced-motion: no-preference`, s
 - **Verified, not changed.** `SelectionBar` rises and falls through `Presence` (section 13); the toast host (sonner, now also carrying Undo) is checked by the same script; the new toast system (#730) owns its files and is checked by the same script.
 
 **Check.** `npm run a11y:admin-motion` (with `STRIPS3=docs/design/motion-pass3` it also saves frame strips at 0, 80, 160 and 240 ms). For each new case: the state is right at once, leftovers leave within a 700 ms hard timeout (animations cancelled), nothing animates under reduced motion, nothing animates at 1280px. Strips: `docs/design/motion-pass3/` (remove, insert, popover, in English and Hebrew).
+- **Exit tokens (Round 3, #878).** A new exit takes `--a-dur-exit-*` with `--a-ease-exit` (section 13), not the entrance durations: what leaves is faster than what arrived. The exits listed above were written before the tokens; they move to them as they are touched.
+
 
 ## 15. Help push and pop on phones (2026-11-14, #803)
 
@@ -2297,3 +2301,14 @@ Same rule as section 13 (phones only, `prefers-reduced-motion: no-preference`, s
 6. The stylesheet has no rule outside the phone query, so a wide screen is byte-identical.
 
 **Held by** `components/help/__tests__/helpMotion.test.tsx` (state and timers, never a frame; the stylesheet's gate) and `scrollOnly.test.ts` (the exemption above).
+
+## 16. The admin dashboard and tables (2026-11-16, #858, #860, #878)
+
+The dashboard programme (D1, D2) added no scroll-driven or looping motion. What moves:
+
+- **`Panel` expand (`panel-expand`).** One keyframe, 200 ms (`--a-dur-2`), `--a-ease-out`, opacity 0 to 1 and scale .97 to 1, declared only inside `@media (prefers-reduced-motion: no-preference)`; under reduce the panel is simply drawn full size. `data-expanded` flips on the click or the V key, never on the animation. It is on the admin keyframes allow-list (`KEYFRAMES_ALLOWED`), and `scrollOnly.test.ts` exempts it by name.
+- **`CollapsibleRow`, `KpiTile`, `Sparkline`, `QuickLinks`, `DensitySwitch`, `ColumnsMenu`, `EditableCell`, `NewMenu`.** Nothing animates on its own: a row opens and closes with `hidden` at once, a tile has no entrance, a sparkline draws in place, edit mode and density change at once. Popovers and menus are the shared Radix ones (section 9).
+- **Sidebar groups.** A group's rows start 8px under its heading at every level (A7); the collapse is the 0fr to 1fr grid of section 13.
+- **Phone top bar.** The page title is the bar's `h1` on screens without a header of their own (`AdminShell titleH1`); no motion.
+
+**Check.** `npm run a11y:admin-motion` (every state is right at once, nothing animates under reduce, mirrored in RTL) and `adminMotionRules.guard.test.ts`.

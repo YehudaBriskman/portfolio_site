@@ -177,9 +177,8 @@ export default function PostsPhone() {
   const filtered = Boolean(status || area || he || q.trim());
 
   return (
-    <AdminShell title={w.nav.posts} section="posts" counts={{ posts: posts?.length, areas: cols?.length }}>
+    <AdminShell title={w.nav.posts} section="posts" counts={{ posts: posts?.length, areas: cols?.length }} titleH1>
       <div className="a-wrap flex min-w-0 flex-col gap-3" data-testid="posts-phone">
-        <h1 className="sr-only">{w.nav.posts}</h1>
 
         {selection.on ? (
           <SelectionHeader selection={selection} total={visible.length} />

@@ -21,6 +21,8 @@ import { unreadableCount } from "@/services/tolerant";
  * tokens are refused from then on.
  */
 
+type ConnectionWords = ReturnType<typeof usePhoneAdminWords>["connections"];
+
 const fmt = (iso: string | null) => (iso ? formatWhen(iso, "en", { dateStyle: "medium", timeStyle: "short" }) : "never");
 
 export default function AdminConnections() {
@@ -71,21 +73,21 @@ export default function AdminConnections() {
   const table = (rows: McpGrant[], ended: boolean) => (
     <div className="a-box overflow-x-auto">
       <table className="a-table">
-        <caption className="sr-only">{ended ? "Ended" : "Connected"}</caption>
+        <caption className="sr-only">{ended ? pw.ended : pw.connected}</caption>
         <thead>
           <tr>
-            <th scope="col">App</th>
+            <th scope="col">{pw.app}</th>
             <th scope="col" className="hidden md:table-cell">
-              Access
+              {pw.access}
             </th>
             <th scope="col" className="hidden sm:table-cell">
-              {ended ? "Ended" : "Last used"}
+              {ended ? pw.endedOn : pw.lastUsedLabel}
             </th>
             <th scope="col" className="hidden lg:table-cell">
-              Connected
+              {pw.connectedOn}
             </th>
             <th scope="col">
-              <span className="sr-only">{ended ? "Status" : "Actions"}</span>
+              <span className="sr-only">{ended ? pw.status : aw.colActions}</span>
             </th>
           </tr>
         </thead>
@@ -95,15 +97,15 @@ export default function AdminConnections() {
               <td>
                 <span className="a-row-title">{g.client}</span>
                 <span className="a-row-meta md:hidden">
-                  <span>{access(g)}</span>
+                  <span>{access(g, pw)}</span>
                   <span className="sm:hidden">
-                    {ended ? endedAt(g) : <>last used {g.lastUsedAt ? <RelTime iso={g.lastUsedAt} /> : "never"}</>}
+                    {ended ? endedAt(g, pw) : <>{pw.lastUsedLabel} {g.lastUsedAt ? <RelTime iso={g.lastUsedAt} /> : pw.never}</>}
                   </span>
                 </span>
               </td>
-              <td className="hidden md:table-cell">{access(g)}</td>
+              <td className="hidden md:table-cell">{access(g, pw)}</td>
               <td className="a-when hidden sm:table-cell">
-                {ended ? endedAt(g) : g.lastUsedAt ? <RelTime iso={g.lastUsedAt} /> : <Empty label="Never used" />}
+                {ended ? endedAt(g, pw) : g.lastUsedAt ? <RelTime iso={g.lastUsedAt} /> : <Empty label={pw.never} />}
               </td>
               <td className="a-when hidden lg:table-cell">
                 <span title={fmt(g.createdAt)}>
@@ -124,9 +126,9 @@ export default function AdminConnections() {
                   <p role="alert" className="a-error mt-1">
                     {rowError.message === NOT_AUTHORISED ? (
                       <>
-                        Your session has ended.{" "}
+                        {pw.sessionEnded}{" "}
                         <a className="a-link" href={signInHref(window.location.pathname + window.location.search)}>
-                          Sign in again
+                          {pw.signInAgain}
                         </a>
                       </>
                     ) : (
@@ -143,23 +145,22 @@ export default function AdminConnections() {
   );
 
   return (
-    <AdminShell title={phone ? pw.title : "Connected apps"} section="connections" counts={{ connections: grants ? active.length : undefined }}>
+    <AdminShell title={pw.title} section="connections" counts={{ connections: grants ? active.length : undefined }}>
       <div className="a-wrap">
         <PageHeader
-          title={phone ? pw.title : "Connected apps"}
+          title={pw.title}
           description={phone ? undefined : (
             <>
-              MCP clients you signed in to this site&rsquo;s{" "}
+              {pw.description}{" "}
               <Link to="/developers/mcp" className="a-link">
-                remote MCP server
-              </Link>{" "}
-              with GitHub. Access tokens last an hour; a connection renews itself for up to 30 days of use.
+                {pw.remoteServer}
+              </Link>
             </>
           )}
         />
 
         <p className="sr-only" role="status">
-          {phone ? "" : grants === null ? "Loading connected apps" : status || `${active.length} connected`}
+          {phone ? "" : grants === null ? pw.loading : status || pw.statusLine(active.length)}
         </p>
 
         <UnreadableNote count={skipped} />
@@ -171,9 +172,9 @@ export default function AdminConnections() {
         ) : phone && grants.length > 0 ? (
           <ConnectionsPhone grants={grants} onRevoke={revokeQuiet} />
         ) : active.length === 0 ? (
-          <EmptyState title="Nothing connected">
-            Run <code className="font-mono text-sm">claude mcp add --transport http yehuda https://yehudabriskman.com/mcp</code>{" "}
-            and sign in; the client appears here.
+          <EmptyState title={pw.emptyTitle}>
+            <code className="font-mono text-sm" dir="ltr">claude mcp add --transport http yehuda https://yehudabriskman.com/mcp</code>{" "}
+            {pw.emptyRun}
           </EmptyState>
         ) : (
           table(active, false)
@@ -182,7 +183,7 @@ export default function AdminConnections() {
         {!phone && past.length > 0 && (
           <section aria-labelledby="ended-apps" className="mt-8">
             <h2 id="ended-apps" className="a-h2 mb-3">
-              Ended
+              {pw.ended}
             </h2>
             {table(past, true)}
           </section>
@@ -203,19 +204,19 @@ export default function AdminConnections() {
   );
 }
 
-function access(g: McpGrant): string {
-  return g.scopes.includes("mcp:write") ? "Read and write" : "Read only";
+function access(g: McpGrant, pw: ConnectionWords): string {
+  return g.scopes.includes("mcp:write") ? pw.accessWrite : pw.accessRead;
 }
 
-function endedAt(g: McpGrant) {
+function endedAt(g: McpGrant, pw: ConnectionWords) {
   return g.status === "revoked" ? (
     <>
-      Revoked <RelTime iso={g.revokedAt} />
+      {pw.revokedAt} <RelTime iso={g.revokedAt} />
       {g.revokedReason ? ` · ${g.revokedReason}` : ""}
     </>
   ) : (
     <>
-      Expired <RelTime iso={g.expiresAt} />
+      {pw.expiredAt} <RelTime iso={g.expiresAt} />
     </>
   );
 }
