@@ -32,6 +32,7 @@ import type { ContentBundle } from "../schemas/site-content.js";
 import { publishedBundleOrSeed } from "../services/site-content.js";
 import { sectionVisible, type SiteSettings } from "../schemas/site-settings.js";
 import { settingsOrDefault } from "../services/site-settings.js";
+import { dropHiddenAreaNotes, publicNoteOrUndefined } from "../services/public-notes.js";
 import { helpPageSeo } from "../services/help-pages.js";
 
 const router = Router();
@@ -41,7 +42,7 @@ async function publishedPosts(): Promise<Post[]> {
     selector: { type: "post", status: "published" },
     limit: 500,
   });
-  return docs;
+  return dropHiddenAreaNotes(docs);
 }
 
 async function publishedCollections(): Promise<Collection[]> {
@@ -148,7 +149,7 @@ router.get(
         selector: { type: "post", status: "published", slug },
         limit: 1,
       });
-      const post = docs[0];
+      const post = await publicNoteOrUndefined(docs[0]);
       if (!post) return res.status(404).json({ ok: false, error: "Not Found" });
       return sendPng(
         res,
@@ -920,7 +921,7 @@ page("/blog/:slug", async (req, res, lang) => {
     selector: { type: "post", status: "published", slug },
     limit: 1,
   });
-  const english = docs[0];
+  const english = await publicNoteOrUndefined(docs[0]);
   const post = english && local(english, lang);
   /* Whether the reader gets the English body on a Hebrew page: then it is
      marked as English and said to be. */
