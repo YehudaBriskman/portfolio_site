@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { couch } from "../db/couch.js";
 import { asyncHandler } from "../middlewares/asyncHandler.js";
+import { dropHiddenAreaNotes, publicNoteOrUndefined } from "../services/public-notes.js";
 import { PostSchema, toPublicCollection, toPublicPost, toPublicSummary, type Collection, type Post } from "../schemas/content.js";
 
 const router = Router();
@@ -28,7 +29,8 @@ async function findAllPublished(extra: Record<string, unknown> = {}): Promise<Po
     all.push(...docs);
     if (docs.length < PAGE) break;
   }
-  return all;
+  // Notes of a hidden area leave with the area (#875).
+  return dropHiddenAreaNotes(all);
 }
 
 router.get(
@@ -64,7 +66,7 @@ router.get(
       selector: { type: "post", status: "published", slug: req.params.slug },
       limit: 1,
     });
-    const doc = docs[0];
+    const doc = await publicNoteOrUndefined(docs[0]);
     if (!doc) return res.status(404).json({ ok: false, error: "Not Found" });
     const parsed = PostSchema.safeParse(doc);
     if (!parsed.success) return res.status(404).json({ ok: false, error: "Not Found" });

@@ -89,11 +89,13 @@ describe("GET /api/blog/posts", () => {
     const find = vi
       .spyOn(couch, "find")
       .mockResolvedValueOnce({ docs: page(0, 100) })
-      .mockResolvedValueOnce({ docs: page(100, 30) });
+      .mockResolvedValueOnce({ docs: page(100, 30) })
+      // The third call is the hidden-area lookup (#875).
+      .mockResolvedValueOnce({ docs: [] });
     const res = await request(createApp()).get("/api/blog/posts");
 
     expect(res.body.items).toHaveLength(130);
-    expect(find).toHaveBeenCalledTimes(2);
+    expect(find).toHaveBeenCalledTimes(3);
     expect((find.mock.calls[1][0] as { skip: number }).skip).toBe(100);
   });
 
