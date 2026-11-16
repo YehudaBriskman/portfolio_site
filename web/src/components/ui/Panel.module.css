@@ -11,6 +11,11 @@
   min-block-size: 0;
 }
 
+/* A panel whose body is short sits at the start of its row and keeps its own height. */
+.slot[data-fit="content"] {
+  align-self: start;
+}
+
 .panel {
   flex: 1 1 auto;
   display: flex;

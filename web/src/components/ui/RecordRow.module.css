@@ -16,7 +16,7 @@
 .row {
   position: relative;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-columns: auto minmax(0, 1fr) minmax(1.25rem, auto) auto;
   grid-template-areas:
     "lead title status chevron"
     "lead facts status chevron";
@@ -90,6 +90,10 @@
 .title {
   grid-area: title;
   min-inline-size: 0;
+  /* Fill the column and align to the title's own start (dir=auto): an English title in a Hebrew row begins at one edge, never shrink-wrapped against the other. */
+  inline-size: 100%;
+  text-align: start;
+  unicode-bidi: plaintext;
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;

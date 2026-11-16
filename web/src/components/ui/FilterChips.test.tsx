@@ -136,6 +136,10 @@ describe("FilterChips stylesheet", () => {
     expect(css).toMatch(/\.row[^{]*\{[^}]*overflow-x:\s*auto/);
     expect(css).toMatch(/mask-image:\s*linear-gradient/);
   });
+  it("shows a clipped last chip: the edge fade is wider than a hairline and the row ends in a peek", () => {
+    expect(css).toMatch(/--chip-fade:\s*1\.5rem/);
+    expect(css).toMatch(/mask-image:[^;]*var\(--chip-fade\)/);
+  });
   it("uses tabular figures on the badge and logical properties only", () => {
     expect(css).toMatch(/tabular-nums/);
     expect(css).not.toMatch(/(margin|padding)-(left|right)|\b(left|right):/);
