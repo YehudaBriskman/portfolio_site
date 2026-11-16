@@ -266,7 +266,7 @@ async function runCampaign(c: Campaign, settings: SenderSettings, deps: Required
     /* Cancel (or any other change of state) stops the run at the next recipient. */
     const live = await getCampaign(id);
     if (!live || live.status !== "sending") break;
-    /* The owner's pause (or SEND_ENABLED=false) takes effect at the next recipient, not the next batch. */
+    /* The owner's pause (or SEND_ENABLED not on) takes effect at the next recipient, not the next batch. */
     if (await campaignsBlocked()) break;
     const contact = await getContact(t.hash);
     const base: SendResult = { _id: sendId(id, t.hash), type: "send", campaignId: id, contact: t.hash, status: "attempting", at: new Date(deps.now()).toISOString() };

@@ -101,4 +101,4 @@ spec:
           labels: { severity: warning }
           annotations:
             summary: "A campaign is sending but no mail has moved for 30 minutes"
-            description: "Quiet hours, an owner pause, a held relay or SEND_ENABLED=false also look like this; check the admin Campaigns view first. A sender that stopped ticking shows as time() - campaign_sender_last_tick_timestamp_seconds growing."
+            description: "Quiet hours, an owner pause, a held relay or SEND_ENABLED not being true also look like this; check the admin Campaigns view first. A sender that stopped ticking shows as time() - campaign_sender_last_tick_timestamp_seconds growing."

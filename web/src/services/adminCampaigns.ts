@@ -142,7 +142,7 @@ function parseSending(r: Partial<SendingState> | null): SendingState {
 }
 const json = (b: unknown): RequestInit => ({ method: "POST", body: JSON.stringify(b) });
 
-/** The kill switch (GET/POST /sending): `paused` is the owner's click, `envDisabled` is SEND_ENABLED=false, which this page cannot lift. */
+/** The kill switch (GET/POST /sending): `paused` is the owner's click, `envDisabled` is SEND_ENABLED not being on, which this page cannot lift. */
 export type SendingState = { paused: boolean; pausedAt: string | null; envDisabled: boolean; blocked: boolean; /** Why the sender is holding on its settings (server text), or null. */ settingsHold: string | null };
 
 export const adminCampaigns = {

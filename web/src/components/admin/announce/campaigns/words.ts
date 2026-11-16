@@ -164,7 +164,7 @@ export const useCampaignWords = defineWords(
     switchResumeBody: "Campaigns that are scheduled or sending carry on with the people not yet handled. Nobody is mailed twice.",
     switchResumeDo: "Resume",
     switchEnvTitle: "Sending is switched off in the server settings",
-    switchEnvBody: "SEND_ENABLED is set to off, so no email leaves the server, confirmation emails included. Remove it and restart the server to send again. This page cannot lift it.",
+    switchEnvBody: "SEND_ENABLED is not set to true, so no email leaves the server, confirmation emails included. Set it to true and restart the server to send. This page cannot lift it.",
     switchFailed: "The sending state could not be read.",
 
     confirmHeading: "Send this campaign?",
@@ -407,7 +407,7 @@ export const useCampaignWords = defineWords(
     switchResumeBody: "קמפיינים מתוזמנים או בשליחה ממשיכים עם מי שטרם טופל. אף אחד לא יקבל פעמיים.",
     switchResumeDo: "המשך",
     switchEnvTitle: "השליחה כבויה בהגדרות השרת",
-    switchEnvBody: "המשתנה SEND_ENABLED מוגדר ככבוי, ולכן שום אימייל לא יוצא מהשרת, גם לא אימיילי אישור. יש להסיר אותו ולהפעיל את השרת מחדש כדי לשלוח שוב. אי אפשר לבטל זאת מהעמוד הזה.",
+    switchEnvBody: "המשתנה SEND_ENABLED אינו מוגדר כ-true, ולכן שום אימייל לא יוצא מהשרת, גם לא אימיילי אישור. יש להגדיר אותו כ-true ולהפעיל את השרת מחדש כדי לשלוח. אי אפשר לבטל זאת מהעמוד הזה.",
     switchFailed: "לא ניתן לקרוא את מצב השליחה.",
 
     confirmHeading: "לשלוח את הקמפיין?",

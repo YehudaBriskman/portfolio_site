@@ -106,6 +106,7 @@ A token is:
 - **hashed at rest** — the store keeps only its SHA-256; the plaintext is shown once;
 - **revocable** — a revoked token is refused on the next request;
 - **unable to manage tokens** — minting, listing and revoking need the browser sign-in;
+- **barred from the audience, campaigns and announce settings** — `/api/admin/audience`, `/campaigns` and `/announce/settings` need the signed-in session, whatever the scope; a token gets 403 and the attempt is audited by area (no addresses). Content, media and translations are unaffected;
 - **watched** — `lastUsedAt` is recorded (at most once a minute); every refused
   bearer is logged with the token id's first six characters (never the
   secret), and ten refusals from one address in fifteen minutes lock that

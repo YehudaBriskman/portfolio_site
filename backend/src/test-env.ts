@@ -27,6 +27,8 @@ const DEFAULTS: Record<string, string> = {
      read it back from `env` rather than repeating it, so a developer whose
      .env already sets one is not broken by this. */
   ADMIN_PROXY_SECRET: 'test-admin-proxy-secret',
+  /* Sending is fail-closed: tests that exercise mail start from an explicit on. */
+  SEND_ENABLED: 'true',
   /* The deploy default. The token tests switch it on themselves. */
   ADMIN_API_TOKENS: 'off',
 };

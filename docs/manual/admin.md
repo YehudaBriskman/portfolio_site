@@ -47,6 +47,11 @@ default URL, on purpose). Tokens are read-only unless `--scope write` is
 passed, last 30 days by default and 90 at most, and are printed once: only a
 hash is stored.
 
+A token (or an MCP grant) can never reach the audience (subscribers, groups,
+suppression, export), the campaigns, or the announce settings: those need the
+signed-in admin session, whatever the token's scope. The refusal is a 403 and
+is written to the audit log by area only, with no address.
+
 ## Content kept in the repository
 
 `backend/content/` holds reviewed drafts of areas and posts. They reach a
