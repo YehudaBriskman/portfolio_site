@@ -233,15 +233,45 @@ function MarkdownLink({ href, children, ...rest }: { href?: string; children?: R
 
 function MarkdownTable({ children }: { children?: ReactNode }) {
   const [w] = useReaderWords();
+  const box = useRef<HTMLDivElement>(null);
+  /* Which physical sides still hold content, for the edge fade. `scrollLeft`
+     is 0 at the start edge in both directions and goes negative in RTL, so the
+     distance is taken as an absolute value and the side comes from `dir`. */
+  const [more, setMore] = useState("");
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const measure = () => {
+      const max = el.scrollWidth - el.clientWidth;
+      const at = Math.abs(el.scrollLeft);
+      const next = max <= 1 ? "" : [at > 1 ? "start" : "", at < max - 1 ? "end" : ""].filter(Boolean).join(" ");
+      setMore((m) => (m === next ? m : next));
+    };
+    measure();
+    el.addEventListener("scroll", measure, { passive: true });
+    const ro = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(measure);
+    ro?.observe(el);
+    if (el.firstElementChild) ro?.observe(el.firstElementChild);
+    return () => {
+      el.removeEventListener("scroll", measure);
+      ro?.disconnect();
+    };
+  }, []);
   return (
-    /* Focusable because below ~560px it scrolls sideways (WCAG 2.1.1, #99). */
+    /* Focusable because it scrolls sideways (WCAG 2.1.1, #99). It is the width
+       of the reading column, so it starts at the column's start edge with the
+       paragraphs' own gutter and never runs past the viewport (#885); only the
+       table inside is wider, and `dir` is inherited so scrolling starts at the
+       start edge in Hebrew too. */
     <div
+      ref={box}
       tabIndex={0}
       role="region"
       aria-label={w.table}
-      className={`not-prose ${FULL_WIDTH} my-9 overflow-x-auto px-5 [scrollbar-width:thin] sm:px-0`}
+      data-more={more || undefined}
+      className="table-scroll not-prose my-9 w-full max-w-full overflow-x-auto [scrollbar-width:thin]"
     >
-      <table className="w-full min-w-[30rem] border-collapse text-left">{children}</table>
+      <table className="w-full min-w-[30rem] border-collapse text-start">{children}</table>
     </div>
   );
 }

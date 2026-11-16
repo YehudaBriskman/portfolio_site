@@ -82,6 +82,11 @@ ${PARA(4)}
 git tag v1.7.1 && git push origin v1.7.1
 \`\`\`
 
+| Workload | Container load | Steady rate | Cold start latency | Notes for the reader |
+| --- | --- | --- | --- | --- |
+| One process, one job | Application with a single running job | CPU 1, items 1 | 120 ms | Fits comfortably under the cap |
+| Several processes | Applications with many concurrent jobs | CPU 2, items 1 | 480 ms | Needs the larger instance size |
+
 ### A subsection
 
 ${PARA(5)}
@@ -92,9 +97,17 @@ ${PARA(6)}
 
 Closing paragraph, the last one before the tags.`;
 
-const DETAIL = (s) => ({
+/* A Hebrew post with a wide Hebrew table (opts.hebrewTable), for the reader shots. */
+const HE_TABLE = `הליבה אוכפת את המגבלה שהגדרת; לא מרשים אותה שהמכונה נראית משועממת.
+
+| עומס בקונטיינר | קצב צריכה יציב | זמן תגובה בהפעלה קרה | הערות לקורא | גודל מופע מומלץ |
+| --- | --- | --- | --- | --- |
+| תהליכון אחד עסוק | CPU 1 items 1 | 120 מילישניות | נכנס בנוחות מתחת לתקרה | קטן |
+| תהליכונים עסוקים | CPU 2 items 1 | 480 מילישניות | דורש מופע גדול יותר | גדול |
+`;
+const DETAIL = (s, he = false) => ({
   ...s,
-  body: s.slug === "the-long-note" || s.slug === "merging-does-not-ship" ? LONG_BODY : `${PARA(3)}\n\n## A section\n\n${PARA(2)}`,
+  body: he && s.slug === "the-long-note" ? LONG_BODY.replace("## Why a tag", `## למה תגית\n\n${HE_TABLE}\n## Why a tag`) : s.slug === "the-long-note" || s.slug === "merging-does-not-ship" ? LONG_BODY : `${PARA(3)}\n\n## A section\n\n${PARA(2)}`,
   links: s.slug === "merging-does-not-ship" ? [{ label: "Repository", url: "https://example.com/" }] : [],
 });
 
@@ -111,7 +124,7 @@ export function handler(opts = {}) {
     }
     if (p.startsWith("/blog/posts/")) {
       const s = ALL.find((x) => p.endsWith(`/${x.slug}`));
-      return s ? json(200, { post: DETAIL(s) }) : json(404, {});
+      return s ? json(200, { post: DETAIL(s, opts.hebrewTable) }) : json(404, {});
     }
     if (p === "/areas") return json(200, { items: AREAS });
     if (p === "/blog/collections") return json(200, { items: AREAS.filter((a) => a.kind === "project") });

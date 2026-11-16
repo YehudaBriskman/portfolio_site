@@ -776,14 +776,15 @@
     transform: translateY(calc(100% + 24px + env(safe-area-inset-bottom, 0px)));
     opacity: 0;
   }
-  .barPill,
   .sizePanel {
     pointer-events: auto;
     border-radius: var(--r-pill);
-    background: var(--ph-card-hi);
-    box-shadow:
-      0 0 0 1px var(--ph-line),
-      0 10px 24px -14px rgb(var(--ink) / 0.4);
+  }
+  /* The pill's material (ground, blur, hairline, shadow) is the shared
+     `.float-glass` in index.css; only its box is here. */
+  .barPill {
+    pointer-events: auto;
+    border-radius: var(--r-pill);
   }
   .barPill {
     position: relative;

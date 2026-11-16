@@ -46,7 +46,8 @@ describe("FloatingBack", () => {
     expect(c).toContain("var(--float-top)");
     expect(c).toContain("var(--float-h)");
     expect(c).toContain("var(--float-z)");
-    expect(c).toContain("var(--float-shadow)");
+    /* ground, hairline and shadow are the shared glass (floatGlass.guard.test) */
+    expect(c.match(/\n\.float \{[^}]*\}/)![0]).not.toMatch(/box-shadow|background:/);
     const nav = css("../Nav.module.css");
     expect(nav).toContain("inset-block-start: var(--float-top)");
     expect(nav).toContain("width: var(--float-h)");
@@ -58,8 +59,9 @@ describe("FloatingBack", () => {
     expect(c).toMatch(/\.name\s*\{[^}]*text-overflow:\s*ellipsis/);
     expect(c).toMatch(/\.name\s*\{[^}]*min-width:\s*0/);
     expect(c).toMatch(/\.name\s*\{[^}]*padding-inline:/);
-    const { container } = mount("/projects", "Work");
-    expect(container.querySelector("[data-back-pill]")?.getAttribute("dir")).toBe("auto");
+    mount("/projects", "Work");
+    /* portalled to <body>, so look there rather than in the render container */
+    expect(document.querySelector("[data-back-pill]")?.getAttribute("dir")).toBe("auto");
   });
 });
 
