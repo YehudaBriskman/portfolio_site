@@ -74,7 +74,7 @@ router.post(
 async function suppress(hash: string, reason: SuppressReason): Promise<void> {
   const c = await getContact(hash);
   if (!c || (c.status !== "active" && c.status !== "pending")) return;
-  await ledgerPut(hash, "suppressed");
+  await ledgerPut(hash, "suppressed", new Date(), c.email);
   await updateContact(hash, (x) => {
     if (x.status !== "active" && x.status !== "pending") return false;
     x.status = "suppressed";

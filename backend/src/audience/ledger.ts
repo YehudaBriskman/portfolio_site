@@ -1,3 +1,4 @@
+import { createHmac } from "node:crypto";
 import { couchConfig, CouchError } from "../db/couch.js";
 import { env } from "../env.js";
 import { logger } from "../logger.js";
@@ -14,6 +15,13 @@ import { logger } from "../logger.js";
  * contact id uses, so whoever can guess an address can recompute it; the ledger
  * is therefore treated as personal data kept for one purpose (honouring a
  * refusal), and `erased` lines expire.
+ *
+ * Keyed hash (EMAIL_HASH_KEY set): new lines are keyed by HMAC-SHA256(key, address), so
+ * guessing an address is no longer enough to find, or confirm, a line. Lines written before
+ * the key existed use the legacy unkeyed hash; every check tests BOTH (a person is blocked if
+ * either matches), writes use the keyed one, and rekey.ts moves legacy lines over when the
+ * address is known. A legacy line whose address is gone (an erased tombstone) simply stays,
+ * and keeps working through the legacy check. Key unset: exactly the old behaviour.
  *
  * Writes go ledger-first, content second: a crash between them leaves the safe
  * state (the person blocked, not mailed).
@@ -36,6 +44,31 @@ const PROBE = "meta:probe";
 /* A line for an erased person outlives every backup that still holds them: the 14 dumps kept plus a fortnight of margin. */
 export const ERASED_KEEP_DAYS = 30;
 const CACHE_MS = 30_000;
+/** HMAC-SHA256 of the normalised address, first 32 hex; null when EMAIL_HASH_KEY is unset. */
+export const keyedHash = (email: string): string | null =>
+  env.EMAIL_HASH_KEY ? createHmac("sha256", env.EMAIL_HASH_KEY).update(email.trim().toLowerCase()).digest("hex").slice(0, 32) : null;
+
+/** Every key a person's line may sit under: keyed first (when the key is set and the address known), then the legacy contact hash. */
+export const ledgerKeys = (hash: string, email?: string): string[] => {
+  const k = email ? keyedHash(email) : null;
+  return k && k !== hash ? [k, hash] : [hash];
+};
+
+let warnedUnkeyed = false;
+/** One warning per process while EMAIL_HASH_KEY is unset. */
+export function warnIfUnkeyed(): void {
+  if (env.EMAIL_HASH_KEY || warnedUnkeyed) return;
+  warnedUnkeyed = true;
+  logger.warn("EMAIL_HASH_KEY is not set: the suppression ledger uses the unkeyed address hash (see docs/newsletter.md)");
+}
+export const resetUnkeyedWarning = () => { warnedUnkeyed = false; };
+
+/** The line for this person in a loaded map under any of their keys; `suppressed` wins over the rest. */
+export function findEntry(entries: ReadonlyMap<string, LedgerEntry>, hash: string, email?: string): LedgerEntry | undefined {
+  const found = ledgerKeys(hash, email).flatMap((k) => { const e = entries.get(k); return e ? [e] : []; });
+  return found.find((e) => e.kind === "suppressed") ?? found[0];
+}
+
 export const isHash = (id: string) => /^[0-9a-f]{32}$/.test(id);
 
 /* --- the store: plain HTTP against the ledger database, replaceable in tests --- */
@@ -122,7 +155,14 @@ async function tryGet<T>(id: string): Promise<T | null> {
 
 /* --- reads -------------------------------------------------------------------- */
 
-export const ledgerGet = (hash: string) => tryGet<LedgerEntry>(hash);
+export async function ledgerGet(hash: string, email?: string): Promise<LedgerEntry | null> {
+  const found: LedgerEntry[] = [];
+  for (const k of ledgerKeys(hash, email)) {
+    const e = await tryGet<LedgerEntry>(k);
+    if (e) found.push(e);
+  }
+  return found.find((e) => e.kind === "suppressed") ?? found[0] ?? null;
+}
 
 /**
  * Every ledger line, cached for 30 seconds (and dropped by this process's own
@@ -141,46 +181,67 @@ export async function ledgerEntries(now = Date.now()): Promise<Map<string, Ledge
 }
 
 /** The kind the cache holds for this hash, without any I/O; undefined when unknown or not loaded. */
-export const cachedKind = (hash: string): LedgerKind | undefined => cache?.entries.get(hash)?.kind;
+export const cachedKind = (hash: string, email?: string): LedgerKind | undefined => (cache ? findEntry(cache.entries, hash, email)?.kind : undefined);
 
 /* --- writes ------------------------------------------------------------------- */
 
-/** Records (or changes) a person's line. `erased` lines get an expiry. Throws if the ledger cannot be written. */
-export async function ledgerPut(hash: string, kind: LedgerKind, now = new Date()): Promise<void> {
+/** Records (or changes) a person's line under the keyed hash when it can be computed, else the legacy one. `erased` lines get an expiry. A legacy line for the same person is dropped once the keyed one is written. Throws if the ledger cannot be written. */
+export async function ledgerPut(hash: string, kind: LedgerKind, now = new Date(), email?: string): Promise<void> {
   if (!isHash(hash)) throw new Error("ledger key must be a contact hash");
-  for (let attempt = 0; attempt < 2; attempt++) {
-    const prev = await ledgerGet(hash);
+  const [key, ...rest] = ledgerKeys(hash, email) as [string, ...string[]];
+  let wrote = false;
+  for (let attempt = 0; attempt < 2 && !wrote; attempt++) {
+    const prev = await tryGet<LedgerEntry>(key);
     const doc: LedgerEntry = {
-      _id: hash, ...(prev?._rev ? { _rev: prev._rev } : {}), type: "ledger", kind, at: now.toISOString(),
+      _id: key, ...(prev?._rev ? { _rev: prev._rev } : {}), type: "ledger", kind, at: now.toISOString(),
       ...(kind === "erased" ? { expiresAt: new Date(now.getTime() + ERASED_KEEP_DAYS * 86_400_000).toISOString() } : {}),
     };
     try {
-      await store.put(hash, doc);
+      await store.put(key, doc);
       cache = null;
-      return;
+      wrote = true;
     } catch (e) {
       if (!isStatus(e, 409)) throw e;
     }
   }
-  throw new CouchError(409, "ledger line changed concurrently");
+  if (!wrote) throw new CouchError(409, "ledger line changed concurrently");
+  for (const old of rest) await deleteLine(old);
 }
 
-/** Removes a person's line (a fresh, confirmed signup). A missing line is fine. Throws if the ledger cannot be written. */
-export async function ledgerClear(hash: string): Promise<void> {
-  const prev = await ledgerGet(hash);
+async function deleteLine(id: string): Promise<void> {
+  const prev = await tryGet<LedgerEntry>(id);
   if (!prev?._rev) return;
   try {
-    await store.del(hash, prev._rev);
+    await store.del(id, prev._rev);
   } catch (e) {
     if (!isStatus(e, 404)) throw e;
   }
   cache = null;
 }
 
+/** Removes a person's line under every key (a fresh, confirmed signup). A missing line is fine. Throws if the ledger cannot be written. */
+export async function ledgerClear(hash: string, email?: string): Promise<void> {
+  for (const k of ledgerKeys(hash, email)) await deleteLine(k);
+}
+
+/** Moves a line to another key: written first, old one removed second, so a crash leaves both (blocked twice), never neither. Used by rekey. */
+export async function ledgerMove(from: string, to: string): Promise<boolean> {
+  const prev = await tryGet<LedgerEntry>(from);
+  if (!prev) return false;
+  if (!(await tryGet(to))) {
+    const { _rev, ...rest } = prev;
+    void _rev;
+    await store.put(to, { ...rest, _id: to });
+  }
+  await deleteLine(from);
+  cache = null;
+  return true;
+}
+
 /** For callers that must not fail on a ledger outage (a mail client's one-click POST): the guard backfills what was missed. Never logs an address. */
-export async function ledgerPutQuietly(hash: string, kind: LedgerKind): Promise<boolean> {
+export async function ledgerPutQuietly(hash: string, kind: LedgerKind, email?: string): Promise<boolean> {
   try {
-    await ledgerPut(hash, kind);
+    await ledgerPut(hash, kind, new Date(), email);
     return true;
   } catch (err) {
     logger.warn({ kind, err: err instanceof Error ? err.message : String(err) }, "suppression ledger write failed; the guard will backfill it");
@@ -207,6 +268,7 @@ export async function ensureLedger(): Promise<void> {
 /** Boot hook: prepares the ledger and says so. Never throws; the sender fails closed without it. */
 export async function bootLedger(): Promise<boolean> {
   try {
+    warnIfUnkeyed();
     await ensureLedger();
     logger.info("suppression ledger ready");
     return true;
