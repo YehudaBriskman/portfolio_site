@@ -123,7 +123,7 @@ function measure() {
     const ground = cs.backgroundColor !== "rgba(0, 0, 0, 0)" && cs.backgroundColor !== "transparent";
     const line = parseFloat(cs.borderBottomWidth) > 0 && cs.borderBottomStyle !== "none";
     if (b.width >= vw * 0.9 && b.height <= 120 && (ground || line)) out.strips.push(`${e.tagName.toLowerCase()}.${String(e.className).slice(0, 24)}`);
-    if (cs.backdropFilter !== "none" && cs.backdropFilter !== "") out.strips.push(`blur on ${e.tagName.toLowerCase()}`);
+    if (cs.backdropFilter !== "none" && cs.backdropFilter !== "" && !e.classList.contains("float-glass")) out.strips.push(`blur on ${e.tagName.toLowerCase()}`);
   }
   const hs = [...document.querySelectorAll("main h1, main h2, h1, h2")].filter(shown).filter((e) => !dock?.contains(e));
   const first = hs.sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top)[0];
@@ -314,7 +314,7 @@ function titleRow() {
   const cb = chip?.getBoundingClientRect();
   const glyph = chip?.querySelector("svg");
   const parentLinks = chip
-    ? [...document.querySelectorAll("main a[href]")].filter((a) => vis(a) && a.pathname === chip.pathname && a.getBoundingClientRect().top < hb.top)
+    ? [...document.querySelectorAll("main a[href], [data-floating-back] a[href]")].filter((a) => vis(a) && a.pathname === chip.pathname && a.getBoundingClientRect().top < hb.top)
     : [];
   const browseButtons = [...document.querySelectorAll("main button, main [role='button']")].filter(
     (b) => vis(b) && b.getAttribute("aria-haspopup") === "dialog" && /^(Browse|עיון)/.test(b.textContent.trim()),
