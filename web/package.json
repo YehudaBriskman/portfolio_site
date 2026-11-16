@@ -29,6 +29,8 @@
     "a11y:admin-editors-phone": "node scripts/a11y/admin-editors-phone.mjs",
     "a11y:admin-media-phone": "node scripts/a11y/admin-media-phone.mjs",
     "a11y:admin-sidebar": "node scripts/a11y/admin-sidebar.mjs",
+    "a11y:admin-phone-no-topbar": "SHOTS_ON=0 WIDTHS=390 node scripts/shoot-admin-phone-no-topbar.mjs",
+    "a11y:admin-desktop-parity": "node scripts/a11y/admin-desktop-parity.mjs",
     "a11y:admin-popup-stability": "node scripts/a11y/admin-popup-stability.mjs",
     "a11y:admin-palette": "node scripts/a11y/admin-palette.mjs",
     "a11y:admin-rules": "node scripts/a11y/admin-rules.mjs",

@@ -3019,6 +3019,26 @@
   }
   .a-main:focus { outline: none; }
   @media (min-width: 1024px) { .a-main { padding-block: 1.75rem 4rem; padding-inline: max(2rem, env(safe-area-inset-left, 0px)) max(2rem, env(safe-area-inset-right, 0px)); } }
+  /* Under 600px there is no top bar (#896). The circle (inline-end) and the back pill (inline-start) float over the
+     page, so main starts below them: the first row never sits under a control, whatever it holds. */
+  @media (max-width: 599px) {
+    .a-main { padding-block-start: calc(var(--float-top, 6px) + var(--float-h, 46px) + 10px); }
+    /* The page title is not drawn at rest: the pull-down title shows it (ui/PullTitle). The h1 stays in the
+       document and the accessibility tree, clipped like the skip link. */
+    .a-main h1 {
+      position: absolute; width: 1px; height: 1px; margin: 0; padding: 0; overflow: hidden;
+      clip-path: inset(50%); white-space: nowrap;
+    }
+    /* The browser's own pull-to-refresh must not fire under the gesture; iOS still rubber-bands (and reports it). */
+    :root:has(.a-app) { overscroll-behavior-y: contain; }
+  }
+  .a-float-back {
+    position: fixed; z-index: var(--float-z, 49); inset-block-start: var(--float-top, 6px);
+    inset-inline-start: max(12px, env(safe-area-inset-left, 0px));
+    max-inline-size: calc(100vw - var(--float-h, 46px) - 36px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
+    display: flex; min-inline-size: 0;
+  }
+  :root[dir='rtl'] .a-float-back { inset-inline-start: max(12px, env(safe-area-inset-right, 0px)); }
   .a-wrap { max-width: 76rem; }
   .a-wrap-narrow { max-width: 60rem; }
 

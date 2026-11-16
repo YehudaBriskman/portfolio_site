@@ -206,10 +206,8 @@ describe("the phone: floating circle and back pill", () => {
   it("is one named circle with no word, opens the nav tree, and the old Menu bar button is gone", () => {
     viewport(390);
     shell("/admin/posts");
-    const header = document.querySelector("header.a-top")!;
-    expect(header.querySelector(".a-top-word")).toBeNull();
-    /* Outside the sticky bar, so no stacking context traps it under the scrim and the panel. */
-    expect(header.querySelector("[data-floating-circle]")).toBeNull();
+    /* No bar on a phone (#896); the circle is portalled to the body, so no stacking context traps it under the scrim and the panel. */
+    expect(document.querySelector("header.a-top")).toBeNull();
     expect(document.body.querySelector(":scope > [data-floating-circle]")).not.toBeNull();
     const circle = screen.getByRole("button", { name: "Menu" });
     expect(circle.getAttribute("data-floating-circle")).toBe("");

@@ -118,13 +118,10 @@ describe("the phone top bar is a menu button and a title (admin declutter)", () 
   it("moves the site link, display settings and the account into the drawer, with their own words", async () => {
     viewport(390);
     shell();
-    const header = document.querySelector("header.a-top")!;
-    /* In the bar those four are desktop-only: on a phone they live in the menu. */
-    expect(header.querySelector(".a-brand")!.className).toContain("max-lg:hidden");
-    expect(header.querySelector(".a-top-link")).toBeNull(); /* View site is in the account menu now (#809) */
-    expect(header.querySelector("[data-language-trigger]")!.closest(".max-lg\\:hidden")).not.toBeNull();
-    await screen.findByText("Signed in as owner", { selector: "header *" }).catch(() => null);
-    expect(header.querySelector(".a-avatar")!.className).toContain("max-lg:hidden");
+    /* On a phone there is no bar at all (#896): those four live in the menu. */
+    expect(document.querySelector("header.a-top")).toBeNull();
+    expect(document.querySelector(".a-avatar")).toBeNull();
+    expect(document.querySelector("[data-language-trigger]")).toBeNull();
     /* The menu names them with visible words. */
     const drawer = side() as HTMLElement;
     const site = within(drawer).getByRole("link", { name: /View site/ });

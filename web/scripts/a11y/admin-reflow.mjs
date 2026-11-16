@@ -176,13 +176,14 @@ const cases = [
   ["B-h5-5 Hebrew editor: back chevron mirrors, the crumb isolates an English title", async () => {
     const { ctx, page } = await open("/admin/posts/admin-redesign", { w: 390, h: 700, lang: "he" });
     const m = await page.evaluate(() => {
-      const a = document.querySelector(".a-top a[data-floating-pill]");
-      const last = document.querySelector(".a-crumbs li:last-child bdi");
-      return { dir: document.documentElement.dir, t: getComputedStyle(a.querySelector("svg")).transform, bidi: last ? getComputedStyle(last).unicodeBidi : "" };
+      /* No top bar on a phone (#896): the pill is fixed, and its own name isolates the section title. */
+      const a = document.querySelector("a[data-floating-pill]");
+      const last = a.querySelector("span");
+      return { dir: document.documentElement.dir, t: getComputedStyle(a.querySelector("svg")).transform, bidi: last ? last.getAttribute("dir") || getComputedStyle(last).unicodeBidi : "" };
     });
     await shot(page, "reflow-he-editor-390.png");
     await ctx.close();
-    return [m.dir === "rtl", "page is not rtl", /^matrix\(-/.test(m.t), `chevron transform ${m.t}`, /isolate|plaintext/.test(m.bidi), `crumb title unicode-bidi ${m.bidi}`];
+    return [m.dir === "rtl", "page is not rtl", /^matrix\(-/.test(m.t), `chevron transform ${m.t}`, /auto|isolate|plaintext/.test(m.bidi), `pill title direction ${m.bidi}`];
   }],
   ["B-h5-6 Hebrew campaign editor: no literal arrow in Back, icon mirrors", async () => {
     const { ctx, page } = await open("/admin/marketing?tab=campaigns", { w: 1024, h: 900, lang: "he" });
@@ -215,13 +216,13 @@ const cases = [
       const m = await page.evaluate(() => {
         const t = document.querySelector('button[class*="_row_"] [class*="_title_"]');
         const s = document.querySelector(".a-main input[type=search], .a-main input[type=text]");
-        const c = document.querySelector(".a-crumbs");
+        const c = document.querySelector("#admin-content h1");
         return { titleW: Math.round(t.getBoundingClientRect().width), searchW: s ? Math.round(s.getBoundingClientRect().width) : 999, crumbW: c ? Math.round(c.getBoundingClientRect().width) : 999 };
       });
       const bad = await offscreen(page, ".a-main, .a-top");
       if (w === 320) await shot(page, "reflow-posts-320-200.png");
       await ctx.close();
-      out.push(bad.length === 0, `controls off screen at ${w}: ${JSON.stringify(bad)}`, m.titleW >= 80, `row title ${m.titleW}px at ${w}`, m.searchW >= 120, `search ${m.searchW}px at ${w}`, m.crumbW >= 60, `top bar title ${m.crumbW}px at ${w}`);
+      out.push(bad.length === 0, `controls off screen at ${w}: ${JSON.stringify(bad)}`, m.titleW >= 80, `row title ${m.titleW}px at ${w}`, m.searchW >= 120, `search ${m.searchW}px at ${w}`, m.crumbW >= 60, `page title ${m.crumbW}px at ${w}`);
     }
     return out;
   }],

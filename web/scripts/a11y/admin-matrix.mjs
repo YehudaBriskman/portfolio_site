@@ -171,7 +171,12 @@ const SCREENS = [
   ["nav-drawer", "/admin", async (page) => { const b = page.locator("button[data-floating-circle]").first(); if (await b.isVisible()) await b.dispatchEvent("click", {}, { timeout: 5000 }); }],
   /* The drawer with Marketing open (#809): a heading and flat rows, 44px each, the same tree the desktop sidebar draws. */
   ["nav-drawer-marketing", "/admin/marketing?tab=audience", async (page) => { const b = page.locator("button[data-floating-circle]").first(); if (await b.isVisible()) await b.dispatchEvent("click", {}, { timeout: 5000 }); }],
-  ["display-menu", "/admin",async (page) => { await page.locator(".a-top-end button").first().dispatchEvent("click", {}, { timeout: 5000 }); }],
+  /* Under 600px there is no top bar (#896): the display settings live in the circle's panel. */
+  ["display-menu", "/admin", async (page) => {
+    if (await page.locator(".a-top-end").count()) { await page.locator(".a-top-end button").first().dispatchEvent("click", {}, { timeout: 5000 }); return; }
+    await page.locator("button[data-floating-circle]").first().dispatchEvent("click", {}, { timeout: 5000 });
+    await page.locator(".a-side[data-open] button[aria-controls]").last().dispatchEvent("click", {}, { timeout: 5000 });
+  }],
   ["posts", "/admin/posts"],
   ["posts-filtered", "/admin/posts?status=draft"],
   ["post-editor", "/admin/posts/admin-redesign"],
