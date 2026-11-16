@@ -5,10 +5,12 @@ import { logger } from "../logger.js";
 /*
  * Two ways to stop sending, both fail-safe.
  *
- *  - SEND_ENABLED=false in the environment holds EVERY outgoing mail (campaigns,
- *    test sends, confirmations, the contact form) at the provider. It needs a
- *    restart of the container, not a deploy. Only an explicit off value counts, so
- *    a typo cannot silently turn sending off; unset means on.
+ *  - SEND_ENABLED in the environment holds EVERY outgoing mail (campaigns,
+ *    test sends, confirmations, the contact form) at the provider. It FAILS
+ *    CLOSED (owner decision, #876): mail leaves only when the value is an
+ *    explicit on value (true/1/yes/on). Unset, empty or a typo holds mail, and
+ *    an unrecognised non-empty value logs one warning. It needs a restart of the
+ *    container, not a deploy.
  *  - The owner's pause (one click in Marketing > Campaigns) holds campaigns: the
  *    tick, test sends and queueing. Confirmation mails keep going, because a pause
  *    that swallowed them would lose people who signed up in good faith.
@@ -20,10 +22,20 @@ import { logger } from "../logger.js";
 export const SWITCH_ID = "sender:switch";
 export type SwitchDoc = { _id: typeof SWITCH_ID; _rev?: string; type: "sender-switch"; paused: boolean; at: string };
 
-const OFF = new Set(["false", "0", "off", "no", "disabled"]);
+const ON = new Set(["true", "1", "yes", "on"]);
+const OFF = new Set(["", "false", "0", "no", "off", "disabled"]);
+let warnedValue: string | null = null;
 
-/** True when the environment says no mail leaves, whatever the settings say. Read live so a test (or a restart with a new value) sees it. */
-export const sendDisabledByEnv = (): boolean => OFF.has((env.SEND_ENABLED ?? "").trim().toLowerCase());
+/** True unless the environment explicitly turns sending on, whatever the settings say. Fails closed. Read live so a test (or a restart with a new value) sees it. */
+export const sendDisabledByEnv = (): boolean => {
+  const v = (env.SEND_ENABLED ?? "").trim().toLowerCase();
+  if (ON.has(v)) return false;
+  if (!OFF.has(v) && warnedValue !== v) {
+    warnedValue = v;
+    logger.warn("SEND_ENABLED has an unrecognised value; outgoing mail is held. Use true to send or false to hold.");
+  }
+  return true;
+};
 
 export async function readSwitch(): Promise<SwitchDoc | null> {
   try {

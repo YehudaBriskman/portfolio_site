@@ -326,3 +326,56 @@ describe("the audit log", () => {
     expect(bad.status).toBe(400);
   });
 });
+
+describe("session-only areas: audience, campaigns, announce settings", () => {
+  const FAMILIES: [string, string, string][] = [
+    ["GET", "/api/admin/audience/subscribers", "/api/admin/audience"],
+    ["GET", "/api/admin/audience/export", "/api/admin/audience"],
+    ["POST", "/api/admin/audience/subscribers", "/api/admin/audience"],
+    ["GET", "/api/admin/campaigns", "/api/admin/campaigns"],
+    ["POST", "/api/admin/campaigns/abc/send-now", "/api/admin/campaigns"],
+    ["POST", "/api/admin/campaigns/sending", "/api/admin/campaigns"],
+    ["GET", "/api/admin/announce/settings", "/api/admin/announce/settings"],
+    ["PUT", "/api/admin/announce/settings", "/api/admin/announce/settings"],
+    ["GET", "/api/admin/AUDIENCE/subscribers/", "/api/admin/audience"],
+  ];
+  const refused = (res: request.Response) => res.status === 403 && /needs the admin sign-in/.test(res.text);
+
+  it.each(["read", "write"] as const)("a %s token gets 403 on every one, and the denial is audited by area only", async (scope) => {
+    for (const [method, path, area] of FAMILIES) {
+      const { token, doc } = storedToken(scope);
+      const append = vi.spyOn(couch, "append").mockResolvedValue({ ok: true });
+      vi.spyOn(couch, "get").mockImplementation(async (id: string) => {
+        if (id === doc._id) return doc as never;
+        throw notFound();
+      });
+      const res = await request(createApp())[method.toLowerCase() as "get"](`${path}?q=someone@example.org`).set("Authorization", `Bearer ${token}`).send({});
+      expect([method, path, res.status]).toEqual([method, path, 403]);
+      const entries = auditPuts(append);
+      /* A read token's write is refused by the scope check before the area check (existing, unaudited). */
+      if (scope === "read" && method !== "GET") { expect(entries).toHaveLength(0); vi.restoreAllMocks(); continue; }
+      expect(entries).toHaveLength(1);
+      expect(entries[0]).toMatchObject({ method, path: area, status: 403, actor: { via: "token", tokenId: doc.id } });
+      expect(JSON.stringify(entries)).not.toContain("example.org");
+      vi.restoreAllMocks();
+    }
+  });
+
+  it("the signed-in session is not refused by the gate on those routes", async () => {
+    vi.spyOn(couch, "append").mockResolvedValue({ ok: true });
+    for (const [method, path] of FAMILIES.slice(0, 8)) {
+      const res = await asAdmin(request(createApp())[method.toLowerCase() as "get"](path)).send({});
+      expect([method, path, refused(res)]).toEqual([method, path, false]);
+    }
+  });
+
+  it("a token still works on content, media and translations", async () => {
+    const { token, doc } = storedToken("read");
+    storeWith(doc);
+    vi.spyOn(couch, "find").mockResolvedValue({ docs: [] } as never);
+    for (const p of ["/api/admin/content", "/api/admin/media", "/api/admin/translations"]) {
+      const res = await request(createApp()).get(p).set("Authorization", `Bearer ${token}`);
+      expect([p, refused(res)]).toEqual([p, false]);
+    }
+  });
+});

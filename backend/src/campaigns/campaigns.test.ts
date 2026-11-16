@@ -18,7 +18,7 @@ import { memoryLedgerStore, resetLedgerCache, useLedgerStore } from "../audience
 import { resetGuard } from "./guard.js";
 import { inQuietHours, resetHold, runSenderTick, type Deliver } from "./sender.js";
 import { contentFingerprint } from "./readiness.js";
-import { campaignsBlocked, sendingState, SWITCH_ID } from "./killSwitch.js";
+import { campaignsBlocked, sendDisabledByEnv, sendingState, SWITCH_ID } from "./killSwitch.js";
 
 /* In-memory couch. The MCP/image stubs only let app.ts load on a box without those optional deps; CI has them. */
 vi.mock("../mcp/router.js", () => ({ createMcpRouter: () => (_q: unknown, _r: unknown, next: () => void) => next() }));
@@ -1235,7 +1235,7 @@ describe("monthly limit per contact", () => {
 
 describe("the kill switch", () => {
   const pause = (paused: boolean) => admin(request(createApp()).post(`${C}/sending`).send({ paused }));
-  afterEach(() => { env.SEND_ENABLED = undefined; });
+  afterEach(() => { env.SEND_ENABLED = "true"; });
 
   it("reads as not held by default, and one click pauses and releases, audited with no address", async () => {
     expect((await admin(request(createApp()).get(`${C}/sending`))).body).toEqual({ ok: true, paused: false, pausedAt: null, envDisabled: false, blocked: false, settingsHold: null });
@@ -1292,18 +1292,32 @@ describe("the kill switch", () => {
     expect([q.status, q.body.code]).toEqual([423, "paused"]);
     expect(get(c2.id).status).toBe("draft");
     expect(sent).toHaveLength(0);
-    env.SEND_ENABLED = undefined;
+    env.SEND_ENABLED = "true";
     await runSenderTick({ now: () => T0, deliver });
     expect(sent).toHaveLength(2);
   });
 
-  it.each(["false", "FALSE", " 0 ", "off", "no", "disabled"])("%j counts as off, and a typo or true does not", async (v) => {
+  it.each(["true", "TRUE", " 1 ", "yes", "On"])("%j is an explicit on", async (v) => {
+    env.SEND_ENABLED = v;
+    expect((await sendingState()).envDisabled).toBe(false);
+  });
+
+  it.each([undefined, "", "false", "FALSE", " 0 ", "off", "no", "disabled", "ture", "enabled", "2"])("%j holds mail (fail closed)", async (v) => {
     env.SEND_ENABLED = v;
     expect((await sendingState()).envDisabled).toBe(true);
-    for (const ok of ["true", "1", "on", "fasle", ""]) {
-      env.SEND_ENABLED = ok;
-      expect((await sendingState()).envDisabled).toBe(false);
-    }
+    expect(await campaignsBlocked()).toBe(true);
+    const held = await (await import("../providers/index.js")).getProvider().send({ from: "a@example.invalid", to: "b@example.invalid", subject: "s", text: "t" } as never);
+    expect(held).toMatchObject({ ok: false, kind: "policy" });
+  });
+
+  it("an unrecognised value logs one warning, an explicit off or unset logs none", async () => {
+    const warn = vi.spyOn(logger, "warn").mockImplementation(() => undefined as never);
+    env.SEND_ENABLED = "tru3";
+    sendDisabledByEnv(); sendDisabledByEnv(); sendDisabledByEnv();
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockClear();
+    for (const v of [undefined, "false", "off", ""]) { env.SEND_ENABLED = v; sendDisabledByEnv(); }
+    expect(warn).not.toHaveBeenCalled();
   });
 
   it("fails closed: an unreadable switch holds the campaigns instead of sending", async () => {

@@ -79,7 +79,7 @@ const EnvSchema = z.object({
   EMAIL_HASH_KEY: z.string().min(32).optional().or(z.literal('').transform(() => undefined)),
   // How long a confirmation link lives, in days. Unsubscribe links never expire.
   CONFIRM_TTL_DAYS: z.coerce.number().int().min(1).max(365).default(30),
-  // Hard stop for all outgoing mail. Any of false/0/off/no/disabled holds every send; unset or anything else sends. Needs a restart, not a deploy.
+  // Fails CLOSED: mail sends only when this is an explicit on value (true/1/yes/on, case-insensitive). Unset, empty, off or a typo holds every send. Needs a restart, not a deploy.
   SEND_ENABLED: z.string().optional(),
   // Resend webhook signing secret (`whsec_...`). Unset: the provider-event route answers 404.
   RESEND_WEBHOOK_SECRET: z

@@ -131,7 +131,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.restoreAllMocks();
   useLedgerStore();
-  env.SEND_ENABLED = undefined;
+  env.SEND_ENABLED = "true";
   (env as { RESEND_WEBHOOK_SECRET?: string }).RESEND_WEBHOOK_SECRET = undefined;
 });
 
@@ -302,7 +302,7 @@ describe("G6: nothing real goes out against the owner's pause", () => {
     await new Promise((r) => setTimeout(r, 300));
     expect(mails).toHaveLength(0);
     expect((store.get(`campaign:${id}`) as { status: string }).status).toBe("scheduled");
-    env.SEND_ENABLED = undefined;
+    env.SEND_ENABLED = "true";
     await tick();
     await vi.waitFor(() => expect(mails.filter((m) => m.to === EN)).toHaveLength(1), { timeout: 5000 });
   });

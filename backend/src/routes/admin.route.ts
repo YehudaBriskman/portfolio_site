@@ -17,7 +17,7 @@ import {
 } from "../schemas/content.js";
 import { z } from "zod";
 import { fetchRepoStats } from "../services/github.js";
-import { requireProxySession } from "../middlewares/requireAdmin.js";
+import { denyTokensOnSessionOnlyAreas, requireProxySession } from "../middlewares/requireAdmin.js";
 import { readAudit } from "../services/audit.js";
 import { grantDocId, grantLive, revokeGrant, type McpGrantDoc } from "../mcp/oauth/provider.js";
 import { httpUrl } from "../schemas/content.js";
@@ -122,6 +122,9 @@ export const CollectionWrite = z.object({
 
 const postId = (slug: string) => `post:${slug}`;
 const colId = (slug: string) => `collection:${slug}`;
+
+/* Audience, campaigns and announce settings: the signed-in session only, never a token. First, so no route below can forget it. */
+router.use(denyTokensOnSessionOnlyAreas);
 
 router.get("/me", (req, res) => res.json({ ok: true, ...req.admin }));
 

@@ -411,16 +411,16 @@ Two switches, both fail safe (`campaigns/killSwitch.ts`).
 | | What it holds | How | Lifted by |
 |---|---|---|---|
 | **Pause all sending** | every campaign: the tick, test sends, scheduling and send-now (423 `paused`) | one click in Marketing > Campaigns (`POST /api/admin/campaigns/sending {paused:true}`, stored in the doc `sender:switch`) | "Resume sending", with a confirm |
-| **`SEND_ENABLED=false`** | **every** outgoing mail: campaigns, tests, confirmations, the contact form, owner notices | environment of the API container; accepted off values: `false`, `0`, `off`, `no`, `disabled` (anything else, including a typo or unset, means on) | removing it and restarting the container. No deploy, no code change. The admin page shows it but cannot lift it |
+| **`SEND_ENABLED` not `true`** | **every** outgoing mail: campaigns, tests, confirmations, the contact form, owner notices | environment of the API container; fails closed (owner decision, #876): mail leaves only when the value is an explicit on value (`true`, `1`, `yes`, `on`, case-insensitive, trimmed); unset, `false` or a typo holds everything, and an unrecognised non-empty value logs one warning | setting `SEND_ENABLED=true` and restarting the container. No deploy, no code change. The admin page shows it but cannot lift it |
 
 - A pause takes effect at the **next recipient**, not the next batch. Campaigns keep their
   status (`scheduled` or `sending`); resuming continues with the people not yet handled and
   nobody is mailed twice.
 - A pause does **not** stop confirmation mails for new signups (that would lose people who
-  signed up in good faith); only `SEND_ENABLED=false` does, at the provider
+  signed up in good faith); only `SEND_ENABLED` not being on does, at the provider
   (`providers/index.ts`), so no send path can forget to check it.
 - If the switch document cannot be read, campaigns are held (fails closed).
-- Compose example: set `SEND_ENABLED: "false"` under the API service's `environment:` and
+- Compose example: set `SEND_ENABLED: "true"` (or `"false"` to hold) under the API service's `environment:` and
   `docker compose up -d api` (a recreate with the new value, not an image deploy). Kubernetes:
   set the env var on the Deployment; the pod restarts.
 
@@ -435,7 +435,7 @@ Enforced by the server when a campaign is scheduled or sent now (`campaigns/rout
 | Suppression ledger readable and writable (a fresh read plus one probe write, `ledgerWritable`) | 503 |
 | A test send to **all** test recipients that carried exactly this text (`campaigns/readiness.ts` fingerprint of subject, preview text, body, blocks, language; any edit makes it untested) | 422 `test` |
 | The audience size the owner confirmed (`confirmCount`, sent by the confirm button) equal to the server's count now | 422 `confirm`, 409 `count` |
-| Not paused and not `SEND_ENABLED=false` | 423 `paused` |
+| Not paused and `SEND_ENABLED` on | 423 `paused` |
 | At least one active recipient; nobody over the monthly limit unless skipped or overridden | 422 / 409 `cap` |
 
 Nothing sends by itself: auto-drafts only create drafts, and the tick only picks up
@@ -454,7 +454,7 @@ until you press send; nothing sends by itself (auto-drafts only create drafts).
 4. Make a campaign for one group that holds only you; **Send a test**, read it in a mail client (the server will not send without it).
 5. Check the recipient count in the confirm step is the number you expect, then send (the server holds you to that number).
 6. Unsubscribe from the mail and check it stops.
-7. Anything wrong: **Pause all sending** (one click), or `SEND_ENABLED=false` and restart.
+7. Anything wrong: **Pause all sending** (one click), or set `SEND_ENABLED=false` and restart.
 
 ## Backups, restore and erasure
 

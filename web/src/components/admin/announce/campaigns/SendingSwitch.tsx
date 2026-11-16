@@ -10,7 +10,7 @@ import { docLang, formatWhen } from "@/lib/safeTime";
 /*
  * The kill switch. Pausing is one click to a confirm (a quiet button, not a red
  * fill beside the page's own action) and the confirm names the outcome. Resuming asks first, because it lets everything
- * queued go out. SEND_ENABLED=false is shown but cannot be lifted from here.
+ * queued go out. SEND_ENABLED not being on is shown but cannot be lifted from here.
  *
  * `compact` (phones) draws the calm state as the button alone, in the row of the
  * page's own controls: a normal state draws nothing but the way to stop it. A

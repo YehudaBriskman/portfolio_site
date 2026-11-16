@@ -29,7 +29,7 @@ import { warmupLimits } from "./warmup.js";
 const router = Router();
 const bad = (res: Response, error: string, status = 400) => res.status(status).json({ ok: false, error });
 const conflict = (res: Response) => bad(res, "This changed elsewhere. Reload and reapply your edit.", 409);
-/* 423 Locked: the owner's pause or SEND_ENABLED=false. Nothing is queued or sent until it is lifted. */
+/* 423 Locked: the owner's pause or SEND_ENABLED not being on. Nothing is queued or sent until it is lifted. */
 const heldBy = (res: Response) => res.status(423).json({ ok: false, code: "paused", error: "Sending is paused. Resume sending in Campaigns first." });
 const notFound = (res: Response) => bad(res, "No such campaign.", 404);
 
@@ -60,7 +60,7 @@ router.get(
 
 /*
  * The kill switch. GET says whether sending is held (by the owner's pause, by
- * SEND_ENABLED=false, or both); POST {paused} is the one click that holds or
+ * SEND_ENABLED not on, or both); POST {paused} is the one click that holds or
  * releases every campaign. Registered before /:id. The environment value cannot
  * be lifted from here, on purpose.
  */
