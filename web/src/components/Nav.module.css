@@ -1331,9 +1331,8 @@
     justify-content: center;
     gap: 0;
     pointer-events: auto;
-    background: rgb(var(--paper));
-    border: 1px solid rgb(var(--rule-firm));
-    box-shadow: var(--float-shadow);
+    /* The material (ground, blur, hairline, shadow) is the shared
+       `.float-glass` in index.css. */
   }
 
   .word {
