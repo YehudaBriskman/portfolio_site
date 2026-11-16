@@ -30,12 +30,11 @@ confirmed vulnerability on its own.
   cluster manifests `securityContext.runAsNonRoot: true` and `runAsUser: 101`
   can now be added; that is optional and the owner's call.
 - The internal MCP ticket header is blanked on every proxied location.
-- **Forwarded identity default (not changed here).** `NGINX_FORWARD_IDENTITY`
-  still defaults to `on`, because preprod's admin works only if the gate's
-  headers pass through this nginx. Companion change in the oci-free repository:
-  set `NGINX_FORWARD_IDENTITY=on` explicitly on the preprod web Deployment
-  (production already sets `off`). After that is rolled out, the image default
-  can be flipped to `off` in one line, so a new environment fails closed.
+- **Forwarded identity default: off.** `NGINX_FORWARD_IDENTITY` defaults to
+  `off` in the image, so a new environment drops the gate's identity headers
+  and fails closed. `NGINX_FORWARD_IDENTITY=on` is the explicit opt-in for the
+  preprod gate, whose admin works only if the gate's headers pass through this
+  nginx; it is set on the preprod web Deployment. Production sets `off`.
 
 ## CI
 
