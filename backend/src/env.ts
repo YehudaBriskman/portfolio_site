@@ -7,6 +7,10 @@ const EnvSchema = z.object({
   // its log line both read this, so there is one answer to "which port".
   PORT: z.coerce.number().int().min(1).max(65535).default(5000),
   HOST: z.string().default('0.0.0.0'),
+  // Prometheus /metrics, on its own port so it is never on the public API's Service or Ingress (#890). 0 turns it off.
+  METRICS_PORT: z.coerce.number().int().min(0).max(65535).default(9464),
+  // Optional bearer token for /metrics on top of the separate port; constant-time compared.
+  METRICS_TOKEN: z.string().min(16).optional().or(z.literal('').transform(() => undefined)),
 
   EMAIL_PROVIDER: z.enum(['smtp','emailjs']).default('smtp'),
 
@@ -109,6 +113,9 @@ const EnvSchema = z.object({
     .transform((v) => (/^[0-9a-f]{7,40}$/.test(v) ? v : "dev")),
 })
 .superRefine((env, ctx) => {
+  if (env.METRICS_PORT !== 0 && env.METRICS_PORT === env.PORT) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'METRICS_PORT must differ from PORT: /metrics must never share the public listener' });
+  }
   if (env.MCP_REMOTE === 'on') {
     for (const k of ['MCP_GITHUB_CLIENT_ID', 'MCP_GITHUB_CLIENT_SECRET'] as const) {
       if (!env[k]) ctx.addIssue({ code: z.ZodIssueCode.custom, message: `MCP_REMOTE=on needs ${k}` });

@@ -18,6 +18,7 @@ import {
 } from "./schemas.js";
 import { ledgerClear, ledgerGet, ledgerPutQuietly } from "./ledger.js";
 import { confirmConsent, contactId, createContact, getContact, hashEmail, isPendingExpired, purgeExpiredPending, recordConsent, updateContact } from "./store.js";
+import { countSignup } from "../metrics.js";
 import { emitOwnerEvent } from "../notify/hooks.js";
 import { verifyToken, type TokenKind } from "./tokens.js";
 
@@ -58,15 +59,24 @@ router.post(
   "/",
   asyncHandler(async (req, res) => {
     const parsed = SubscribeBody.safeParse(req.body);
-    if (!parsed.success) return res.status(400).json({ ok: false, error: "Please check the form and try again." });
+    if (!parsed.success) {
+      countSignup("invalid");
+      return res.status(400).json({ ok: false, error: "Please check the form and try again." });
+    }
     const b = parsed.data;
     // A bot gets the same answer a person does, and nothing is stored.
-    if (b.website) return res.status(202).json(ACCEPTED);
+    if (b.website) {
+      countSignup("bot");
+      return res.status(202).json(ACCEPTED);
+    }
 
     // The server decides which wording was shown: a form version the client names must be a registered one,
     // and the hash always comes from the registry, never from the request.
     const text = getConsentText(b.formVersion ?? CURRENT_CONSENT_TEXT_ID);
-    if (!text) return res.status(400).json({ ok: false, error: "Please check the form and try again." });
+    if (!text) {
+      countSignup("invalid");
+      return res.status(400).json({ ok: false, error: "Please check the form and try again." });
+    }
 
     const hash = hashEmail(b.email);
     void purgeExpiredPending();
@@ -74,9 +84,13 @@ router.post(
     const consent: Consent = { textId: text.id, textHash: text.sha256, lang: b.lang, at: now, source: "site" };
     const ttl = (await loadSettings()).sender.pendingTtlDays;
     // A suppressed address stays suppressed even when its contact document is gone (a restore, a deletion): same silent answer.
-    if ((await ledgerGet(hash).catch(() => null))?.kind === "suppressed") return res.status(202).json(ACCEPTED);
+    if ((await ledgerGet(hash).catch(() => null))?.kind === "suppressed") {
+      countSignup("suppressed");
+      return res.status(202).json(ACCEPTED);
+    }
     let contact = await getContact(hash);
     let send = false;
+    const isNew = !contact;
 
     if (contact && isPendingExpired(contact, ttl)) {
       // Expired and not yet swept: treat as new.
@@ -124,6 +138,7 @@ router.post(
       if (send) await updateContact(hash, () => true);
     }
     // active and suppressed: nothing happens, and nothing shows.
+    countSignup(!send ? "known" : isNew ? "created" : "resent");
 
     if (send && contact) void confirmIfAdmitted(contact, hash);
     return res.status(202).json(ACCEPTED);
@@ -167,7 +182,10 @@ router.post(
       c.confirmedAt = now;
       confirmConsent(c, now);
     });
-    if (updated?.status === "active") emitOwnerEvent({ kind: "subscriber", ref: hash.slice(0, 6) });
+    if (updated?.status === "active") {
+      countSignup("confirmed");
+      emitOwnerEvent({ kind: "subscriber", ref: hash.slice(0, 6) });
+    }
     return updated?.status === "active" ? res.json({ ok: true, lang: updated.lang }) : badLink(res);
   }),
 );
@@ -192,6 +210,7 @@ router.post(
     if (contact.status !== "unsubscribed" && contact.status !== "suppressed") {
       // Ledger first. A mail client's one-click POST is not retried, so an outage here must not undo the person's choice: the guard backfills it.
       await ledgerPutQuietly(hash, "unsubscribed");
+      countSignup("unsubscribed");
       await updateContact(hash, (c) => {
         if (c.status === "suppressed" || c.status === "unsubscribed") return false;
         c.status = "unsubscribed";

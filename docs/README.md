@@ -16,6 +16,7 @@ reasoning.
 | [Sharing and Announce](sharing.md) | the visitor Share menu, share cards, the owner's Announce inbox, settings and rollback |
 | [Newsletter](newsletter.md) | the mailing list: audience, double opt-in, campaigns and the sender, privacy, erasure and recovery, deliverability, the Israeli commercial-mail points, runbook |
 | [Deploy and release](manual/deploy.md) | CI, preprod, release tags, rollouts and rollbacks |
+| [Monitoring](monitoring.md) | the API's Prometheus metrics, their internal-only exposure, the alert rules |
 
 Also: [mcp/README.md](../mcp/README.md) for the stdio server in full, and
 [remote-mcp/README.md](remote-mcp/README.md) for the remote one.
