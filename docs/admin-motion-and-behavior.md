@@ -31,7 +31,7 @@ Why these: NN/g puts simple feedback near 100ms, a modal entering at 200 to 300m
 *Kit:* `Presence`, `ListPresence`, `SheetPresence`, `BottomSheet`.
 *Source:* https://www.nngroup.com/articles/animation-duration/ ; https://atlassian.design/foundations/motion
 
-**M3. Animate transform and opacity only; never layout.** MUST NOT animate `height`, `width`, `top`, `left`, `margin` or `padding` of anything that holds content, except the one controlled `grid-template-rows: 0fr to 1fr` collapse used by `ListPresence` and `Disclosure`. Colour and background changes are allowed on controls.
+**M3. Animate transform and opacity only; never layout.** MUST NOT animate `height`, `width`, `top`, `left`, `margin` or `padding` of anything that holds content, except the one controlled `grid-template-rows: 0fr to 1fr` collapse used by `ListPresence` and `Disclosure`, and (#886) the docked sidebar's width and padding between 15rem and 4rem (the one reviewed layout exception: a single column, only inside `prefers-reduced-motion: no-preference`, its labels clipped to one line and faded so no text wraps while the width moves; with reduced motion or the pause switch it snaps). Colour and background changes are allowed on controls.
 *Why:* layout animation janks on a phone and re-flows neighbours, the "janky" complaint. A grid-rows collapse is the one safe exception because the browser interpolates it without per-frame JS.
 *Check:* a guard that fails on `transition: height|width|margin|padding` in `components/**/*.css`.
 *Kit:* `ListPresence`, `Disclosure`.

@@ -2312,3 +2312,10 @@ The dashboard programme (D1, D2) added no scroll-driven or looping motion. What 
 - **Phone top bar.** The page title is the bar's `h1` on screens without a header of their own (`AdminShell titleH1`); no motion.
 
 **Check.** `npm run a11y:admin-motion` (every state is right at once, nothing animates under reduce, mirrored in RTL) and `adminMotionRules.guard.test.ts`.
+
+## 17. Admin nav v2: the rail, the guide and the floating circle (2026-11-16, #886)
+
+- **The icon rail animates (M3's one layout exception).** `.a-side` tweens `width` and `padding-inline` between 15rem and 4rem over `--a-dur-3` with `--a-ease-out`, at 1024px and up, inside `prefers-reduced-motion: no-preference` only. The first paint is the saved state; only a change tweens. Labels are clipped to one line (`white-space: nowrap`, `overflow: hidden`) while `.a-app[data-sliding]` is set, and fade with `--a-dur-2`: out while the sidebar narrows (the full tree is kept until the width has arrived, then the rail is drawn), in while it widens (`@starting-style`). The swap is on a timer (`SLIDE_MS`, 320ms), never `animationend` or rAF; reduced motion and `body.motion-paused` snap. No new keyframe: `KEYFRAMES_ALLOWED` is unchanged.
+- **The group chevron** turns with the Disclosure's own `transform` transition (`--a-dur-2`), a transition and not a jump, in both directions.
+- **The guide line** is static (a 1px pseudo-element); nothing moves.
+- **The phone menu** is the shared floating glass circle (`ui/FloatingMenu`): the two hairlines cross into an X with a `transform` transition inside `no-preference`; the nav panel drops from it with opacity and a 0.5rem translate (enter `--a-ease-out`, exit `--a-ease-in`, shorter), on the existing `.a-side[data-open]` rules.

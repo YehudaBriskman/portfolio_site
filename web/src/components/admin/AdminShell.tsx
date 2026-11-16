@@ -1,12 +1,13 @@
 import { createContext, useContext, useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { ChevronLeft, ExternalLink, FilePlus, FolderPlus, ImagePlus, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Search, X } from "lucide-react";
+import { ExternalLink, FilePlus, FolderPlus, ImagePlus, LogOut, PanelLeftClose, PanelLeftOpen, Search } from "lucide-react";
 import { admin } from "@/services/admin";
 import { markAdminSeen } from "@/components/notes/reader/adminSession";
 import DisplayMenu, { DisplayPanel } from "@/components/nav/DisplayMenu";
 import { DisclosureButton } from "@/components/ui/Disclosure";
 import { Icon, iconOf } from "@/components/ui/Icon";
 import { IconButton } from "@/components/ui/IconButton";
+import { FloatingCircle, FloatingPill } from "@/components/ui/FloatingMenu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useChromeWords } from "@/i18n/chrome";
 import NotificationsMenu from "@/components/admin/NotificationsMenu";
@@ -77,6 +78,9 @@ const PATHS: Record<Section, string> = {
   translations: "/admin/translations",
   marketing: "/admin/marketing",
 };
+
+/* A little over the width token (--a-dur-3, 300ms) so the tree is swapped after the width has arrived. */
+const SLIDE_MS = 320;
 
 const PUBLIC_SITE = "https://yehudabriskman.com";
 
@@ -225,6 +229,37 @@ export function ShellFrame({ title, section, counts, bottomBar, backTo, barEvery
     setCollapsedPref(next);
     writeCollapsed(next);
   };
+  /*
+   * The rail animates (#886): width and padding tween in CSS; the tree it holds is swapped at the right end of that.
+   * Collapsing keeps the full tree (labels clipped to one line, fading out) until the width has arrived, then draws
+   * the rail; expanding draws the full tree at once and its labels fade in while the width grows. Timers, never
+   * rAF or animationend. Reduced motion, and the site's own pause switch, skip all of it.
+   */
+  const [railDom, setRailDom] = useState(rail);
+  const [sliding, setSliding] = useState<"in" | "out" | undefined>();
+  const slide = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => clearTimeout(slide.current), []);
+  if (rail === railDom && sliding === "out") setSliding(undefined);
+  if (rail !== railDom && !sliding) {
+    const still =
+      typeof window === "undefined" ||
+      (typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) ||
+      document.body.classList.contains("motion-paused");
+    if (still) setRailDom(rail);
+    else if (rail) setSliding("out");
+    else {
+      setRailDom(false);
+      setSliding("in");
+    }
+  }
+  useEffect(() => {
+    if (!sliding) return;
+    clearTimeout(slide.current);
+    slide.current = setTimeout(() => {
+      setSliding(undefined);
+      setRailDom(rail);
+    }, SLIDE_MS);
+  }, [sliding, rail]);
   const drawerId = useId();
   const displayId = useId();
   const toggle = useRef<HTMLButtonElement>(null);
@@ -272,7 +307,7 @@ export function ShellFrame({ title, section, counts, bottomBar, backTo, barEvery
   /* Open: focus moves in, Escape closes and hands focus back. */
   useEffect(() => {
     if (!open) return;
-    drawer.current?.querySelector<HTMLElement>("a, button")?.focus();
+    drawer.current?.querySelector<HTMLElement>("[data-nav-item]")?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       setOpen(false);
@@ -364,33 +399,18 @@ export function ShellFrame({ title, section, counts, bottomBar, backTo, barEvery
   const last = crumbs.length - 1;
 
   return (
-    <div className="a-app" data-side={rail ? "rail" : "full"}>
+    <div className="a-app" data-side={rail ? "rail" : "full"} data-sliding={sliding}>
       <a href="#admin-content" className="a-skip">
         {w.skip}
       </a>
 
       <header className="a-top">
-        {backTo && (
-          <Link to={backTo} className="a-btn a-btn-ghost lg:hidden a-top-word" aria-label={w.back}>
-            <ChevronLeft aria-hidden="true" className="a-mirror" />
-            <span aria-hidden="true">{w.back}</span>
-          </Link>
+        {/* On a phone the menu is the floating glass circle (the public phone site's, shared in ui/FloatingMenu), and
+            a detail screen's way back is its pill: the section it returns to, drawn in the bar's first place. */}
+        {!docked && (
+          <FloatingCircle ref={toggle} open={open} controls={drawerId} label={w.menu} onClick={() => setOpen((v) => !v)} />
         )}
-        {/* On a phone the bar is this button and the page title: the site link, display
-            settings and the account are rows in the menu it opens (declutter). The
-            button says "Menu" in words, not a bare glyph. */}
-        <button
-          ref={toggle}
-          type="button"
-          className="a-btn a-btn-ghost a-top-word lg:hidden"
-          aria-expanded={open}
-          aria-controls={drawerId}
-          aria-label={open ? w.closeMenu : w.menu}
-          onClick={() => setOpen((v) => !v)}
-        >
-          {open ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}
-          <span aria-hidden="true">{open ? w.closeMenu : w.menu}</span>
-        </button>
+        {!docked && backTo && <FloatingPill to={backTo} label={sectionLabel} name={`${w.back}: ${sectionLabel}`} />}
 
         {/* The favicon alone: who is signed in is said once, by the account menu. */}
         <Link to="/admin" className="a-brand max-lg:hidden" aria-label="Yehuda Briskman">
@@ -438,13 +458,13 @@ export function ShellFrame({ title, section, counts, bottomBar, backTo, barEvery
                 </p>
                 <a href={PUBLIC_SITE} target="_blank" rel="noreferrer noopener" className="a-nav-item" aria-label={w.viewSiteNewTab}>
                   <span className="a-nav-icon" aria-hidden="true">
-                    <ExternalLink />
+                    <Icon icon={ExternalLink} />
                   </span>
                   {w.viewSite}
                 </a>
                 <a href="/oauth2/sign_out" className="a-nav-item" onClick={() => toast.clearHistory()}>
                   <span className="a-nav-icon" aria-hidden="true">
-                    <LogOut />
+                    <Icon icon={LogOut} />
                   </span>
                   {w.signOut}
                 </a>
@@ -463,7 +483,8 @@ export function ShellFrame({ title, section, counts, bottomBar, backTo, barEvery
             storageKey="admin-nav-open"
             fallbackId={section}
             className="a-side-nav"
-            collapsed={rail}
+            collapsed={railDom}
+            manage
             onNavigate={() => setOpen(false)}
           />
 
@@ -492,14 +513,14 @@ export function ShellFrame({ title, section, counts, bottomBar, backTo, barEvery
                 }}
               >
                 <span className="a-nav-icon" aria-hidden="true">
-                  <Search />
+                  <Icon icon={Search} />
                 </span>
                 {w.search}
               </button>
               <NotificationsMenu withLabel />
               <a href={PUBLIC_SITE} target="_blank" rel="noreferrer noopener" className="a-nav-item" aria-label={w.viewSiteNewTab}>
                 <span className="a-nav-icon" aria-hidden="true">
-                  <ExternalLink />
+                  <Icon icon={ExternalLink} />
                 </span>
                 {w.viewSite}
               </a>
@@ -513,7 +534,7 @@ export function ShellFrame({ title, section, counts, bottomBar, backTo, barEvery
             <p className="a-side-who">{who ? w.signedInAs(who) : w.signedIn}</p>
             <a href="/oauth2/sign_out" className="a-nav-item" onClick={() => toast.clearHistory()}>
               <span className="a-nav-icon" aria-hidden="true">
-                <LogOut />
+                <Icon icon={LogOut} />
               </span>
               {w.signOut}
             </a>

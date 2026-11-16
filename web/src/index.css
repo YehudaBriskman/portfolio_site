@@ -2926,18 +2926,28 @@
   }
   @media (max-width: 1023.98px) {
     .a-side { display: none; }
+    /* The nav panel (#886): a glass sheet that drops from the floating circle at the inline-end, not a drawer from the edge. */
     .a-side[data-open] {
-      display: flex; position: fixed; z-index: 45; top: 3.5rem; bottom: 0; inset-inline-start: 0;
-      width: min(18rem, 85vw);
-      border-inline-end: 1px solid var(--a-line);
-      border-start-end-radius: var(--a-r-sheet); border-end-end-radius: var(--a-r-sheet);
+      display: flex; position: fixed; z-index: 48;
+      top: calc(var(--float-top, 6px) + var(--float-h, 46px) + 8px); bottom: auto;
+      inset-inline-end: max(12px, env(safe-area-inset-right, 0px)); inset-inline-start: auto;
+      width: min(20rem, calc(100vw - 24px)); max-height: calc(100dvh - var(--float-top, 6px) - var(--float-h, 46px) - 20px);
+      border: 1px solid var(--a-line); border-radius: var(--a-r-sheet);
+      background: rgb(var(--paper) / .9);
+      -webkit-backdrop-filter: blur(16px) saturate(150%); backdrop-filter: blur(16px) saturate(150%);
       box-shadow: var(--a-shadow-3);
     }
-    .a-scrim:not([hidden]) { position: fixed; z-index: 44; inset: 3.5rem 0 0; background: rgb(var(--shade) / .3); }
+    :root[dir='rtl'] .a-side[data-open] { inset-inline-end: max(12px, env(safe-area-inset-left, 0px)); }
+    .a-scrim:not([hidden]) { position: fixed; z-index: 44; inset: 0; background: rgb(var(--shade) / .3); }
+    /* The bar's title clears the circle: its end padding is the circle and its gap. */
+    .a-top { padding-inline-end: calc(max(12px, env(safe-area-inset-right, 0px)) + var(--float-h, 46px) + 12px); }
+    :root[dir='rtl'] .a-top { padding-inline-end: calc(max(12px, env(safe-area-inset-left, 0px)) + var(--float-h, 46px) + 12px); }
   }
   /* The icon rail (#809): the same sidebar, 4rem wide, one variable. Desktop only: the drawer is always full. */
   .a-app[data-side="rail"] { --a-side-w: 4rem; }
   .a-app[data-side="rail"] .a-side { padding-inline: .5rem; }
+  /* While the rail opens or closes the sidebar clips: a row never spills past a width that is still moving. */
+  .a-app[data-sliding] .a-side { overflow-x: hidden; }
   .a-side-collapse { display: flex; justify-content: flex-end; margin-top: auto; padding-top: .75rem; }
   .a-app[data-side="rail"] .a-side-collapse { justify-content: center; }
   .a-side-nav ul { display: flex; flex-direction: column; gap: 2px; }
@@ -2946,15 +2956,15 @@
   .a-nav-item {
     display: flex; align-items: center; gap: .625rem;
     min-height: 2.25rem; padding-inline: .625rem; border-radius: var(--a-r-ctl);
-    color: rgb(var(--ink));
+    color: rgb(var(--ink)); font-size: .875rem; font-weight: 500;
   }
   .a-nav-item:hover { background: var(--a-hover); }
   .a-nav-item:active { background: var(--a-press); }
-  .a-nav-item[aria-current="page"] { background: var(--a-press); font-weight: 700; }
+  .a-nav-item[aria-current="page"] { background: var(--a-press); }
   /* One box for the icon whether or not it is circled, so the label does
      not move when the current page changes (the dashboards' `.viewIcon`). */
-  .a-nav-icon { display: inline-grid; place-items: center; flex: none; width: 26px; height: 26px; margin-inline: -5px; }
-  .a-nav-icon svg { width: 16px; height: 16px; color: rgb(var(--ink-soft)); }
+  .a-nav-icon { display: inline-grid; place-items: center; flex: none; width: 20px; height: 20px; }
+  .a-nav-icon svg { width: 20px; height: 20px; color: rgb(var(--ink-soft)); }
   .a-nav-item[aria-current="page"] .a-nav-icon svg { color: rgb(var(--ink)); }
   .a-side-foot { margin-top: auto; padding-top: .75rem; border-top: 1px solid var(--a-line-soft); }
   .a-side-who { padding: .25rem .625rem; font-size: var(--a-fs-meta); color: rgb(var(--ink-soft)); overflow-wrap: anywhere; }
@@ -3375,11 +3385,16 @@
     .a-app dialog[open]:not(.pop-dialog)::backdrop { opacity: 1; transition: opacity var(--a-dur-sheet) var(--a-ease-out); }
     .a-side[data-open] { opacity: 1; translate: 0 0; transition: opacity var(--a-dur-sheet) var(--a-ease-out), translate var(--a-dur-sheet) var(--a-ease-out); }
     .a-scrim:not([hidden]) { opacity: 1; transition: opacity var(--a-dur-base) var(--a-ease-out); }
+    /* The icon rail (#886): the sidebar's width and padding move between 15rem and 4rem with the motion tokens, and only for a
+       viewer who has not asked for less (M3's one reviewed layout exception: a single column, its text clipped to one line
+       while it moves, see SidebarGroup.module.css). The first paint is the saved state; only a change tweens. */
+    @media (min-width: 1024px) {
+      .a-side { transition: width var(--a-dur-3) var(--a-ease-out), padding-inline var(--a-dur-3) var(--a-ease-out); }
+    }
     @starting-style {
       .a-app dialog[open]:not(.pop-dialog) { opacity: 0; scale: .98; translate: 0 8px; }
       .a-app dialog[open]:not(.pop-dialog)::backdrop { opacity: 0; }
-      .a-side[data-open] { opacity: 0; translate: -1.5rem 0; }
-      :root[dir='rtl'] .a-side[data-open] { translate: 1.5rem 0; }
+      .a-side[data-open] { opacity: 0; translate: 0 -.5rem; }
       .a-scrim:not([hidden]) { opacity: 0; }
     }
     /* Loading rows: a soft highlight crosses each bar as the row passes
@@ -3402,20 +3417,19 @@
        the inline-start edge, exit eases back out, shorter and without a settle. */
     @media (prefers-reduced-motion: no-preference) and (max-width: 599px) {
       .a-side:not([data-open]) {
-        position: fixed; z-index: 45; top: 3.5rem; bottom: 0; inset-inline-start: 0;
-        width: min(18rem, 85vw);
-        opacity: 0; translate: -100% 0; pointer-events: none;
+        position: fixed; z-index: 48; top: calc(var(--float-top, 6px) + var(--float-h, 46px) + 8px); bottom: auto;
+        inset-inline-end: max(12px, env(safe-area-inset-right, 0px)); inset-inline-start: auto;
+        width: min(20rem, calc(100vw - 24px)); max-height: calc(100dvh - var(--float-top, 6px) - var(--float-h, 46px) - 20px);
+        opacity: 0; translate: 0 -.5rem; pointer-events: none;
         transition: opacity var(--a-dur-2) var(--a-ease-in), translate var(--a-dur-2) var(--a-ease-in), display var(--a-dur-2) allow-discrete;
       }
-      :root[dir='rtl'] .a-side:not([data-open]) { translate: 100% 0; }
       .a-side[data-open] {
         transition: opacity var(--a-dur-2) var(--a-ease-out), translate var(--a-dur-3) var(--a-ease-spring), display var(--a-dur-3) allow-discrete;
       }
       @starting-style {
-        .a-side[data-open] { opacity: 1; translate: -100% 0; }
-        :root[dir='rtl'] .a-side[data-open] { translate: 100% 0; }
+        .a-side[data-open] { opacity: 0; translate: 0 -.5rem; }
       }
-      .a-scrim { position: fixed; z-index: 44; inset: 3.5rem 0 0; background: rgb(var(--shade) / .3); pointer-events: none; opacity: 0; transition: opacity var(--a-dur-2) var(--a-ease-in), display var(--a-dur-2) allow-discrete; }
+      .a-scrim { position: fixed; z-index: 44; inset: 0; background: rgb(var(--shade) / .3); pointer-events: none; opacity: 0; transition: opacity var(--a-dur-2) var(--a-ease-in), display var(--a-dur-2) allow-discrete; }
       .a-scrim:not([hidden]) { opacity: 1; pointer-events: auto; transition: opacity var(--a-dur-2) var(--a-ease-out), display var(--a-dur-2) allow-discrete; }
       @starting-style { .a-scrim:not([hidden]) { opacity: 0; } }
       /* Route change and first content (#709): one soft fade of a screen's top-level blocks, opacity only, the state is already there.

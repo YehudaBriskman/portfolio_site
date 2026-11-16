@@ -17,6 +17,8 @@ export const useMobileWords = defineWords(
       system: "System",
       expand: (label: string) => `Expand ${label}`,
       collapse: (label: string) => `Collapse ${label}`,
+      collapseAll: "Collapse all",
+      expandAll: "Expand all",
     },
     row: { isNew: "New" },
     settings: {
@@ -175,6 +177,8 @@ export const useMobileWords = defineWords(
       system: "מערכת",
       expand: (label: string) => `הרחב ${label}`,
       collapse: (label: string) => `כווץ ${label}`,
+      collapseAll: "כווץ הכול",
+      expandAll: "הרחב הכול",
     },
     row: { isNew: "חדש" },
     settings: {

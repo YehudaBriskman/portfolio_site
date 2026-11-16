@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
-import type { LucideIcon } from "lucide-react";
+import { ChevronsDownUp, ChevronsUpDown, type LucideIcon } from "lucide-react";
 import { DisclosureButton } from "@/components/ui/Disclosure";
+import { Icon } from "@/components/ui/Icon";
+import { IconButton } from "@/components/ui/IconButton";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useMobileWords } from "@/i18n/mobile";
@@ -93,6 +95,11 @@ function holdsChildren(nodes: NavNode[], id: string): boolean {
     if (n.children && holdsChildren(n.children, id)) return true;
   }
   return false;
+}
+
+/** The id of every node that holds children, at any depth. */
+export function groupIds(nodes: NavNode[]): string[] {
+  return nodes.flatMap((n) => (n.children?.length ? [n.id, ...groupIds(n.children)] : []));
 }
 
 /** Every leaf pathname in a tree, for the test that each one is a route. */
@@ -358,9 +365,16 @@ export type SidebarNavProps = {
   className?: string;
   /** Draw the icon rail: a glyph per row, groups as flyouts. */
   collapsed?: boolean;
+  /** One small control above the tree that shuts every group, or opens every group once all are shut. */
+  manage?: boolean;
 };
 
-export function SidebarNav({ nodes, label, storageKey, fallbackId, onNavigate, className, collapsed }: SidebarNavProps) {
+type GlyphProps = { className?: string; "aria-hidden"?: boolean | "true" };
+const CollapseAllGlyph = (p: GlyphProps) => <Icon icon={ChevronsDownUp} size={16} {...p} />;
+const ExpandAllGlyph = (p: GlyphProps) => <Icon icon={ChevronsUpDown} size={16} {...p} />;
+
+export function SidebarNav({ nodes, label, storageKey, fallbackId, onNavigate, className, collapsed, manage }: SidebarNavProps) {
+  const mw = useMobileWords().nav;
   const { pathname, search } = useLocation();
   const idBase = useId();
   const root = useRef<HTMLElement>(null);
@@ -393,6 +407,10 @@ export function SidebarNav({ nodes, label, storageKey, fallbackId, onNavigate, c
   /* The first paint is the state as it is: only a change after mount moves (no group fades in on arrival). */
   /* An attribute set by hand, not state: React never renders it, so it is not undone and costs no render. */
   useEffect(() => root.current?.setAttribute("data-armed", ""), []);
+
+  const groups = groupIds(nodes);
+  const anyOpen = groups.some((id) => open[id]);
+  const setAll = (value: boolean) => setOpen((cur) => ({ ...cur, ...Object.fromEntries(groups.map((id) => [id, value])) }));
 
   const isOpen = (id: string) => !!open[id];
   const onToggle = (id: string) => set(id, !open[id]);
@@ -460,6 +478,18 @@ export function SidebarNav({ nodes, label, storageKey, fallbackId, onNavigate, c
           </ul>
         </TooltipProvider>
       ) : (
+      <>
+      {manage && groups.length > 0 && (
+        <div className={styles.tools}>
+          <IconButton
+            icon={anyOpen ? CollapseAllGlyph : ExpandAllGlyph}
+            label={anyOpen ? mw.collapseAll : mw.expandAll}
+            size="sm"
+            data-nav-manage={anyOpen ? "collapse" : "expand"}
+            onClick={() => setAll(!anyOpen)}
+          />
+        </div>
+      )}
       <ul className={styles.root}>
         {nodes.map((n) => (
           <SidebarGroup
@@ -474,6 +504,7 @@ export function SidebarNav({ nodes, label, storageKey, fallbackId, onNavigate, c
           />
         ))}
       </ul>
+      </>
       )}
     </nav>
   );

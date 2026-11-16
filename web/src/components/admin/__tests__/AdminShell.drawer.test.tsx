@@ -77,7 +77,8 @@ describe("the admin drawer", () => {
     fireEvent.click(screen.getByRole("button", { name: "Menu" }));
     expect(side().hasAttribute("data-open")).toBe(true);
     expect(main().hasAttribute("inert")).toBe(true);
-    fireEvent.click(screen.getByRole("button", { name: "Close menu" }));
+    expect(screen.getByRole("button", { name: "Menu" }).getAttribute("aria-expanded")).toBe("true");
+    fireEvent.click(screen.getByRole("button", { name: "Menu" }));
     expect(main().hasAttribute("inert")).toBe(false);
   });
 
@@ -131,7 +132,9 @@ describe("the phone top bar is a menu button and a title (admin declutter)", () 
     expect(site.getAttribute("target")).toBe("_blank");
     expect(within(drawer).getByText("Display settings")).toBeTruthy();
     expect(within(drawer).getByRole("link", { name: "Sign out" })).toBeTruthy();
-    /* The menu button says what it is. */
-    expect(screen.getByRole("button", { name: "Menu" }).textContent).toContain("Menu");
+    /* The menu is the floating circle: named for a screen reader, drawn with no word (#886). */
+    const circle = screen.getByRole("button", { name: "Menu" });
+    expect(circle.textContent).toBe("");
+    expect(circle.hasAttribute("data-floating-circle")).toBe(true);
   });
 });

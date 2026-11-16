@@ -45,9 +45,43 @@
   padding-block-start: 0.5rem;
 }
 
-/* A group inside a group steps in; the first level shares the parent's edge. */
+/*
+ * The guide (#886): the rows of an open group hang from a 1px line under the parent, at the centre of the
+ * 20px icon column (0.75rem of row padding plus half a glyph = 1.375rem from the edge), and step in to it.
+ * A pseudo-element with logical offsets, so it mirrors in RTL. The current row's bar sits on the line,
+ * so the line lights up at the row you are on.
+ */
+.collapse > .children {
+  position: relative;
+  margin-inline-start: 1.375rem;
+  padding-inline-start: 0.25rem;
+}
+
+.collapse > .children::before {
+  content: "";
+  position: absolute;
+  inset-block: 0.5rem 0.25rem;
+  inset-inline-start: 0;
+  inline-size: 1px;
+  background: var(--a-line, rgb(var(--ink-soft) / 0.3));
+}
+
+.children .link[aria-current="page"]::before {
+  inset-inline-start: -0.25rem;
+  inline-size: 2px;
+  inset-block: 0.625rem;
+}
+
+/* A group inside a group steps in once more, to its own guide. */
 .children .children {
-  margin-inline-start: 1.75rem;
+  margin-inline-start: 1rem;
+}
+
+/* The tools row: one small control, at the inline end, above the tree. */
+.tools {
+  display: flex;
+  justify-content: flex-end;
+  margin-block-end: 0.5rem;
 }
 
 .item {
@@ -178,6 +212,9 @@
   block-size: 1.25rem;
 }
 
+/* Icon weight = text weight: the glyph is drawn by `Icon` at 20px with stroke 1.75 (the table in Icon.tsx),
+   which is the stem of the 14px/500 label beside it; the current row changes neither. A stroke here would
+   undo that, so none is set. */
 .mark svg {
   inline-size: 1.25rem;
   block-size: 1.25rem;
@@ -194,6 +231,16 @@
   flex: 1 1 auto;
   min-inline-size: 0;
   overflow-wrap: anywhere;
+}
+
+/* While the rail opens or closes (the shell sets data-sliding) a label is one clipped line: it never
+   wraps in a width that is still changing. */
+:global(.a-app[data-sliding]) .text,
+:global(.a-app[data-sliding]) .toggleLabel {
+  overflow: hidden;
+  overflow-wrap: normal;
+  text-overflow: clip;
+  white-space: nowrap;
 }
 
 /* ---- the icon rail */
@@ -298,5 +345,23 @@
     @starting-style {
       opacity: 0;
     }
+  }
+
+  /* The rail's labels fade with the width (#886): out as the sidebar narrows, in as it widens. */
+  .text,
+  .toggleLabel {
+    transition: opacity var(--a-dur-2) var(--a-ease-out);
+  }
+
+  :global(.a-app[data-sliding]) .text,
+  :global(.a-app[data-sliding]) .toggleLabel {
+    @starting-style {
+      opacity: 0;
+    }
+  }
+
+  :global(.a-app[data-sliding="out"]) .text,
+  :global(.a-app[data-sliding="out"]) .toggleLabel {
+    opacity: 0;
   }
 }
