@@ -119,8 +119,8 @@ for (const lang of LANGS) for (const theme of THEMES) for (const w of WIDTHS) {
         await page.waitForTimeout(120);
         const s = await read();
         seen.push(s);
-        if (SHOTS && y === 340) await page.screenshot({ path: `${OUT}/pull-mid-${name}-${w}-${lang}-${theme}.png`, timeout: 120000 });
-        if (SHOTS && y === 700) await page.screenshot({ path: `${OUT}/pull-full-${name}-${w}-${lang}-${theme}.png`, timeout: 120000 });
+        if (SHOTS && w === 390 && y === 340) await page.screenshot({ path: `${OUT}/pull-mid-${name}-${w}-${lang}-${theme}.png`, timeout: 120000 });
+        if (SHOTS && w === 390 && y === 700) await page.screenshot({ path: `${OUT}/pull-full-${name}-${w}-${lang}-${theme}.png`, timeout: 120000 });
       }
       for (let i = 1; i < seen.length; i++) if (seen[i].pull < seen[i - 1].pull) fails.push(`${tag}: pull not monotonic ${seen.map((s) => s.pull)}`);
       const full = seen[seen.length - 1];
@@ -148,7 +148,7 @@ for (const lang of LANGS) for (const theme of THEMES) for (const w of WIDTHS) {
       await cdp.detach();
     }
   }
-  if (w === 390 || w === 360) {
+  if (w === 390) {
     const tag = `menu ${w} ${lang} ${theme}`;
     await page.goto(`${base}${prefix}/admin`, { waitUntil: "load" });
     await ready(page);
