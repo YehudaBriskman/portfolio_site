@@ -157,7 +157,7 @@ const SCREENS = [
     await tap(p, 'button.a-btn-primary[aria-haspopup="dialog"]');
     await waitFor(p, () => !!document.querySelector("dialog[open] [data-review-summary]"));
   }],
-  ["drawer", "/admin", "main", BUDGET.drawer, async (p) => { await tap(p, "header button[aria-controls]"); }],
+  ["drawer", "/admin", "main", BUDGET.drawer, async (p) => { await tap(p, "button[data-floating-circle]"); }],
   ["overview", "/admin", "main", BUDGET.overview],
   ["audience", "/admin/marketing?tab=audience", "[data-testid=audience]", BUDGET.audience],
   ["areas", "/admin/areas", "main", BUDGET.areas],

@@ -163,19 +163,20 @@ const cases = [
       p.style.cssText = "padding-left:env(safe-area-inset-left);position:absolute";
       document.body.append(p);
       const env = parseFloat(getComputedStyle(p).paddingLeft);
-      const b = document.querySelector(".a-top button, .a-top a").getBoundingClientRect();
+      const b = [...document.querySelectorAll(".a-top button, .a-top a, .a-top h1")].map((e) => e.getBoundingClientRect()).find((r) => r.width > 0);
+      const circle = document.querySelector("[data-floating-circle]").getBoundingClientRect();
       const end = document.querySelector(".a-top-end").getBoundingClientRect();
       const kids = [...document.querySelector(".a-main").children].map((e) => e.getBoundingClientRect()).filter((r) => r.width > 0);
-      return { env, left: b.left, endRight: end.right, vw: innerWidth, mainL: Math.min(...kids.map((r) => r.left)), mainR: Math.max(...kids.map((r) => r.right)) };
+      return { env, left: b.left, circleRight: circle.right, endRight: end.right, vw: innerWidth, mainL: Math.min(...kids.map((r) => r.left)), mainR: Math.max(...kids.map((r) => r.right)) };
     });
     await shot(page, "reflow-landscape-notch.png");
     await ctx.close();
-    return [m.env === 47, "harness: safe-area override must be live", m.left >= 47 && m.endRight <= m.vw - 47, `top bar ${m.left}..${m.endRight} of ${m.vw}`, m.mainL >= 47 && m.mainR <= m.vw - 47, `main ${m.mainL}..${m.mainR}`];
+    return [m.env === 47, "harness: safe-area override must be live", m.left >= 47 && m.endRight <= m.vw - 47 && m.circleRight <= m.vw - 47, `top bar ${m.left}..${m.endRight} of ${m.vw}`, m.mainL >= 47 && m.mainR <= m.vw - 47, `main ${m.mainL}..${m.mainR}`];
   }],
   ["B-h5-5 Hebrew editor: back chevron mirrors, the crumb isolates an English title", async () => {
     const { ctx, page } = await open("/admin/posts/admin-redesign", { w: 390, h: 700, lang: "he" });
     const m = await page.evaluate(() => {
-      const a = document.querySelector(".a-top a.a-top-word");
+      const a = document.querySelector(".a-top a[data-floating-pill]");
       const last = document.querySelector(".a-crumbs li:last-child bdi");
       return { dir: document.documentElement.dir, t: getComputedStyle(a.querySelector("svg")).transform, bidi: last ? getComputedStyle(last).unicodeBidi : "" };
     });

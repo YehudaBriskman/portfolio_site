@@ -8,6 +8,9 @@
  *     current row is bolder than the rest;
  *   - a glyph is not 20px, or sits in a ring or circle;
  *   - the current row has no accent bar on its inline-start edge;
+ *   - an open group has no 1px guide line on its inline-start side, or its rows do not step in to it (#886);
+ *   - a row icon is not stroke 1.75 (the Icon table for 20px), or an icon and its label differ in weight;
+ *   - Collapse all does not shut every group, or Expand all does not open every group;
  *   - the owner's login or "Signed in as" is visible anywhere but the account
  *     menu, or the site name is visible beside the favicon;
  *   - the rail is not 4rem wide, a rail row has no accessible name, a tooltip
@@ -73,6 +76,7 @@ function sidebar() {
   for (const svg of document.querySelectorAll(".a-side-nav svg")) {
     const r = svg.getBoundingClientRect();
     if (!r.width) continue;
+    if (svg.closest("[data-nav-manage]")) continue;
     if (svg.closest("[class*=mark]")) out.glyphs.push(Math.round(r.width));
     const holder = svg.parentElement;
     const hs = getComputedStyle(holder);
@@ -141,6 +145,31 @@ for (const w of WIDTHS) for (const lang of LANGS) for (const theme of THEMES) {
     if (full.glyphs.some((g) => g !== 20)) fails.push(at(`glyph sizes ${[...new Set(full.glyphs)].join("/")}, not 20`));
     if (full.circles.length) fails.push(at(`a ring or circle behind a glyph: ${full.circles.join(", ")}`));
     await shot(page, "expanded-marketing", tag);
+
+    /* ---- the guide, the icon weight, Collapse all / Expand all (#886) */
+    const guide = await page.evaluate(() => {
+      const ul = [...document.querySelectorAll(".a-side-nav ul[data-parent]")].find((u) => !u.hidden);
+      if (!ul) return null;
+      const b = getComputedStyle(ul, "::before");
+      const first = ul.querySelector("[data-nav-item]").getBoundingClientRect();
+      const box = ul.getBoundingClientRect();
+      const rtl = document.documentElement.dir === "rtl";
+      const lineEdge = rtl ? box.right : box.left;
+      const rowEdge = rtl ? first.right : first.left;
+      return { w: b.width, content: b.content, step: Math.abs(rowEdge - lineEdge) };
+    });
+    if (!guide || guide.content === "none" || guide.w !== "1px") fails.push(at(`no 1px guide line under an open group (${JSON.stringify(guide)})`));
+    else if (guide.step < 2) fails.push(at(`rows of an open group do not step in to the guide (${guide.step}px)`));
+    const weightPair = await page.evaluate(() => [...document.querySelectorAll(".a-side-nav a[data-nav-item]")].map((a) => ({ stroke: a.querySelector("svg")?.getAttribute("stroke-width"), w: getComputedStyle(a).fontWeight })));
+    if (weightPair.some((r) => r.stroke !== "1.75" || r.w !== "500")) fails.push(at(`icon stroke / label weight pairs are not all 1.75 / 500: ${JSON.stringify([...new Set(weightPair.map((r) => r.stroke + "/" + r.w))])}`));
+    await page.locator('[data-nav-manage="collapse"]').click({ force: true });
+    const shut = await page.evaluate(() => [...document.querySelectorAll(".a-side-nav button[data-nav-group][aria-expanded]")].every((b) => b.getAttribute("aria-expanded") === "false"));
+    if (!shut) fails.push(at("Collapse all left a group open"));
+    await page.locator('[data-nav-manage="expand"]').click({ force: true });
+    const opened = await page.evaluate(() => [...document.querySelectorAll(".a-side-nav button[data-nav-group][aria-expanded]")].every((b) => b.getAttribute("aria-expanded") === "true"));
+    if (!opened) fails.push(at("Expand all left a group shut"));
+    await page.reload({ waitUntil: "load" });
+    await ready(page);
 
     /* ---- identity once */
     let id = await page.evaluate(identity, LOGIN);
