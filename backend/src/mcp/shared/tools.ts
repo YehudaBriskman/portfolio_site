@@ -82,7 +82,13 @@ const httpUrl = z
 const link = z.object({ label: z.string().min(1).max(60), url: httpUrl });
 const lang = z.enum(["en", "he"]).optional().describe("Language to read in; default en");
 const translationType = z.enum(TRANSLATION_TYPES);
-const itemId = z.string().min(1).max(200).describe("The item's id, as list_translations gives it (a slug, `start`, `role:<id>`, `hero`…)");
+/* Never a path: no slash, dot-only segment, query or escape reaches an admin URL. */
+const itemId = z
+  .string()
+  .min(1)
+  .max(200)
+  .regex(/^[A-Za-z0-9][A-Za-z0-9_:-]*(?:\.[A-Za-z0-9_:-]+)*$/, "letters, digits, dashes, colons and inner dots only")
+  .describe("The item's id, as list_translations gives it (a slug, `start`, `role:<id>`, `hero`…)");
 
 type AdminPost = {
   _rev?: string;
@@ -354,7 +360,7 @@ export function registerTools(server: McpServer, api: PortfolioApi, access: Tool
 
   const loadPost = async (s: string): Promise<AdminPost | null> => {
     try {
-      return (await api.adminGet<{ post: AdminPost }>(`/api/admin/posts/${s}`)).post;
+      return (await api.adminGet<{ post: AdminPost }>(`/api/admin/posts/${encodeURIComponent(s)}`)).post;
     } catch (e) {
       if (e instanceof ApiError && e.status === 404) return null;
       throw e;

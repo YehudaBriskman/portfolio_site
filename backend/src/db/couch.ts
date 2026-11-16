@@ -33,6 +33,16 @@ export class CouchError extends Error {
   }
 }
 
+/**
+ * One document id as one URL path segment. encodeURIComponent leaves "." alone, so a
+ * "." or ".." id would be normalised away by the URL parser and address another
+ * resource; such ids (and the empty one) are refused outright.
+ */
+export function docPath(id: string): string {
+  if (id === "" || id === "." || id === "..") throw new CouchError(400, "invalid document id");
+  return `/${encodeURIComponent(id)}`;
+}
+
 async function call<T>(path: string, init: RequestInit = {}, timeoutMs = 8000): Promise<T> {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), timeoutMs);
@@ -66,21 +76,21 @@ async function call<T>(path: string, init: RequestInit = {}, timeoutMs = 8000): 
 }
 
 export const couch = {
-  get: <T>(id: string) => call<T>(`/${encodeURIComponent(id)}`),
-  put: <T>(id: string, doc: unknown) =>
-    call<T>(`/${encodeURIComponent(id)}`, { method: "PUT", body: JSON.stringify(doc) }),
+  get: async <T>(id: string) => call<T>(docPath(id)),
+  put: async <T>(id: string, doc: unknown) =>
+    call<T>(docPath(id), { method: "PUT", body: JSON.stringify(doc) }),
   /*
    * Create-only: a document written without a `_rev` can only be created, and
    * CouchDB answers 409 if the id exists. Separate from `put` so the audit log
    * (services/audit.ts) cannot be pointed at an existing document by mistake.
    */
-  append: <T>(id: string, doc: Record<string, unknown>) => {
+  append: async <T>(id: string, doc: Record<string, unknown>) => {
     const { _rev: _ignored, ...fresh } = doc;
-    return call<T>(`/${encodeURIComponent(id)}`, { method: "PUT", body: JSON.stringify(fresh) });
+    return call<T>(docPath(id), { method: "PUT", body: JSON.stringify(fresh) });
   },
   /* Deletes one revision; 409 if the document moved on, 404 if it is gone. */
-  del: (id: string, rev: string) =>
-    call<{ ok: boolean }>(`/${encodeURIComponent(id)}?rev=${encodeURIComponent(rev)}`, { method: "DELETE" }),
+  del: async (id: string, rev: string) =>
+    call<{ ok: boolean }>(`${docPath(id)}?rev=${encodeURIComponent(rev)}`, { method: "DELETE" }),
   find: <T>(selector: unknown) =>
     call<{ docs: T[] }>(`/_find`, { method: "POST", body: JSON.stringify(selector) }),
   /* Several documents by id in one round trip; an id that does not exist (or is deleted) is simply absent from the result. */

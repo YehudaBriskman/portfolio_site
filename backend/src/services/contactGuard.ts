@@ -62,6 +62,7 @@ let clients = new WindowCounter(CLIENT_LIMIT, CLIENT_WINDOW_MS);
 let overall = new WindowCounter(GLOBAL_LIMIT, GLOBAL_WINDOW_MS);
 let addresses = new WindowCounter(1, ADDRESS_WINDOW_MS);
 let day = { key: "", mails: 0, notices: 0 };
+let signupDay = { key: "", mails: 0 };
 
 const dayKey = (now: number) => new Date(now).toISOString().slice(0, 10);
 const addressKey = (address: string) => createHash("sha256").update(address.trim().toLowerCase()).digest("hex");
@@ -117,10 +118,25 @@ export function releaseAutoReply(now = Date.now()) {
   d.mails = Math.max(0, d.mails - 1);
 }
 
+/** Reserves one public-signup confirmation under its own daily ceiling (UTC day, every visitor together). */
+export function reserveSignupMail(now = Date.now()): boolean {
+  const key = dayKey(now);
+  if (signupDay.key !== key) signupDay = { key, mails: 0 };
+  if (signupDay.mails + 1 > env.SIGNUP_DAILY_MAIL_CEILING) return false;
+  signupDay.mails += 1;
+  return true;
+}
+
+/** Gives back a signup slot whose mail was not sent. */
+export function releaseSignupMail(now = Date.now()) {
+  if (signupDay.key === dayKey(now)) signupDay.mails = Math.max(0, signupDay.mails - 1);
+}
+
 /** Test seam: forget every counter. */
 export function resetContactGuard() {
   clients = new WindowCounter(CLIENT_LIMIT, CLIENT_WINDOW_MS);
   overall = new WindowCounter(GLOBAL_LIMIT, GLOBAL_WINDOW_MS);
   addresses = new WindowCounter(1, ADDRESS_WINDOW_MS);
   day = { key: "", mails: 0, notices: 0 };
+  signupDay = { key: "", mails: 0 };
 }
