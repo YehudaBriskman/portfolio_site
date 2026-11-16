@@ -275,6 +275,12 @@
   background: rgb(var(--bitumen) / .82); color: rgb(var(--bone)); pointer-events: none;
 }
 .mark { inset-inline-start: .5rem; }
+/* A draft nobody can see yet: its glyph and its word, at the end, in the corner's own colours. */
+.draftMark {
+  position: absolute; inset-block-start: .5rem; inset-inline-end: .5rem; display: inline-flex; padding: .125rem .5rem .125rem .375rem;
+  border-radius: 999px; background: rgb(var(--bitumen) / .82); color: rgb(var(--bone)); pointer-events: none;
+}
+.draftMark > span, .draftMark > span > span { color: inherit; }
 .check { inset-inline-end: .5rem; background: rgb(var(--sodium)); color: rgb(var(--bitumen)); }
 .tile[aria-checked="true"] { border: 2px solid rgb(var(--sodium)); }
 

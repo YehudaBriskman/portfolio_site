@@ -10,6 +10,7 @@ import MediaIcon from "@/components/media/MediaIcon";
 import MediaVideo from "@/components/media/MediaVideo";
 import TranslationPill from "@/components/admin/TranslationPill";
 import { useFocusField } from "@/components/admin/content/focusField";
+import { useMobileWords } from "@/i18n/mobile";
 import { useTranslationReport, type TranslationStatus } from "@/services/translations";
 import { ltrValue } from "@/i18n/words";
 import styles from "@/components/admin/Media.module.css";
@@ -118,6 +119,7 @@ export default function MediaDetail({
   onDeleted: (gone: MediaItem) => void;
 }) {
   const t = useMediaPhoneWords();
+  const draftWord = useMobileWords().status.draft;
   const lang = useLang();
   const [alt, setAlt] = useState(item.alt);
   const [caption, setCaption] = useState(item.caption);
@@ -247,6 +249,29 @@ export default function MediaDetail({
     </form>
   );
 
+  /* Draft or Public, applied at once (it is not part of the form): the saved words go back as they are. */
+  const visibility = (
+    <fieldset className={styles.filter} disabled={busy !== null}>
+      <legend className="a-label">{t.visibility}</legend>
+      {(["draft", "public"] as const).map((v) => (
+        <label key={v} className={styles.filterOption}>
+          <input
+            type="radio"
+            name={`visibility-${item.id}`}
+            checked={item.visibility === v}
+            onChange={() =>
+              void run("save", async () => {
+                onSaved(await media.setVisibility(item, v), t.saved);
+              })
+            }
+          />
+          <span>{v === "draft" ? draftWord : t.visPublic}</span>
+        </label>
+      ))}
+      {item.visibility === "draft" && <p className="a-hint mt-0 w-full">{item.live ? t.visLiveHint : t.visDraftHint}</p>}
+    </fieldset>
+  );
+
   const usedBy = (
     <section aria-labelledby="media-used-by">
       <h3 id="media-used-by" className="a-label">{t.usedHeading}</h3>
@@ -373,6 +398,7 @@ export default function MediaDetail({
       </div>
       {form}
       {problem}
+      {visibility}
       {usedBy}
       <Disclosure summary={t.details} meta={t.detailsMeta(kindWord, formatBytes(item.bytes))}>
         {facts}

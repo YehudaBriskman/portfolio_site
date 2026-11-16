@@ -180,6 +180,19 @@ export const requireAdmin: RequestHandler = (req, res, next) => {
 };
 
 /*
+ * Is this request from the signed-in owner's browser session, judged exactly as
+ * the proxy path of requireAdmin judges it? For public routes that show the
+ * owner more than a visitor (a draft media file, #876). Never an error, never
+ * a token: a visitor's request is simply "no".
+ */
+export function isAdminSession(req: Request): boolean {
+  const proof = req.header("x-admin-proxy-secret");
+  if (!env.ADMIN_PROXY_SECRET || !safeEqual(proof ?? "", env.ADMIN_PROXY_SECRET)) return false;
+  const login = req.header("x-auth-request-user") ?? "";
+  return login !== "" && login.toLowerCase() === env.ADMIN_GITHUB_LOGIN.toLowerCase();
+}
+
+/*
  * Failed bearer attempts, limited far harder than adminLimiter's 240 a
  * minute: ten 401s per address per fifteen minutes. Only requests carrying a
  * Bearer header count, and only the ones refused as unauthenticated, so a

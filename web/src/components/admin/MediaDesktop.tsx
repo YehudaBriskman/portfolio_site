@@ -16,7 +16,7 @@ import { useAdminWords } from "@/i18n/admin";
 import { useFiltersWords } from "@/i18n/filters";
 import { toast } from "@/lib/toast";
 import { formatWhen } from "@/lib/safeTime";
-import { filterMedia, formatBytes, media, MEDIA_KINDS, type MediaItem, type MediaKind } from "@/services/media";
+import { isDraft, filterMedia, formatBytes, media, MEDIA_KINDS, type MediaItem, type MediaKind } from "@/services/media";
 import { MediaGrid } from "./MediaGrid";
 import { useMediaPhoneWords } from "./mediaPhoneWords";
 import { useMediaUploadWords } from "./mediaUploadWords";
@@ -71,7 +71,7 @@ export default function MediaDesktop({
   const defs = useMemo<FilterDef[]>(
     () => [
       { id: "kind", kind: "segmented", label: p.kindFilter, options: MEDIA_KINDS.map((k) => ({ value: k, label: p.kinds[k] })) },
-      { id: "only", kind: "multi", label: p.onlyFilter, options: [{ value: "unused", label: p.unused }, { value: "noalt", label: p.noAlt }] },
+      { id: "only", kind: "multi", label: p.onlyFilter, options: [{ value: "unused", label: p.unused }, { value: "drafts", label: p.drafts }, { value: "noalt", label: p.noAlt }] },
     ],
     [p],
   );
@@ -83,7 +83,7 @@ export default function MediaDesktop({
   const visible = useMemo(
     () =>
       filterMedia(items ?? [], bar.query, kind ? [kind] : null).filter(
-        (m) => (!only.includes("unused") || isUnused(m)) && (!only.includes("noalt") || !hasAlt(m)),
+        (m) => (!only.includes("unused") || isUnused(m)) && (!only.includes("drafts") || isDraft(m)) && (!only.includes("noalt") || !hasAlt(m)),
       ),
     [items, bar.query, kind, only],
   );
@@ -128,6 +128,7 @@ export default function MediaDesktop({
           {m.preview ? <img src={m.preview} alt="" className={styles.rowThumb} data-kind={m.kind} loading="lazy" decoding="async" width={40} height={40} /> : <span className={styles.rowThumb} aria-hidden="true" />}
           <span className="a-clamp-2 min-w-0">{label(m)}</span>
           {!hasAlt(m) && <StatusGlyph kind="attention" label={p.noAlt} size={16} />}
+          {isDraft(m) && <StatusGlyph kind="draft" withWord size={16} />}
         </span>
       ),
     },
