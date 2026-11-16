@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, type ReactNode } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { ICON } from "@/components/ui/icons";
 import { StatusGlyph } from "@/components/ui/StatusGlyph";
-import { formatBytes, formatDuration, type MediaItem, type MediaKind } from "@/services/media";
+import { formatBytes, formatDuration, isDraft, type MediaItem, type MediaKind } from "@/services/media";
 import { ltrValue } from "@/i18n/words";
 import { useMediaUploadWords } from "./mediaUploadWords";
 import { useMediaPhoneWords } from "./mediaPhoneWords";
@@ -98,6 +98,11 @@ export function MediaGrid({
               {!hasAlt && (
                 <span className={styles.mark}>
                   <StatusGlyph kind="attention" label={noAlt} size={16} />
+                </span>
+              )}
+              {isDraft(m) && !(check && picked) && (
+                <span className={styles.draftMark}>
+                  <StatusGlyph kind="draft" withWord size={16} />
                 </span>
               )}
               {check && picked && (

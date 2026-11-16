@@ -29,6 +29,8 @@ import {
   usageIndex,
   type MediaDoc,
 } from "../services/media.js";
+import { isLive, publicContentJson, visibilityOf } from "../services/media-visibility.js";
+import { mentionsMedia } from "../services/media.js";
 
 /*
  * The media library's admin API (#253), mounted at /api/admin/media behind
@@ -48,7 +50,7 @@ import {
  *   GET    /:id                          one, with its usage
  *   POST   /                 ?kind=image|icon|video&alt=&caption=&credit=&filename=
  *                            [&captionsLang=&captionsLabel=]   upload
- *   PUT    /:id                          metadata: { alt, caption, credit, he?: { alt, caption }, _rev }
+ *   PUT    /:id                          metadata: { alt, caption, credit, he?: { alt, caption }, visibility?: "draft" | "public", _rev }
  *   PUT    /:id/captions/:lang ?rev=&label=   a video's captions in one language (raw .vtt body)
  *   DELETE /:id/captions/:lang ?rev=      remove that language's captions
  *   PUT    /:id/file         ?rev=       replace the file, keep the id and kind
@@ -113,7 +115,11 @@ async function processBody(
   if (sniffVideo(bytes)) throw new MediaRejected(415, "This is a video: upload it as a video, with a poster image.");
   return kind === "icon" ? processIcon(bytes) : processUpload(bytes);
 }
-const MetaBody = MediaMeta.extend({ _rev: z.string().min(1, "Missing _rev: reload and reapply.") });
+/* `visibility` absent keeps what the item has (#876). */
+const MetaBody = MediaMeta.extend({
+  visibility: z.enum(["draft", "public"]).optional(),
+  _rev: z.string().min(1, "Missing _rev: reload and reapply."),
+});
 const RevQuery = z.object({ rev: z.string().min(1, "Missing rev: reload and reapply.") });
 /* Every query value is a single string: `?kind=a&kind=b` (an array) is a 400, not a guess. */
 const ListQuery = z.object({
@@ -166,12 +172,14 @@ router.get(
     const q = (query.data.q ?? "").trim().toLowerCase().slice(0, 100);
     const kind = query.data.kind ?? null;
     const [docs, refs] = await Promise.all([mediaStore.list(), mediaStore.referrers()]);
+    /* The published pages are read only when there is a draft to ask about. */
+    const blobs = docs.some((d) => visibilityOf(d) === "draft") ? await publicContentJson() : [];
     const usage = usageIndex(docs.map((d) => d.id), refs);
     const items = docs
       .filter((d) => !kind || d.kind === kind)
       .filter((d) => !q || [d.name, d.alt, d.caption, d.credit, d.id].some((s) => s.toLowerCase().includes(q)))
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-      .map((d) => publicMedia(d, usage.get(d.id)));
+      .map((d) => publicMedia(d, usage.get(d.id), visibilityOf(d) === "public" || blobs.some((j) => mentionsMedia(j, d.id) !== null)));
     res.json({ ok: true, items });
   }),
 );
@@ -183,7 +191,7 @@ router.get(
     const doc = id ? await mediaStore.get(id) : null;
     if (!doc) return res.status(404).json({ ok: false, error: "Not Found" });
     const usage = usageIndex([doc.id], await mediaStore.referrers());
-    res.json({ ok: true, item: publicMedia(doc, usage.get(doc.id)) });
+    res.json({ ok: true, item: publicMedia(doc, usage.get(doc.id), await isLive(doc)) });
   }),
 );
 
@@ -216,7 +224,7 @@ router.post(
     });
     const saved = await mediaStore.save(doc, filesOf(processed));
     res.locals.audit = { target: saved._id, before: null, after: saved };
-    res.status(201).json({ ok: true, item: publicMedia(saved, []) });
+    res.status(201).json({ ok: true, item: publicMedia(saved, [], false) });
   }),
 );
 
@@ -242,6 +250,7 @@ router.put(
       credit: parsed.data.credit,
       he: heWords,
       heMeta: meta ? { src: meta.src } : null,
+      visibility: parsed.data.visibility ?? visibilityOf(existing),
       updatedAt: new Date().toISOString(),
     };
     let saved: MediaDoc;
@@ -252,7 +261,7 @@ router.put(
       throw e;
     }
     res.locals.audit = { target: saved._id, before: existing, after: saved };
-    res.json({ ok: true, item: publicMedia(saved) });
+    res.json({ ok: true, item: publicMedia(saved, undefined, await isLive(saved)) });
   }),
 );
 

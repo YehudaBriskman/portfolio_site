@@ -3,6 +3,7 @@ import { z } from "zod";
 import { couch, CouchError } from "../db/couch.js";
 import { attachments } from "../db/attachments.js";
 import { env } from "../env.js";
+import { visibilityOf, type Visibility } from "./media-visibility.js";
 import {
   EXT,
   MIME,
@@ -38,6 +39,8 @@ export type MediaDoc = {
   _id: string;
   _rev?: string;
   type: "media";
+  /* #876: absent (an old item) reads as public; a new upload is a draft. */
+  visibility?: Visibility;
   id: string;
   name: string;
   alt: string;
@@ -127,7 +130,7 @@ export const captionsUrl = (doc: Pick<MediaDoc, "id" | "captions">) =>
   doc.captions ? `/api/images/m/${doc.id}/captions-${doc.captions.hash}.vtt` : null;
 
 /** What the admin UI and the MCP tools see: no attachment stubs, URLs resolved. */
-export function publicMedia(doc: MediaDoc, usage?: Usage[]) {
+export function publicMedia(doc: MediaDoc, usage?: Usage[], live?: boolean) {
   const site = env.SITE_URL;
   const widest = (f: VariantFormat) =>
     doc.variants.filter((v) => v.format === f).sort((a, b) => b.width - a.width)[0];
@@ -146,6 +149,9 @@ export function publicMedia(doc: MediaDoc, usage?: Usage[]) {
     width: doc.width,
     height: doc.height,
     bytes: doc.bytes,
+    /* What the owner chose, and whether the public can fetch it now (a published page counts). */
+    visibility: visibilityOf(doc),
+    live: live ?? visibilityOf(doc) === "public",
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
     /* Absolute, on the public origin: content fields are validated as URLs. */
@@ -192,6 +198,8 @@ export function buildDoc(input: {
     _id: mediaDocId(input.id),
     ...(existing?._rev ? { _rev: existing._rev } : {}),
     type: "media",
+    /* A new upload is private; a replaced file keeps what it was (an old item with no field is public). */
+    visibility: existing ? visibilityOf(existing) : "draft",
     id: input.id,
     name: input.name,
     alt: input.meta.alt,
@@ -337,6 +345,22 @@ function fieldOf(json: string, needle: string): string {
 /* The site's content documents (#163) are one per key, named for the editor that owns it. */
 const CONTENT_TITLE: Record<string, string> = { projects: "Projects", story: "Story", "site-copy": "Site copy" };
 
+/** The needle that names the media id in this JSON (its stable URL or a hashed one), or null. */
+export function mentionsMedia(json: string, id: string): string | null {
+  // The stable URL and the hashed one both carry `/<id>` followed by a non-id character.
+  return (
+    [`/api/images/media/${id}`, `/api/images/m/${id}/`].find((n) => {
+      let at = json.indexOf(n);
+      while (at !== -1) {
+        const next = json[at + n.length];
+        if (n.endsWith("/") || next === undefined || !/[a-z0-9-]/.test(next)) return true;
+        at = json.indexOf(n, at + 1);
+      }
+      return false;
+    }) ?? null
+  );
+}
+
 /** id → the documents that reference it, from one scan. */
 export function usageIndex(
   ids: string[],
@@ -345,16 +369,7 @@ export function usageIndex(
   const out = new Map<string, Usage[]>(ids.map((id) => [id, []]));
   for (const r of referrers) {
     for (const id of ids) {
-      // The stable URL and the hashed one both carry `/<id>` followed by a non-id character.
-      const hit = [`/api/images/media/${id}`, `/api/images/m/${id}/`].find((n) => {
-        let at = r.json.indexOf(n);
-        while (at !== -1) {
-          const next = r.json[at + n.length];
-          if (n.endsWith("/") || next === undefined || !/[a-z0-9-]/.test(next)) return true;
-          at = r.json.indexOf(n, at + 1);
-        }
-        return false;
-      });
+      const hit = mentionsMedia(r.json, id);
       if (hit) {
         const key = r.type === "content" ? r.key : undefined;
         out.get(id)!.push({

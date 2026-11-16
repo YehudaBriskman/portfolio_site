@@ -162,6 +162,8 @@ export type MediaItem = {
   width: number;
   height: number;
   durationMs?: number;
+  visibility?: "draft" | "public";
+  live?: boolean;
   url: string;
   usedBy?: { id: string; type: string; slug: string | null; field: string }[];
 };
@@ -433,6 +435,7 @@ export function registerTools(server: McpServer, api: PortfolioApi, access: Tool
       description:
         "Pictures, icons and short videos in the media library (#253), newest first: id, kind, alt text, caption, size, " +
         "the stable `url` to put in a coverImage or a project image (a picture) or an area's icon (an icon), and " +
+        "`visibility` (draft or public; a new upload is a draft) and `live` (whether the public can fetch it now: a published page that uses it counts), and " +
         "`usedBy` (what references it). Filter with `q` (name, alt, caption, credit) and `kind`.",
       inputSchema: {
         q: z.string().max(100).optional(),
@@ -453,6 +456,8 @@ export function registerTools(server: McpServer, api: PortfolioApi, access: Tool
           size: `${m.width}x${m.height}`,
           ...(m.kind === "video" && m.durationMs ? { seconds: Math.round(m.durationMs / 1000) } : {}),
           url: m.url,
+          visibility: m.visibility ?? "public",
+          live: m.live ?? true,
           usedBy: (m.usedBy ?? []).map((u) => `${u.type}:${u.slug ?? u.id} (${u.field})`),
         })),
       );

@@ -299,7 +299,7 @@ export default function MediaUpload({
             </label>
           </div>
           <p className="a-hint">
-            {w.note[pending.kind]}
+            {w.note[pending.kind]} {w.draftNote}
           </p>
           {error && <p className="a-error" role="alert">{error}</p>}
           <div className="flex flex-wrap gap-3">
