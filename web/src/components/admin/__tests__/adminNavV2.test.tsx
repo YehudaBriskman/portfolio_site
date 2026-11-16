@@ -208,6 +208,9 @@ describe("the phone: floating circle and back pill", () => {
     shell("/admin/posts");
     const header = document.querySelector("header.a-top")!;
     expect(header.querySelector(".a-top-word")).toBeNull();
+    /* Outside the sticky bar, so no stacking context traps it under the scrim and the panel. */
+    expect(header.querySelector("[data-floating-circle]")).toBeNull();
+    expect(document.body.querySelector(":scope > [data-floating-circle]")).not.toBeNull();
     const circle = screen.getByRole("button", { name: "Menu" });
     expect(circle.getAttribute("data-floating-circle")).toBe("");
     expect(circle.textContent).toBe("");
@@ -259,7 +262,8 @@ describe("the phone: floating circle and back pill", () => {
   it("the floating controls sit above all admin layers, on glass, with safe-area insets and logical edges", () => {
     const f = css("src/components/ui/FloatingMenu.module.css");
     expect(f).toMatch(/\.circle\s*\{[^}]*position:\s*fixed[^}]*z-index:\s*var\(--float-z/);
-    expect(f).toMatch(/backdrop-filter:\s*blur/);
+    expect(f).toMatch(/backdrop-filter:\s*var\(--glass-blur/);
+    expect(f).toMatch(/background:\s*var\(--glass-bg/);
     expect(f).toMatch(/env\(safe-area-inset-right/);
     expect(f).toMatch(/html\[dir="rtl"\]\) \.circle/);
     expect(f).not.toMatch(/\b(left|right)\s*:/);

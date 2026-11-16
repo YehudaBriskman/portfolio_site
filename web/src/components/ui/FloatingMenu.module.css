@@ -1,8 +1,10 @@
 /*
  * The phone's floating glass controls (#886). The tokens (`--float-h`, `--float-top`, `--float-z`,
- * `--float-shadow`) are the public circle's, defined once in index.css. The glass is the nav bar's
- * material: paper at 0.88 under a blur (the opacity is the measured contrast floor, see Nav.module.css),
- * and solid paper where the browser has no backdrop-filter. Logical properties throughout.
+ * `--float-shadow`) are the public circle's, and the material is the one glass token set
+ * (`--glass-bg`, `--glass-blur`, `--glass-border`, `--glass-shadow`, #885), both defined once in
+ * index.css. `html .float-glass` applies those tokens at 639px and down only; the admin's phone
+ * range runs to 1023px, so this reads the same tokens at every width. Solid paper where the
+ * browser has no backdrop-filter or the viewer asked for less transparency. Logical properties throughout.
  */
 .circle {
   position: fixed;
@@ -16,12 +18,12 @@
   inline-size: var(--float-h, 46px);
   block-size: var(--float-h, 46px);
   padding: 0;
-  border: 1px solid rgb(var(--rule-firm));
+  border: var(--glass-border, 1px solid rgb(var(--rule-firm)));
   border-radius: 50%;
-  background: rgb(var(--paper) / 0.88);
-  -webkit-backdrop-filter: blur(16px) saturate(150%);
-  backdrop-filter: blur(16px) saturate(150%);
-  box-shadow: var(--float-shadow, 0 2px 10px rgb(var(--shade) / 0.1));
+  background: var(--glass-bg, rgb(var(--paper) / 0.84));
+  -webkit-backdrop-filter: var(--glass-blur, blur(14px) saturate(160%));
+  backdrop-filter: var(--glass-blur, blur(14px) saturate(160%));
+  box-shadow: var(--glass-shadow, 0 2px 10px rgb(var(--shade) / 0.1));
   color: rgb(var(--ink));
   cursor: pointer;
   touch-action: manipulation;
@@ -92,12 +94,12 @@
   min-inline-size: 0;
   padding-inline: 12px 16px;
   gap: 8px;
-  border: 1px solid rgb(var(--rule-firm));
+  border: var(--glass-border, 1px solid rgb(var(--rule-firm)));
   border-radius: 999px;
-  background: rgb(var(--paper) / 0.88);
-  -webkit-backdrop-filter: blur(16px) saturate(150%);
-  backdrop-filter: blur(16px) saturate(150%);
-  box-shadow: var(--float-shadow, 0 2px 10px rgb(var(--shade) / 0.1));
+  background: var(--glass-bg, rgb(var(--paper) / 0.84));
+  -webkit-backdrop-filter: var(--glass-blur, blur(14px) saturate(160%));
+  backdrop-filter: var(--glass-blur, blur(14px) saturate(160%));
+  box-shadow: var(--glass-shadow, 0 2px 10px rgb(var(--shade) / 0.1));
   color: rgb(var(--ink));
   font-size: 0.875rem;
   font-weight: 500;
@@ -120,6 +122,15 @@
   text-align: start;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .circle,
+  .pill {
+    background: rgb(var(--paper));
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
 }
 
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {

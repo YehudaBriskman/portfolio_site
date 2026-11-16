@@ -1,4 +1,5 @@
 import { forwardRef } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { Icon } from "@/components/ui/Icon";
 import { NAV_GLYPH } from "@/components/ui/icons";
@@ -28,7 +29,10 @@ export type FloatingCircleProps = {
 };
 
 export const FloatingCircle = forwardRef<HTMLButtonElement, FloatingCircleProps>(function FloatingCircle({ open, controls, label, onClick }, ref) {
-  return (
+  /* Portalled to <body>: a `position: fixed` box is still painted in the stacking context of its
+     ancestors, and the admin's top bar is `sticky; z-index: 40`, which would trap the circle under
+     the scrim (44) and the panel (48) it opens. Outside the bar its `--float-z` (49) is the page's. */
+  return createPortal(
     <button
       ref={ref}
       type="button"
@@ -40,7 +44,8 @@ export const FloatingCircle = forwardRef<HTMLButtonElement, FloatingCircleProps>
       onClick={onClick}
     >
       <span className={styles.bars} aria-hidden="true" />
-    </button>
+    </button>,
+    document.body,
   );
 });
 

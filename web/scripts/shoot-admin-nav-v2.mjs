@@ -59,7 +59,7 @@ for (const lang of ["en", "he"]) for (const theme of ["light", "dark"]) {
       await page.goto(`${base}${prefix}/admin/posts`, { waitUntil: "load" });
       await ready(page, ".a-crumbs");
       await page.screenshot({ path: name("closed"), timeout: 120000 });
-      await page.locator("header button[aria-controls]").first().click({ force: true });
+      await page.locator("button[data-floating-circle]").first().click({ force: true });
       await page.waitForTimeout(800);
       await page.screenshot({ path: name("menu-open"), timeout: 120000 });
     } else {
