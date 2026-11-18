@@ -37,6 +37,21 @@ every subdomain), Trusted Types (optional hardening).
 
 Core Web Vitals field data: none yet (not enough traffic in the CrUX window).
 
-## To add
-- PSI for `/blog`
-- PSI for a post
+## PageSpeed Insights, post and blog
+
+| | /blog mobile | /blog desktop | post mobile | post desktop |
+|---|---|---|---|---|
+| Performance | 99 | 96 | 86 | 96 |
+| Accessibility | 100 | 100 | 97 | 97 |
+| Best practices | 96 | 96 | 92 | 92 |
+| SEO | 100 | 100 | 100 | 100 |
+| LCP | 1.1 s | 0.8 s | 3.5 s | 0.7 s |
+| TBT | 30 ms | 130 ms | 210 ms | 70 ms |
+| CLS | 0 | 0.001 | 0 | 0 |
+
+New findings:
+- **Post pages log a console error** (best practices 92): `GET /api/signature/en/current` returned 404 on
+  every view while "End of posts" is off. Fixed to 204 in #916.
+- Post page is the heaviest: unused JS 114 KiB, 426 non-composited animations (#913), LCP 3.5 s mobile (#914).
+- Image delivery, ~20 KiB, on post and blog: #917. /blog identical-links a11y flag and CLS 0.001: #918.
+- Contrast fails on home and post but not /blog mobile (#912).
