@@ -14,8 +14,8 @@ afterEach(() => {
 });
 
 describe("the signature at the end of a post", () => {
-  it("draws nothing at all while the owner has it off (a 404)", async () => {
-    const f = reply(404);
+  it("draws nothing at all while the owner has it off (a 204; a 404 is treated the same)", async () => {
+    const f = vi.fn(async () => new Response(null, { status: 204 }));
     vi.stubGlobal("fetch", f);
     const { container } = render(<PostSignature lang="en" />);
     await waitFor(() => expect(f).toHaveBeenCalledWith("/api/signature/en/current", expect.anything()));

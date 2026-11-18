@@ -201,13 +201,15 @@ const CSP = "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'";
 
 export const signaturePublicRoutes = Router();
 
-/* The post ending asks which file to draw: only the rendered asset's public facts, and only while "End of posts" is on. */
+/* The post ending asks which file to draw: only the rendered asset's public facts, and only while "End of posts" is on.
+   Off is a 204, not a 404: the question is asked on every post view, and a 404 is logged to the visitor's console as an
+   error each time (and costs Lighthouse Best Practices), though nothing is wrong. */
 signaturePublicRoutes.get(
   "/:lang/current",
   asyncHandler(async (req, res) => {
     const lang = SigLangParam.safeParse(req.params.lang);
     const a = lang.success ? await resolveSignature("posts", lang.data) : null;
-    if (!a) return res.set("Cache-Control", "no-store"), gone(res);
+    if (!a) return res.set("Cache-Control", "no-store").status(204).end();
     res.set("Cache-Control", "public, max-age=300").json({ src: a.src, alt: a.alt, width: a.width, height: a.height, format: a.format });
   }),
 );
