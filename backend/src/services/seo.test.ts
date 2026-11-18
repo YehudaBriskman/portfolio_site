@@ -257,6 +257,8 @@ describe("buildRobots blog facets", () => {
     "/he/blog?view=feed&open=2025",
     "/blog?utm_source=x&tag=react",
     "/blog/area/windom?year=2024",
+    "/blog/area/site?topic=performance",
+    "/he/blog/area/windom?topic=privacy",
   ])("blocks %s", (url) => {
     expect(robotsAllows(txt, url)).toBe(false);
   });

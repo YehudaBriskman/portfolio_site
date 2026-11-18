@@ -105,7 +105,7 @@ function HistoryRow({
           <ul className={dash.chips} aria-label={w.topics}>
             {post.tags.map((tag) => (
               <li key={tag}>
-                <Link to={topicHref(tag)} className={dash.chip} translate="no">
+                <Link to={topicHref(tag)} rel="nofollow" className={dash.chip} translate="no">
                   {tag}
                 </Link>
               </li>
