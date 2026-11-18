@@ -108,19 +108,22 @@ describe("buildSitemap", () => {
   it("lists every help page, in both languages, each naming the other (#803)", () => {
     const xml = buildSitemap([], []);
     expect(HELP_PAGES).toHaveLength(29);
-    for (const p of HELP_PAGES) {
+    for (const p of HELP_PAGES.filter((x) => x.group === null)) {
       expect(xml, p.id).toContain(`<loc>https://yehudabriskman.com/help/${p.id}</loc>`);
       expect(xml, p.id).toContain(`<loc>https://yehudabriskman.com/he/help/${p.id}</loc>`);
     }
+    for (const p of HELP_PAGES.filter((x) => x.group !== null)) {
+      expect(xml, p.id).not.toContain(`/help/${p.id}<`);
+    }
     expect(xml).toMatch(/<xhtml:link rel="alternate" hreflang="he" href="[^"]*\/he\/help\/rss" \/>/);
-    /* The nine static pages and the 29 help pages, once per language. */
-    expect(xml.match(/<loc>/g)).toHaveLength(2 * (9 + 29));
+    /* The nine static pages and the six ungrouped help guides (#907), once per language. */
+    expect(xml.match(/<loc>/g)).toHaveLength(2 * (9 + 6));
   });
 
   it("leaves the contact form's guide out of the sitemap while the form is hidden (#803)", () => {
     const xml = buildSitemap([], [], { contactShown: false });
     expect(xml).not.toContain("/help/contact-form");
-    expect(xml).toContain("/help/contact-sent");
+    expect(xml).toContain("/help/rss");
   });
 
   it("lists a help page with no Hebrew of its own in English only (#318)", () => {

@@ -82,3 +82,12 @@ describe("a help page's head", () => {
     expect((await get("/help/contact-sent")).status).toBe(200);
   });
 });
+
+describe("grouped help topics are noindex (#907)", () => {
+  it("serves noindex on a message explainer and not on a guide", async () => {
+    const grouped = await request(createApp()).get("/api/seo/render/help/contact-sent");
+    const guide = await request(createApp()).get("/api/seo/render/help/language");
+    expect(grouped.text).toMatch(/<meta name="robots" content="noindex/);
+    expect(guide.text).not.toMatch(/noindex/);
+  });
+});

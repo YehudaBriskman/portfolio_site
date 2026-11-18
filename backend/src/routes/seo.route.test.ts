@@ -306,10 +306,10 @@ describe.each([
     description: /^The notes have an RSS feed/,
   },
   {
-    path: "/help/contact-sent",
-    title: "Message sent · Yehuda Briskman",
-    h1: "Message sent",
-    description: /^Message sent: “Sent\. I’ll reply/,
+    path: "/help/language",
+    title: "Language · Yehuda Briskman",
+    h1: "Language",
+    description: /^The site is in English and in Hebrew/,
   },
   {
     path: "/privacy",
