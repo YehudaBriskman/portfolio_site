@@ -121,7 +121,7 @@
     "group": "contact",
     "title": {
       "en": "Too many tries",
-      "he": "יותר מדי ניסיונות"
+      "he": "יותר מדי ניסיונות שליחה"
     },
     "description": {
       "en": "Too many tries: A notice, “Message not sent, too many tries”, with the line “Too many messages were sent just now. Please wait a few minutes, then try again.”",
@@ -199,7 +199,7 @@
     "group": "newsletter",
     "title": {
       "en": "Too many attempts",
-      "he": "יותר מדי ניסיונות"
+      "he": "יותר מדי ניסיונות מהחיבור"
     },
     "description": {
       "en": "Too many attempts: “Too many attempts from this connection. Try again in a few minutes.”",

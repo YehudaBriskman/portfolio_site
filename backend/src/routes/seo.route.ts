@@ -844,9 +844,11 @@ page("/blog/area/:slug", async (req, res, lang) => {
     .sort((a, b) => (b.publishedAt ?? "").localeCompare(a.publishedAt ?? ""));
   const channel = areaChannel(area);
   const own = area.tagline || area.description;
-  const description = clampDescription(
-    own && own.length < 70 && area.description && area.description !== own ? `${own}. ${area.description}` : own || w.notesOn(area.title),
-  );
+  /* A project's page (/projects/<slug>) uses the same tagline; the area page is
+     the project's notes, so it says so and the two descriptions differ (#908). */
+  const base =
+    own && own.length < 70 && area.description && area.description !== own ? `${own}. ${area.description}` : own || w.notesOn(area.title);
+  const description = clampDescription(own && area.kind === "project" ? `${w.notesOn(area.title)} ${base}` : base);
   const image =
     rawImageUrlOrNull(area.coverImage) ??
     (area.kind === "project" ? absoluteUrl(`/api/seo/og/projects/${area.slug}.png`) : absoluteUrl("/og-blog.png"));
