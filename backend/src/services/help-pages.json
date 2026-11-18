@@ -125,7 +125,7 @@
     },
     "description": {
       "en": "Too many tries: A notice, “Message not sent, too many tries”, with the line “Too many messages were sent just now. Please wait a few minutes, then try again.”",
-      "he": "יותר מדי ניסיונות: הודעה קופצת, ״ההודעה לא נשלחה, יותר מדי ניסיונות״, עם השורה ״נשלחו יותר מדי הודעות ברגע זה. המתינו כמה דקות ונסו שוב.״"
+      "he": "יותר מדי ניסיונות שליחה: הודעה קופצת, ״ההודעה לא נשלחה, יותר מדי ניסיונות״, עם השורה ״נשלחו יותר מדי הודעות ברגע זה. המתינו כמה דקות ונסו שוב.״"
     },
     "hebrew": true
   },
@@ -203,7 +203,7 @@
     },
     "description": {
       "en": "Too many attempts: “Too many attempts from this connection. Try again in a few minutes.”",
-      "he": "יותר מדי ניסיונות: ״יותר מדי ניסיונות מהחיבור הזה. נסו שוב בעוד כמה דקות.״"
+      "he": "יותר מדי ניסיונות מהחיבור: ״יותר מדי ניסיונות מהחיבור הזה. נסו שוב בעוד כמה דקות.״"
     },
     "hebrew": true
   },
