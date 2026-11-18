@@ -203,7 +203,7 @@ describe("GET /api/seo/render/blog/area/:slug", () => {
     expect(res.status).toBe(200);
     expect(res.headers["cache-control"]).toBe("public, max-age=0, must-revalidate");
     expect(res.text).toContain("<title>WindoM · Notes · Yehuda Briskman</title>");
-    expect(res.text).toContain('<meta name="description" content="Every new tab becomes a &lt;dashboard&gt;" />');
+    expect(res.text).toContain('<meta name="description" content="Notes on WindoM. Every new tab becomes a &lt;dashboard&gt;" />');
     expect(res.text).toMatch(/<link rel="canonical" href="[^"]*\/blog\/area\/windom" \/>/);
     expect(res.text).toContain('<meta name="robots" content="index, follow, max-image-preview:large" />');
 
@@ -212,7 +212,7 @@ describe("GET /api/seo/render/blog/area/:slug", () => {
     expect(tags.get("og:url")).toMatch(/\/blog\/area\/windom$/);
     expect(tags.get("og:image")).toMatch(/\/api\/seo\/og\/projects\/windom\.png$/);
     expect(tags.get("twitter:title")).toBe("WindoM · Notes · Yehuda Briskman");
-    expect(tags.get("twitter:description")).toBe("Every new tab becomes a <dashboard>");
+    expect(tags.get("twitter:description")).toBe("Notes on WindoM. Every new tab becomes a <dashboard>");
   });
 
   it("advertises the area's own feed", async () => {
