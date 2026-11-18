@@ -204,6 +204,17 @@ describe("GET /api/signature/:lang/:file (public)", () => {
     expect((await publicGet(`en/${h}-email-light.png`)).status).toBe(200);
   });
 
+  it("answers the post ending's question with a 204 while off (no console error) and the asset once on", async () => {
+    await draw();
+    const off = await publicGet("en/current");
+    expect(off.status).toBe(204);
+    expect(off.headers["cache-control"]).toBe("no-store");
+    await showAll({ email: false, posts: true, cards: false });
+    const on = await publicGet("en/current");
+    expect(on.status).toBe(200);
+    expect(on.body.src).toMatch(/^\/api\/signature\/en\/[0-9a-f]{16}\.svg$/);
+  });
+
   it("sends a stale hash to the current file, so an old email still shows", async () => {
     await showAll({ email: true, posts: true, cards: false });
     const h = await hashOf();

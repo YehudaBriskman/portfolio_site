@@ -120,9 +120,9 @@ describe("the newsletter footer", () => {
 
 describe("GET /api/signature/:lang/current (the post ending)", () => {
   const cur = (l: string) => request(createApp()).get(`/api/signature/${l}/current`);
-  it("404s while posts is off, and gives only the public facts when on", async () => {
+  it("204s (no console error) while posts is off, and gives only the public facts when on", async () => {
     await draw();
-    expect((await cur("en")).status).toBe(404);
+    expect((await cur("en")).status).toBe(204);
     await show({ email: false, posts: true, cards: false });
     const r = await cur("he");
     expect(r.status).toBe(200);
