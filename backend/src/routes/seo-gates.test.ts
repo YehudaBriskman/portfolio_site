@@ -123,7 +123,15 @@ const FILL: Record<string, string[]> = {
  * always noindex. The seeded projects are not among them: they have Hebrew.
  */
 const HEBREW_FALLBACK = new Set(["/blog/area/site", "/blog/english-only"]);
-const ALWAYS_NOINDEX = new Set(["/blog/hidden", "/follow", "/subscribe/confirm", "/unsubscribe", "/subscribe/manage"]);
+const ALWAYS_NOINDEX = new Set([
+  "/blog/hidden",
+  "/follow",
+  "/subscribe/confirm",
+  "/unsubscribe",
+  "/subscribe/manage",
+  /* The grouped help topics explain a toast message and are noindex (#907). */
+  ...HELP_PAGES.filter((p) => p.group !== null).map((p) => `/help/${p.id}`),
+]);
 
 const renderUrl = (p: string, lang: "en" | "he") =>
   lang === "he" ? `/api/seo/render/he${p === "/" ? "" : p}` : `/api/seo/render${p === "/" ? "/home" : p}`;

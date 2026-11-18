@@ -264,6 +264,9 @@ function sitemapEntries(posts: Post[], collections: Collection[], extras: Sitema
 
   /* One page per help topic (#803): the index above, each topic here. */
   for (const p of HELP_PAGES) {
+    // Grouped topics explain a toast message in ~60 words; they are noindex (#907)
+    // and a sitemap must not advertise what the page itself says not to index.
+    if (p.group !== null) continue;
     if (p.id === HELP_CONTACT_PAGE && extras.contactShown === false) continue;
     add({ loc: `/help/${p.id}`, lastmod: newest, changefreq: "yearly", priority: 0.3, hebrew: (extras.helpHebrew ?? (() => p.hebrew))(p.id) });
   }

@@ -86,7 +86,7 @@ const PAGES = [
   "/privacy",
   "/help",
   "/help/rss",
-  "/help/contact-sent",
+  "/help/language",
   "/developers/mcp",
 ];
 const renderPath = (p: string, lang: "en" | "he") => `/api/seo/render${lang === "he" ? "/he" : ""}${p}`;

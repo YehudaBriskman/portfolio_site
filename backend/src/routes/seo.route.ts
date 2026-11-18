@@ -694,6 +694,9 @@ page("/help/:topic", async (req, res, lang) => {
     imageAlt: siteNameIn(lang),
     type: "website",
     translated: entry.hebrew,
+    // Message explainers are reachable from the toast that links to them but are
+    // too thin to index (#907). Not disallowed in robots.txt, so the noindex is seen.
+    noindex: entry.group !== null,
     bodyHtml:
       `<main><nav><a href="${href("/help", lang)}">${escapeHtml(w.help)}</a></nav><h1>${escapeHtml(name)}</h1>` +
       `<p>${escapeHtml(description)}</p></main>`,
