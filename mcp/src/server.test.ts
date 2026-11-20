@@ -451,7 +451,7 @@ describe("translation tools (#307)", () => {
     expect(api.writes()).toHaveLength(0);
   });
 
-  it("put_translation reads a content document's revision, and sends an area with no rev, noting it goes live", async () => {
+  it("put_translation reads a content document's revision, and an area's rev, noting it goes live", async () => {
     const { call, api } = await connect(TOKEN, routes());
     await call("put_translation", { type: "project", id: "windom", units: { fact: "עובדה" }, dryRun: false });
     expect(api.writes()[0].body).toMatchObject({ type: "project", rev: "7-p", dryRun: false });
@@ -459,7 +459,7 @@ describe("translation tools (#307)", () => {
     expect(area.isError).toBeFalsy();
     expect(area.json.note).toMatch(/LIVE/);
     expect(api.writes()).toHaveLength(2);
-    expect(api.writes()[1].body).toEqual({ type: "area", id: "tools", units: [{ path: "title", he: "כלים" }], dryRun: true });
+    expect(api.writes()[1].body).toEqual({ type: "area", id: "tools", rev: "1-x", units: [{ path: "title", he: "כלים" }], dryRun: true });
   });
 
   it("serves the glossary as glossary://he, to admin sessions only", async () => {
@@ -568,5 +568,25 @@ describe("content, settings, media", () => {
     const r = await call("save_content_draft", { key: "projects", set: { "projects.0.title.en": "x" }, dryRun: false });
     expect(r.isError).toBe(true);
     expect(r.text).toContain("projects.0.link: Not a URL");
+  });
+});
+
+describe("put_translation on live items", () => {
+  it("sends the area's rev, which the server requires for a write", async () => {
+    const { call, api } = await connect(TOKEN, {
+      "GET /api/admin/collections": [200, { ok: true, items: [AREA] }],
+      "PUT /api/admin/translations/draft": [200, { ok: true, target: "collection:tools", changes: [{ path: "tagline", en: "", before: null, after: "x" }], warnings: [] }],
+    });
+    await call("put_translation", { type: "area", id: "tools", units: { tagline: "כלים" }, dryRun: false });
+    expect(api.writes()[0].body).toMatchObject({ type: "area", id: "tools", rev: "1-x", dryRun: false });
+  });
+
+  it("sends the media item's rev", async () => {
+    const { call, api } = await connect(TOKEN, {
+      "GET /api/admin/media/pic-1": [200, { ok: true, item: { id: "pic-1", _rev: "5-m" } }],
+      "PUT /api/admin/translations/draft": [200, { ok: true, target: "media:pic-1", changes: [{ path: "alt", en: "", before: null, after: "x" }], warnings: [] }],
+    });
+    await call("put_translation", { type: "media", id: "pic-1", units: { alt: "תמונה" }, dryRun: false });
+    expect(api.writes()[0].body).toMatchObject({ type: "media", id: "pic-1", rev: "5-m" });
   });
 });
