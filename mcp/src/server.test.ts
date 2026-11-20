@@ -483,3 +483,90 @@ describe("translation tools (#307)", () => {
     expect(list.json.items[0]).toMatchObject({ title: "Hello", fallback: true });
   });
 });
+
+/* The whole admin (#content, settings, media, area sync): each write is a dry run first. */
+describe("content, settings, media", () => {
+  const PROJECTS = { projects: [{ slug: "windom", title: { en: "WindoM", he: "WindoM" }, links: [{ url: "https://a.test" }] }] };
+  const content = (draft: unknown = null) => ({
+    "GET /api/admin/content/projects": [200, { ok: true, key: "projects", exists: true, _rev: "4-c", published: PROJECTS, draft, updatedAt: null, publishedAt: null, source: "admin" }] as [number, unknown],
+    "PUT /api/admin/content/projects/draft": [200, { ok: true }] as [number, unknown],
+    "POST /api/admin/content/projects/publish": [200, { ok: true }] as [number, unknown],
+    "DELETE /api/admin/content/projects/draft": [200, { ok: true }] as [number, unknown],
+  });
+
+  it("get_content reads a part by path, and says when nothing is there", async () => {
+    const { call } = await connect(TOKEN, content());
+    expect((await call("get_content", { key: "projects", path: "projects.0.links.0.url" })).json.value).toBe("https://a.test");
+    expect((await call("get_content", { key: "projects", path: "projects.9" })).isError).toBe(true);
+  });
+
+  it("save_content_draft: dry run first, then a draft write that names the revision", async () => {
+    const { call, api } = await connect(TOKEN, content());
+    const set = { "projects.0.links.0.url": "https://b.test", "projects.0.title.en": "WindoM" };
+    const dry = await call("save_content_draft", { key: "projects", set });
+    expect(dry.json).toMatchObject({ dryRun: true, changes: [{ field: "projects.0.links.0.url", before: "https://a.test", after: "https://b.test" }] });
+    expect(api.writes()).toHaveLength(0);
+    await call("save_content_draft", { key: "projects", set, dryRun: false });
+    const put = api.writes()[0];
+    expect(put).toMatchObject({ method: "PUT", path: "/api/admin/content/projects/draft" });
+    expect((put.body as any)._rev).toBe("4-c");
+    expect((put.body as any).data.projects[0].links[0].url).toBe("https://b.test");
+  });
+
+  it("save_content_draft refuses a path through nothing, and the prototype", async () => {
+    const { call, api } = await connect(TOKEN, content());
+    expect((await call("save_content_draft", { key: "projects", set: { "projects.5.title": "x" } })).isError).toBe(true);
+    expect((await call("save_content_draft", { key: "projects", set: { "__proto__.x": 1 } })).isError).toBe(true);
+    expect(api.writes()).toHaveLength(0);
+  });
+
+  it("publish_content needs a draft, shows the difference, and publishes the draft", async () => {
+    expect((await (await connect(TOKEN, content())).call("publish_content", { key: "projects" })).isError).toBe(true);
+    const draft = { projects: [{ ...PROJECTS.projects[0], title: { en: "New", he: "חדש" } }] };
+    const { call, api } = await connect(TOKEN, content(draft));
+    expect((await call("publish_content", { key: "projects" })).json.dryRun).toBe(true);
+    expect(api.writes()).toHaveLength(0);
+    await call("publish_content", { key: "projects", dryRun: false });
+    expect(api.writes()[0]).toMatchObject({ method: "POST", path: "/api/admin/content/projects/publish" });
+  });
+
+  it("discard_content_draft needs confirm", async () => {
+    const { call, api } = await connect(TOKEN, content({ projects: [] }));
+    expect((await call("discard_content_draft", { key: "projects", dryRun: false })).isError).toBe(true);
+    expect(api.writes()).toHaveLength(0);
+    await call("discard_content_draft", { key: "projects", dryRun: false, confirm: true });
+    expect(api.writes()[0].path).toBe("/api/admin/content/projects/draft?rev=4-c");
+  });
+
+  it("save_settings edits by path; revert_settings and delete_media are gated", async () => {
+    const settings = { home: { sections: [{ id: "work", visible: true }] } };
+    const { call, api } = await connect(TOKEN, {
+      "GET /api/admin/settings": [200, { ok: true, _rev: "2-s", version: 2, settings, history: [{ version: 1, at: "x", settings: { home: { sections: [] } } }] }],
+      "PUT /api/admin/settings": [200, { ok: true }],
+      "POST /api/admin/settings/revert": [200, { ok: true }],
+      "GET /api/admin/media/pic-1": [200, { ok: true, item: { id: "pic-1", _rev: "1-m", alt: "a", caption: "", credit: "", he: null, usedBy: [] } }],
+      "PUT /api/admin/media/pic-1": [200, { ok: true }],
+      "DELETE /api/admin/media/pic-1": [200, { ok: true }],
+    });
+    expect((await call("save_settings", { set: { "home.sections.0.visible": false } })).json.dryRun).toBe(true);
+    await call("save_settings", { set: { "home.sections.0.visible": false }, dryRun: false });
+    expect(api.writes()[0]).toMatchObject({ method: "PUT", body: { _rev: "2-s", settings: { home: { sections: [{ id: "work", visible: false }] } } } });
+    expect((await call("revert_settings", { version: 7 })).isError).toBe(true);
+    await call("update_media", { id: "pic-1", alt: "b", dryRun: false });
+    expect(api.writes()[1]).toMatchObject({ method: "PUT", path: "/api/admin/media/pic-1", body: { alt: "b", _rev: "1-m" } });
+    expect((await call("delete_media", { id: "pic-1", dryRun: false })).isError).toBe(true);
+    expect(api.writes()).toHaveLength(2);
+    await call("delete_media", { id: "pic-1", dryRun: false, confirm: true });
+    expect(api.writes()[2].path).toBe("/api/admin/media/pic-1?rev=1-m");
+  });
+
+  it("a validation refusal names the fields", async () => {
+    const { call } = await connect(TOKEN, {
+      ...content(),
+      "PUT /api/admin/content/projects/draft": [400, { ok: false, error: "1 field needs attention", issues: [{ path: "projects.0.link", message: "Not a URL" }] }],
+    });
+    const r = await call("save_content_draft", { key: "projects", set: { "projects.0.title.en": "x" }, dryRun: false });
+    expect(r.isError).toBe(true);
+    expect(r.text).toContain("projects.0.link: Not a URL");
+  });
+});
