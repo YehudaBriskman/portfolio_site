@@ -740,13 +740,24 @@ export function registerTools(server: McpServer, api: PortfolioApi, access: Tool
       const list = Object.entries(units).map(([path, he]) => ({ path, he }));
       if (list.length === 0) return fail("Give at least one unit.");
       const live = type === "area" || type === "media";
-      // Live documents (area, media): the server reads and writes in one step, so no rev.
+      // Live documents (area, media) are written at once, and the server wants the rev you read.
       let rev: string | undefined;
       if (type === "post") {
         const post = await loadPost(id);
         if (!post) return fail(`No post "${id}".`);
         rev = post._rev ?? "";
-      } else if (!live) {
+      } else if (type === "area") {
+        const area = await loadArea(id);
+        if (!area) return fail(`No area "${id}".`);
+        rev = area._rev ?? "";
+      } else if (type === "media") {
+        const item = await api.adminGet<{ item: { _rev: string } }>(`/api/admin/media/${id}`).catch((e) => {
+          if (e instanceof ApiError && e.status === 404) return null;
+          throw e;
+        });
+        if (!item) return fail(`No media "${id}".`);
+        rev = item.item._rev;
+      } else {
         const key = type === "project" ? "projects" : type;
         rev = (await api.adminGet<{ _rev: string | null }>(`/api/admin/content/${key}`))._rev ?? "";
       }
