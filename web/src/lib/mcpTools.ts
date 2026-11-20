@@ -44,5 +44,5 @@ export const OWNER_WRITE: Tool[] = [
   { name: "delete_media", does: "Delete an unused media item. Needs confirm: true." },
   { name: "sync_area", does: "Refresh an area's repository numbers now." },
   { name: "ack_translation", does: "Mark a Hebrew text as still correct after its English changed." },
-  { name: "put_translation", does: "Write Hebrew into a draft, never live. Dry run unless told otherwise." },
+  { name: "put_translation", does: "Write Hebrew: a draft for posts and content, LIVE at once for areas and media (no draft). Dry run unless told otherwise." },
 ];
