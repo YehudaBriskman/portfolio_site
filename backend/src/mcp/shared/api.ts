@@ -65,8 +65,14 @@ export class PortfolioApi {
       /* not JSON: the status speaks for itself */
     }
     if (!res.ok) {
-      const msg = (body as { error?: unknown } | null)?.error;
-      throw new ApiError(res.status, typeof msg === "string" ? msg : `HTTP ${res.status}`);
+      const b = body as { error?: unknown; issues?: unknown } | null;
+      const msg = b?.error;
+      /* A validation failure names the fields: say which, or the caller cannot fix it. */
+      const issues = Array.isArray(b?.issues)
+        ? (b.issues as { path?: unknown; message?: unknown }[]).slice(0, 12).map((i) => `${String(i.path ?? "")}: ${String(i.message ?? "")}`)
+        : [];
+      const text = typeof msg === "string" ? msg : `HTTP ${res.status}`;
+      throw new ApiError(res.status, issues.length ? `${text}: ${issues.join("; ")}` : text);
     }
     return body as T;
   }

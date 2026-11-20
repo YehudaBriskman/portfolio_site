@@ -35,6 +35,10 @@ export const PUBLIC_TOOLS = ["list_posts", "get_post", "list_tags", "list_areas"
 export const ADMIN_READ_TOOLS = [
   "admin_list_posts",
   "admin_get_post",
+  "admin_list_areas",
+  "list_content",
+  "get_content",
+  "get_settings",
   "read_audit_log",
   "list_media",
   "list_translations",
@@ -50,11 +54,27 @@ export const ADMIN_TOOLS = [
   "delete_post",
   "save_area",
   "delete_area",
+  "sync_area",
+  "admin_list_areas",
+  "list_content",
+  "get_content",
+  "save_content_draft",
+  "publish_content",
+  "discard_content_draft",
+  "get_settings",
+  "save_settings",
+  "revert_settings",
+  "update_media",
+  "delete_media",
   "read_audit_log",
   "list_translations",
   "get_translation",
   "put_translation",
+  "ack_translation",
 ] as const;
+
+/* The keys of the site's editable content documents, as backend/src/schemas/site-content.ts. */
+export const CONTENT_KEYS = ["projects", "story", "site-copy"] as const;
 
 /* The resource a drafting client reads before writing Hebrew (#307). */
 export const GLOSSARY_URI = "glossary://he";
@@ -116,6 +136,7 @@ type AdminArea = {
   repo: { owner: string; name: string; branch: string; docPaths: string[] } | null;
   description: string;
   coverImage: string | null;
+  icon?: string | null;
   /* A label is `Text` since #306 (a string before). A string sent back keeps
      the Hebrew of a link whose English is unchanged. */
   links: { label: string | { en: string; he?: string }; url: string }[];
@@ -145,6 +166,7 @@ const AREA_FIELDS = [
   "repo",
   "description",
   "coverImage",
+  "icon",
   "links",
   "order",
   "status",
@@ -166,6 +188,62 @@ export type MediaItem = {
   url: string;
   usedBy?: { id: string; type: string; slug: string | null; field: string }[];
 };
+
+
+/* ------------------------------------------------------ path editing -- */
+
+const UNSAFE = new Set(["__proto__", "constructor", "prototype"]);
+const parts = (path: string) => path.split(".").filter((k) => k !== "");
+
+/* The value at a dotted path (`projects.0.title`), or undefined. */
+export function getPath(root: unknown, path: string): unknown {
+  let cur: unknown = root;
+  for (const k of parts(path)) {
+    if (cur === null || typeof cur !== "object" || UNSAFE.has(k)) return undefined;
+    cur = (cur as Record<string, unknown>)[k];
+  }
+  return cur;
+}
+
+/*
+ * A copy of `root` with `path` set to `value`. Arrays are addressed by index;
+ * the index one past the end appends. An intermediate that does not exist is
+ * an error, not something to guess a shape for.
+ */
+export function setPath(root: unknown, path: string, value: unknown): unknown {
+  const keys = parts(path);
+  if (keys.length === 0) throw new Error("An empty path.");
+  const out = structuredClone(root) as Record<string, unknown>;
+  let cur: unknown = out;
+  keys.forEach((k, i) => {
+    if (UNSAFE.has(k)) throw new Error(`Path "${path}": "${k}" is not allowed.`);
+    if (cur === null || typeof cur !== "object") throw new Error(`Path "${path}": "${keys.slice(0, i).join(".")}" is not an object or list.`);
+    const node = cur as Record<string, unknown>;
+    if (Array.isArray(node) && !/^\d+$/.test(k)) throw new Error(`Path "${path}": "${k}" is not an index into a list.`);
+    if (i === keys.length - 1) {
+      if (value === undefined) delete node[k];
+      else node[k] = value;
+      return;
+    }
+    if (node[k] === undefined || node[k] === null) throw new Error(`Path "${path}": nothing at "${keys.slice(0, i + 1).join(".")}".`);
+    cur = node[k];
+  });
+  return out;
+}
+
+/* Applies { path: value } edits in order; returns the new document and what each changed. */
+function applySet(base: unknown, set: Record<string, unknown>) {
+  let doc = base;
+  const changes: { field: string; before: unknown; after: unknown }[] = [];
+  for (const [path, value] of Object.entries(set)) {
+    const before = getPath(doc, path) ?? null;
+    doc = setPath(doc, path, value);
+    if (JSON.stringify(before) !== JSON.stringify(value ?? null)) changes.push({ field: path, before, after: value ?? null });
+  }
+  return { doc, changes };
+}
+
+const pretty = (v: unknown) => JSON.stringify(v, null, 2) ?? "null";
 
 /* ------------------------------------------------------ translations -- */
 
@@ -272,9 +350,16 @@ export type ToolAccess = "public" | "read" | "write";
 
 export function instructionsFor(access: ToolAccess) {
   if (access === "write") {
-    return "Reads and edits the portfolio site's posts and areas, reads its media library, and reads and drafts its Hebrew translations (read the glossary://he resource before writing Hebrew). Every write tool defaults to dryRun: true and returns a diff; show it to the user before applying with dryRun: false.";
+    return (
+      "Reads and edits everything in the portfolio site's admin: posts, areas (hidden ones too), the site's content documents " +
+      "(projects, story, site-copy), site settings, the media library's metadata, and Hebrew translations (read the glossary://he " +
+      "resource before writing Hebrew). Every write tool defaults to dryRun: true and returns a diff. " +
+      "ASK THE USER FIRST: before any edit, publish, unpublish or delete, show them the diff from the dry run and get their " +
+      "go-ahead; only then repeat the call with dryRun: false (and confirm: true for deletes). Reads never need asking. " +
+      "Content and settings are saved as drafts or versions; publish_content is the step that makes content live."
+    );
   }
-  if (access === "read") return "Reads the portfolio site's posts (drafts included), areas, tags, activity feed, media library, translation status and admin audit log.";
+  if (access === "read") return "Reads the portfolio site's posts (drafts included), areas (hidden included), content documents and their drafts, settings, tags, activity feed, media library, translation status and admin audit log.";
   return "Read-only access to the portfolio site's posts, areas, tags and activity feed.";
 }
 
@@ -544,6 +629,92 @@ export function registerTools(server: McpServer, api: PortfolioApi, access: Tool
     },
   );
 
+
+  /* Hidden areas too, which the public list does not show. */
+  server.registerTool(
+    "admin_list_areas",
+    {
+      title: "List all areas (admin)",
+      description:
+        "Every area, hidden ones included, with all its fields: title, tagline, description, Hebrew, links, repo, cover, icon, " +
+        "order, status. The public list_areas hides hidden areas and drops the fields below.",
+      inputSchema: { slug: slug.optional().describe("Return just this area") },
+      annotations: ro,
+    },
+    safe(async ({ slug }) => {
+      const { items } = await api.adminGet<{ items: (AdminArea & { stats?: unknown })[] }>("/api/admin/collections");
+      const rows = items.filter((a) => !slug || a.slug === slug);
+      if (slug && rows.length === 0) return fail(`No area "${slug}".`);
+      return json(rows.map(({ _rev, ...a }) => a));
+    }),
+  );
+
+  type ContentView = {
+    key: string;
+    exists: boolean;
+    _rev: string | null;
+    published: unknown;
+    draft: unknown | null;
+    updatedAt: string | null;
+    publishedAt: string | null;
+    source: string;
+  };
+  const contentKey = z.enum(CONTENT_KEYS);
+  const loadContent = (key: string) => api.adminGet<ContentView>(`/api/admin/content/${key}`);
+
+  server.registerTool(
+    "list_content",
+    {
+      title: "List the site's content documents",
+      description:
+        "The site's editable content documents (projects, story, site-copy): whether each has been edited in the admin, whether it " +
+        "has an unpublished draft, and when it changed. get_content reads one.",
+      annotations: ro,
+    },
+    safe(async () => json(await api.adminGet("/api/admin/content"))),
+  );
+
+  server.registerTool(
+    "get_content",
+    {
+      title: "Read a content document",
+      description:
+        "One content document: the draft if there is one (what the next publish would make live), else the published version. " +
+        "Documents are large; pass `path` (dotted, indices for lists: `projects.0.links`, `story.beats.2`) to read a part. " +
+        "Use `which: \"published\"` to see what is live while a draft exists. Reading with no path returns the whole document.",
+      inputSchema: {
+        key: contentKey,
+        path: z.string().max(200).optional(),
+        which: z.enum(["draft", "published"]).optional().describe("Default: the draft when there is one"),
+      },
+      annotations: ro,
+    },
+    safe(async ({ key, path, which }) => {
+      const v = await loadContent(key);
+      const useDraft = which ? which === "draft" : v.draft != null;
+      if (useDraft && v.draft == null) return fail(`${key} has no draft.`);
+      const doc = useDraft ? v.draft : v.published;
+      const value = path ? getPath(doc, path) : doc;
+      if (value === undefined) return fail(`Nothing at "${path}" in ${key}.`);
+      return json({ key, which: useDraft ? "draft" : "published", hasDraft: v.draft != null, updatedAt: v.updatedAt, publishedAt: v.publishedAt, ...(path ? { path } : {}), value });
+    }),
+  );
+
+  server.registerTool(
+    "get_settings",
+    {
+      title: "Read the site settings",
+      description:
+        "The site settings: which home-page sections show and in what order, the theme and motion defaults, the accent. " +
+        "Also the version and the history (version numbers and dates; revert_settings takes one of them).",
+      annotations: ro,
+    },
+    safe(async () => {
+      const r = await api.adminGet<{ settings: unknown; version: number; updatedAt: string | null; history: { version: number; at: string }[] }>("/api/admin/settings");
+      return json({ settings: r.settings, version: r.version, updatedAt: r.updatedAt, history: r.history.map((h) => ({ version: h.version, at: h.at })) });
+    }),
+  );
+
   if (access === "read") return;
 
   server.registerTool(
@@ -696,6 +867,7 @@ export function registerTools(server: McpServer, api: PortfolioApi, access: Tool
           .optional(),
         description: z.string().max(400).optional(),
         coverImage: httpUrl.nullable().optional(),
+        icon: httpUrl.nullable().optional().describe("An icon's url from list_media"),
         links: z.array(link).max(8).optional(),
         order: z.number().int().optional(),
         status: z.enum(["published", "hidden"]).optional(),
@@ -709,8 +881,8 @@ export function registerTools(server: McpServer, api: PortfolioApi, access: Tool
       const defined = Object.fromEntries(Object.entries(fields).filter(([, v]) => v !== undefined));
       const base: Record<string, unknown> = current
         ? pick(current, AREA_FIELDS)
-        : { tagline: "", kind: "project", repo: null, description: "", coverImage: null, links: [], order: 50, status: "published" };
-      const proposed = { ...base, ...defined };
+        : { tagline: "", kind: "project", repo: null, description: "", coverImage: null, icon: null, links: [], order: 50, status: "published" };
+      const proposed: Record<string, unknown> = { ...base, ...defined };
       const target = `collection:${slug}`;
       const changes = diffFields(current ? pick(current, AREA_FIELDS) : null, proposed, AREA_FIELDS);
       const action = current ? "update_area" : "create_area";
@@ -744,4 +916,272 @@ export function registerTools(server: McpServer, api: PortfolioApi, access: Tool
       return writeResult({ dryRun, action: "delete_area", target: `collection:${slug}`, exists: true, changes });
     }),
   );
+
+  /* ----------------------------------------------------- content -- */
+
+  const WRITE = { destructiveHint: false, idempotentHint: true, openWorldHint: false } as const;
+  const DESTRUCTIVE = { destructiveHint: true, idempotentHint: true, openWorldHint: false } as const;
+
+  server.registerTool(
+    "save_content_draft",
+    {
+      title: "Edit a content document (draft)",
+      description:
+        "Edits a content document (projects, story, site-copy) as a DRAFT: nothing is live until publish_content. " +
+        "`set` is { dotted.path: value }, applied in order to the current draft (or the published version if there is none): " +
+        "`projects.0.title`, `projects.0.links.1.url`, `story.beats.2.body`. Text that has a Hebrew is { en, he }: set " +
+        "`....title.en` or the whole object. The index one past the end of a list appends. Or pass `data` to replace the whole document. " +
+        "The server validates the result and says which fields are wrong. dryRun defaults to true and returns the changes.",
+      inputSchema: {
+        key: contentKey,
+        set: z.record(z.string().min(1).max(200), z.unknown()).optional(),
+        data: z.unknown().optional().describe("The whole document, replacing the current one. Prefer `set`."),
+        dryRun,
+      },
+      annotations: WRITE,
+    },
+    safe(async ({ key, set, data, dryRun }) => {
+      if (set === undefined && data === undefined) return fail("Give `set` (path edits) or `data` (the whole document).");
+      if (set !== undefined && data !== undefined) return fail("Give `set` or `data`, not both.");
+      const v = await loadContent(key);
+      const base = v.draft ?? v.published;
+      let next: unknown;
+      let changes: unknown[];
+      if (set !== undefined) {
+        const r = applySet(base, set);
+        next = r.doc;
+        changes = r.changes;
+      } else {
+        next = data;
+        changes = JSON.stringify(base) === JSON.stringify(data) ? [] : [{ field: key, lines: lineDiff(pretty(base), pretty(data)) }];
+      }
+      const target = `content:${key}`;
+      const out = { dryRun, action: "save_content_draft", target, exists: v.exists, changes };
+      if (dryRun) return writeResult({ ...out, changes: changes as never });
+      if (changes.length === 0) return writeResult({ ...out, changes: [], note: "No change; nothing written." });
+      const body = { data: next, ...(v._rev ? { _rev: v._rev } : {}) };
+      await api.adminSend("PUT", `/api/admin/content/${key}/draft`, body);
+      return writeResult({ ...out, changes: changes as never, note: "Saved as a draft. Nothing is live until publish_content." });
+    }),
+  );
+
+  server.registerTool(
+    "publish_content",
+    {
+      title: "Publish a content document's draft",
+      description:
+        "Makes a content document's draft the live version (after the server checks it, and the other documents it points into). " +
+        "The dry run shows what goes live: the difference between the published version and the draft. dryRun defaults to true.",
+      inputSchema: { key: contentKey, dryRun },
+      annotations: DESTRUCTIVE,
+    },
+    safe(async ({ key, dryRun }) => {
+      const v = await loadContent(key);
+      if (v.draft == null) return fail(`${key} has no draft to publish. Save one with save_content_draft.`);
+      const same = JSON.stringify(v.published) === JSON.stringify(v.draft);
+      const changes = same ? [] : [{ field: key, lines: lineDiff(pretty(v.published), pretty(v.draft)) }];
+      const out = { dryRun, action: "publish_content", target: `content:${key}`, exists: v.exists, changes };
+      if (dryRun) return writeResult(out);
+      await api.adminSend("POST", `/api/admin/content/${key}/publish`, { data: v.draft, ...(v._rev ? { _rev: v._rev } : {}) });
+      return writeResult({ ...out, note: "Published. It is live." });
+    }),
+  );
+
+  server.registerTool(
+    "discard_content_draft",
+    {
+      title: "Discard a content document's draft",
+      description:
+        "Throws away a content document's unpublished draft; the live version is untouched. Requires confirm: true together with dryRun: false.",
+      inputSchema: { key: contentKey, confirm: z.boolean().optional().describe("Must be true to discard"), dryRun },
+      annotations: DESTRUCTIVE,
+    },
+    safe(async ({ key, confirm, dryRun }) => {
+      const v = await loadContent(key);
+      if (v.draft == null) return fail(`${key} has no draft.`);
+      const changes = [{ field: key, lines: lineDiff(pretty(v.draft), pretty(v.published)) }];
+      const out = { dryRun, action: "discard_content_draft", target: `content:${key}`, exists: true, changes };
+      if (dryRun) return writeResult(out);
+      if (confirm !== true) return fail("discard_content_draft needs confirm: true. Nothing was discarded.");
+      await api.adminSend("DELETE", `/api/admin/content/${key}/draft?rev=${encodeURIComponent(v._rev ?? "")}`);
+      return writeResult({ ...out, note: "Draft discarded." });
+    }),
+  );
+
+  /* --------------------------------------------------- settings -- */
+
+  type SettingsView = { _rev: string | null; version: number; settings: unknown; history: { version: number; at: string; settings: unknown }[] };
+
+  server.registerTool(
+    "save_settings",
+    {
+      title: "Change the site settings",
+      description:
+        "Changes the site settings, live at once (every save is a version; revert_settings undoes it). `set` is { dotted.path: value } " +
+        "against get_settings' `settings` (`home.sections.2.visible`, `theme.default`); or pass `settings` to replace them all. " +
+        "The server refuses a combination the design forbids and says why. dryRun defaults to true.",
+      inputSchema: {
+        set: z.record(z.string().min(1).max(200), z.unknown()).optional(),
+        settings: z.unknown().optional().describe("The whole settings object. Prefer `set`."),
+        dryRun,
+      },
+      annotations: WRITE,
+    },
+    safe(async ({ set, settings, dryRun }) => {
+      if (set === undefined && settings === undefined) return fail("Give `set` (path edits) or `settings` (all of them).");
+      if (set !== undefined && settings !== undefined) return fail("Give `set` or `settings`, not both.");
+      const v = await api.adminGet<SettingsView>("/api/admin/settings");
+      let next: unknown;
+      let changes: unknown[];
+      if (set !== undefined) {
+        const r = applySet(v.settings, set);
+        next = r.doc;
+        changes = r.changes;
+      } else {
+        next = settings;
+        changes = JSON.stringify(v.settings) === JSON.stringify(settings) ? [] : [{ field: "settings", lines: lineDiff(pretty(v.settings), pretty(settings)) }];
+      }
+      const out = { dryRun, action: "save_settings", target: "settings", exists: v._rev !== null, changes: changes as never };
+      if (dryRun) return writeResult(out);
+      if (changes.length === 0) return writeResult({ ...out, note: "No change; nothing written." });
+      await api.adminSend("PUT", "/api/admin/settings", { settings: next, ...(v._rev ? { _rev: v._rev } : {}) });
+      return writeResult({ ...out, note: "Saved. It is live." });
+    }),
+  );
+
+  server.registerTool(
+    "revert_settings",
+    {
+      title: "Revert the site settings to an earlier version",
+      description: "Puts an earlier settings version (from get_settings' history) back, as a new version. dryRun defaults to true.",
+      inputSchema: { version: z.number().int().min(0), dryRun },
+      annotations: DESTRUCTIVE,
+    },
+    safe(async ({ version, dryRun }) => {
+      const v = await api.adminGet<SettingsView>("/api/admin/settings");
+      const target = v.history.find((h) => h.version === version);
+      if (!target) return fail(`No settings version ${version}. get_settings lists them.`);
+      const changes = JSON.stringify(v.settings) === JSON.stringify(target.settings) ? [] : [{ field: "settings", lines: lineDiff(pretty(v.settings), pretty(target.settings)) }];
+      const out = { dryRun, action: "revert_settings", target: "settings", exists: true, changes };
+      if (dryRun) return writeResult(out);
+      await api.adminSend("POST", "/api/admin/settings/revert", { version, ...(v._rev ? { _rev: v._rev } : {}) });
+      return writeResult({ ...out, note: `Reverted to version ${version}. It is live.` });
+    }),
+  );
+
+  /* ------------------------------------------------------- media -- */
+
+  const MEDIA_FIELDS = ["alt", "caption", "credit", "he"] as const;
+  type MediaFull = MediaItem & { _rev: string; he?: { alt?: string; caption?: string } | null };
+  const loadMedia = async (id: string): Promise<MediaFull | null> => {
+    try {
+      return (await api.adminGet<{ item: MediaFull }>(`/api/admin/media/${id}`)).item;
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 404) return null;
+      throw e;
+    }
+  };
+
+  server.registerTool(
+    "update_media",
+    {
+      title: "Edit a media item's words",
+      description:
+        "Edits a picture's, icon's or video's alt text, caption, credit and Hebrew alt/caption. Omitted fields keep their value. " +
+        "(Uploading or replacing the file is not offered remotely.) dryRun defaults to true and returns the diff.",
+      inputSchema: {
+        id: z.string().min(1).max(60),
+        alt: z.string().min(1).max(300).optional(),
+        caption: z.string().max(500).optional(),
+        credit: z.string().max(200).optional(),
+        he: z
+          .object({ alt: z.string().max(300).optional(), caption: z.string().max(500).optional() })
+          .nullable()
+          .optional()
+          .describe("Hebrew alt and caption; empty means the English is read"),
+        dryRun,
+      },
+      annotations: WRITE,
+    },
+    safe(async ({ id, dryRun, ...fields }) => {
+      const current = await loadMedia(id);
+      if (!current) return fail(`No media "${id}".`);
+      const defined = Object.fromEntries(Object.entries(fields).filter(([, v]) => v !== undefined));
+      const before = pick({ ...current, he: current.he ?? null }, MEDIA_FIELDS);
+      const proposed: Record<string, unknown> = { ...before, ...defined };
+      if (defined.he && typeof defined.he === "object") proposed.he = { ...((before.he as object | null) ?? {}), ...(defined.he as object) };
+      const changes = diffFields(before, proposed, MEDIA_FIELDS);
+      const out = { dryRun, action: "update_media", target: `media:${id}`, exists: true, changes };
+      if (dryRun) return writeResult(out);
+      if (changes.length === 0) return writeResult({ ...out, note: "No change; nothing written." });
+      await api.adminSend("PUT", `/api/admin/media/${id}`, { ...proposed, _rev: current._rev });
+      return writeResult(out);
+    }),
+  );
+
+  server.registerTool(
+    "delete_media",
+    {
+      title: "Delete a media item",
+      description:
+        "Deletes a picture, icon or video and its files for good. Refused while anything uses it (list_media shows `usedBy`). " +
+        "Requires confirm: true together with dryRun: false.",
+      inputSchema: { id: z.string().min(1).max(60), confirm: z.boolean().optional().describe("Must be true to delete"), dryRun },
+      annotations: DESTRUCTIVE,
+    },
+    safe(async ({ id, confirm, dryRun }) => {
+      const current = await loadMedia(id);
+      if (!current) return fail(`No media "${id}".`);
+      const used = (current.usedBy ?? []).map((u) => `${u.type}:${u.slug ?? u.id} (${u.field})`);
+      const out = { dryRun, action: "delete_media", target: `media:${id}`, exists: true, changes: [] as never };
+      if (dryRun) return writeResult({ ...out, note: used.length ? `Dry run: would be refused, in use by ${used.join(", ")}.` : "Dry run: nothing was deleted. Call again with confirm: true and dryRun: false to delete." });
+      if (confirm !== true) return fail("delete_media needs confirm: true. Nothing was deleted.");
+      await api.adminSend("DELETE", `/api/admin/media/${id}?rev=${encodeURIComponent(current._rev)}`);
+      return writeResult({ ...out, note: "Deleted." });
+    }),
+  );
+
+  /* -------------------------------------------- areas, translations -- */
+
+  server.registerTool(
+    "sync_area",
+    {
+      title: "Refresh an area's repository numbers",
+      description: "Re-reads the area's GitHub repository (stars, release, language, last push) now, rather than at the next scheduled sync. Changes only the numbers. Do this after repointing an area's repo.",
+      inputSchema: { slug },
+      annotations: { destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    },
+    safe(async ({ slug }) => json({ action: "sync_area", target: `collection:${slug}`, ...(await api.adminSend<object>("POST", `/api/admin/collections/${slug}/sync`)) })),
+  );
+
+  server.registerTool(
+    "ack_translation",
+    {
+      title: "Mark a Hebrew text as still correct",
+      description:
+        "Says the Hebrew of one unit is still right although its English changed (clears `stale`), without rewriting it. " +
+        "Only after reading the English and the Hebrew with get_translation. Not for areas or media.",
+      inputSchema: { type: translationType, id: itemId, path: z.string().min(1).max(200).describe("The unit's path, as get_translation gives it"), dryRun },
+      annotations: WRITE,
+    },
+    safe(async ({ type, id, path, dryRun }) => {
+      if (type === "area" || type === "media") return fail("Areas and media have no stale marker to clear.");
+      const item = await loadTranslation(type, id);
+      const unit = item?.units.find((u) => u.path === path);
+      if (!item || !unit) return fail(`No unit "${path}" in ${type} "${id}". get_translation lists them.`);
+      const out = { dryRun, action: "ack_translation", target: `${type}:${id}`, exists: true, changes: [{ field: path, before: unit.status, after: "translated" }] as never };
+      if (dryRun) return writeResult(out);
+      let rev: string;
+      if (type === "post") {
+        const post = await loadPost(id);
+        if (!post) return fail(`No post "${id}".`);
+        rev = post._rev ?? "";
+      } else {
+        rev = (await api.adminGet<{ _rev: string | null }>(`/api/admin/content/${type === "project" ? "projects" : type}`))._rev ?? "";
+      }
+      await api.adminSend("POST", "/api/admin/translations/ack", { type, id, path, rev });
+      return writeResult({ ...out, note: "Marked as still correct." });
+    }),
+  );
+
 }
