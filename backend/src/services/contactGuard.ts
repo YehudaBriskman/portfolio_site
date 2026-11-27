@@ -69,8 +69,12 @@ let signupDay = { key: "", mails: 0 };
 
 const dayKey = (now: number) => new Date(now).toISOString().slice(0, 10);
 /* A +tag reaches the same mailbox, so it does not earn another auto-reply. */
-const addressKey = (address: string) =>
-  createHash("sha256").update(address.trim().toLowerCase().replace(/\+[^@]*(?=@)/, "")).digest("hex");
+function untagged(address: string): string {
+  const plus = address.indexOf("+");
+  const at = address.indexOf("@", plus);
+  return plus < 0 || at < 0 ? address : address.slice(0, plus) + address.slice(at);
+}
+const addressKey = (address: string) => createHash("sha256").update(untagged(address.trim().toLowerCase())).digest("hex");
 
 /** Per-client and global limits for one incoming message. Both must pass; a refused client is not counted globally. */
 export function allowMessage(clientIp: string, now = Date.now()): boolean {
