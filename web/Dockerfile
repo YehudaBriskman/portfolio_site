@@ -40,7 +40,7 @@ USER root
 # ships a fix, so a cached build keeps the packages of the day it was first
 # built (2026-11-10: libxslt 1.1.43-r3 kept, r4 fixed two HIGHs, Scan image
 # failed on main). Bump this date to force a fresh `apk upgrade`.
-ARG APK_REFRESH=2026-11-10
+ARG APK_REFRESH=2026-11-27
 RUN echo "apk refresh ${APK_REFRESH}" && apk upgrade --no-cache && apk add --no-cache curl
 
 RUN rm -rf /usr/share/nginx/html/*
