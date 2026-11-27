@@ -1,4 +1,4 @@
-import {
+import { atPath,
   collectionTranslation,
   countUnits,
   coverage,
@@ -199,5 +199,14 @@ describe("counts", () => {
     expect(counts).toEqual({ missing: 2, draft: 0, stale: 0, unverified: 1, translated: 0 });
     expect(coverage(counts)).toBe(33);
     expect(coverage({ missing: 0, draft: 0, stale: 0, unverified: 0, translated: 0 })).toBe(100);
+  });
+});
+
+describe("atPath steps through own keys only", () => {
+  it.each(["__proto__", "a.__proto__", "constructor", "list.__proto__.push"])("%s is undefined", (path) => {
+    expect(atPath({ a: {}, list: [] }, path)).toBeUndefined();
+  });
+  it("still reads object and array members", () => {
+    expect(atPath({ a: [{ b: 1 }] }, "a.0.b")).toBe(1);
   });
 });

@@ -229,7 +229,9 @@ export function findTexts(value: unknown, path = "", out: { path: string; text: 
 /** The value at a dotted path, or undefined. */
 export function atPath(value: unknown, path: string): unknown {
   if (!path) return value;
-  return path.split(".").reduce<unknown>((v, k) => (v && typeof v === "object" ? (v as Record<string, unknown>)[k] : undefined), value);
+  return path
+    .split(".")
+    .reduce<unknown>((v, k) => (v && typeof v === "object" && Object.hasOwn(v, k) ? (v as Record<string, unknown>)[k] : undefined), value);
 }
 
 /**
