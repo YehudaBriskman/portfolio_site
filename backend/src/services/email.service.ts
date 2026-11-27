@@ -54,6 +54,7 @@ function sendAutoReply(provider: ReturnType<typeof getProvider>, visitor: string
 /* The owner notice is already sent; only the auto-reply, which goes to whatever address was typed, is limited. */
 function autoReplyAllowed(address: string, opts: ContactSendOptions): boolean {
   if (!opts.publicForm) return true;
+  if (env.CONTACT_AUTO_REPLY === "off") return false;
   if (!reserveAutoReply()) return false;
   if (allowAutoReply(address)) return true;
   releaseAutoReply();
