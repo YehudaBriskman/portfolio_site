@@ -140,7 +140,7 @@ describe("uploading a video", () => {
     });
     expect(res.status).toBe(201);
     expect(res.body.item).toMatchObject({ kind: "video", format: "mp4", mime: "video/mp4", width: 160, height: 90 });
-    expect(res.body.item.file).toMatch(/^\/api\/images\/m\/clip-[0-9a-f]{6}\/video-[0-9a-f]{16}\.mp4$/);
+    expect(res.body.item.file).toMatch(/^\/api\/images\/m\/clip-[0-9a-f]{16}\/video-[0-9a-f]{16}\.mp4$/);
     expect(res.body.item.captions).toMatchObject({ lang: "en", label: "Captions" });
     const { files } = saved[0];
     const video = files.find((f) => f.name === "video.mp4")!;
