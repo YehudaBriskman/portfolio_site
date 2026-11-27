@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { z } from "zod";
-import { couch, CouchError } from "../db/couch.js";
+import { couch, CouchError, findEvery } from "../db/couch.js";
 import { attachments } from "../db/attachments.js";
 import { env } from "../env.js";
 import { visibilityOf, type Visibility } from "./media-visibility.js";
@@ -241,8 +241,6 @@ export const filesOf = (p: Processed) => [
 
 /* ---------------------------------------------------------------- store -- */
 
-const REFERRER_PAGE = 1000;
-
 export const mediaStore = {
   async get(id: string): Promise<MediaDoc | null> {
     try {
@@ -253,20 +251,7 @@ export const mediaStore = {
       throw e;
     }
   },
-  async list(): Promise<MediaDoc[]> {
-    // Page by bookmark: a single capped _find silently dropped everything past the cap.
-    const all: MediaDoc[] = [];
-    let bookmark: string | undefined;
-    for (;;) {
-      const page = (await couch.find<MediaDoc>({ selector: { type: "media" }, limit: 500, bookmark })) as {
-        docs: MediaDoc[];
-        bookmark?: string;
-      };
-      all.push(...page.docs);
-      if (page.docs.length < 500 || !page.bookmark) return all;
-      bookmark = page.bookmark;
-    }
-  },
+  list: () => findEvery<MediaDoc>({ type: "media" }),
   async save(doc: MediaDoc, files: ReturnType<typeof filesOf>): Promise<MediaDoc> {
     const { _attachments: _old, ...plain } = doc;
     const { rev } = await attachments.putWith(doc._id, plain, files);
@@ -306,19 +291,8 @@ export const mediaStore = {
    * runs only on admin reads and on delete.
    */
   async referrers(): Promise<Array<{ _id: string; type?: string; title?: string; slug?: string; key?: string; json: string }>> {
-    // Paged to the end: a reference past a cap would let a used item be deleted.
-    const docs: Record<string, unknown>[] = [];
-    let bookmark: string | undefined;
-    for (;;) {
-      const page = (await couch.find<Record<string, unknown>>({
-        selector: { type: { $nin: ["media", "audit", "apitoken"] } },
-        limit: REFERRER_PAGE,
-        bookmark,
-      })) as { docs: Record<string, unknown>[]; bookmark?: string };
-      docs.push(...page.docs);
-      if (page.docs.length < REFERRER_PAGE || !page.bookmark) break;
-      bookmark = page.bookmark;
-    }
+    // Every page: a reference past a cap would let a used item be deleted.
+    const docs = await findEvery<Record<string, unknown>>({ type: { $nin: ["media", "audit", "apitoken"] } }, 1000);
     return docs.map((d) => ({
       _id: String(d._id),
       type: typeof d.type === "string" ? d.type : undefined,
