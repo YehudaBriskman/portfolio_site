@@ -162,3 +162,28 @@ describe("the home page's server HTML links", () => {
     for (const h of ["one", "two", "four", "draft", "hidden"]) expect(hrefs(res.text)).not.toContain(`/he/blog/${h}`);
   });
 });
+
+describe("a project page's server HTML links (#527)", () => {
+  it("has a trail, its area's notes page and the area's notes", async () => {
+    const res = await request(createApp()).get("/api/seo/render/projects/windom");
+    expect(res.status).toBe(200);
+    expect(body(res.text)).toContain('<li aria-current="page">Wind&lt;o&gt;M</li>');
+    expect(hrefs(res.text)).toEqual(expect.arrayContaining(["/", "/projects", "/blog/area/windom", "/blog/five", "/blog/one"]));
+    for (const h of ["/blog/four", "/blog/draft", "/blog/hidden"]) expect(hrefs(res.text)).not.toContain(h);
+    expect(body(res.text)).not.toContain("<o>");
+  });
+
+  it("links no area or notes from a project that has no collection", async () => {
+    const res = await request(createApp()).get("/api/seo/render/projects/icaros");
+    expect(res.status).toBe(200);
+    expect(hrefs(res.text).filter((h) => h.startsWith("/blog/"))).toEqual([]);
+  });
+
+  it("on the Hebrew page, links an area with no published Hebrew not at all", async () => {
+    const res = await request(createApp()).get("/api/seo/render/he/projects/windom");
+    expect(hrefs(res.text)).toContain("/he/projects");
+    expect(hrefs(res.text)).not.toContain("/he/blog/area/windom");
+    expect(hrefs(res.text)).toContain("/he/blog/three");
+    expect(hrefs(res.text)).not.toContain("/he/blog/one");
+  });
+});

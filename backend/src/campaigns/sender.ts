@@ -2,7 +2,7 @@ import type { SenderSettings } from "../announce/schemas.js";
 import { loadSendSettings } from "../announce/store.js";
 import { couch } from "../db/couch.js";
 import { campaignQueueDepth, mailSends, senderLastTick } from "../metrics.js";
-import { listRecipients, getContact, isSuppressed, updateContact } from "../audience/store.js";
+import { getContact, isSuppressed, updateContact } from "../audience/store.js";
 import { cachedKind, ledgerPutQuietly } from "../audience/ledger.js";
 import { logger } from "../logger.js";
 import { emitOwnerEvent } from "../notify/hooks.js";
@@ -14,6 +14,7 @@ import { effectiveCaps } from "./warmup.js";
 import { emailService, type BulkMessage } from "../services/email.service.js";
 import { resolveSender } from "./config.js";
 import { renderCampaignMail } from "./render.js";
+import { recipientsOf, viewFor } from "./topics.js";
 import type { Campaign, Health, PauseReason, SendResult } from "./schemas.js";
 import {
   claimSend, finishSend, getCampaign, getRate, isStatus, mutateCampaign, putRate, resultsOf, sendId, sentCounts,
@@ -208,7 +209,7 @@ async function runCampaign(c: Campaign, settings: SenderSettings, deps: Required
   const todo: Array<{ hash: string; lang: "en" | "he" }> = [];
   let queued = 0;
   let waiting = 0;
-  for await (const r of listRecipients({ groups: c.groups, ...(c.lang && c.lang !== "all" ? { lang: c.lang } : {}), ...(c.topic ? { topic: c.topic } : {}) })) {
+  for await (const r of recipientsOf(c)) {
     queued++;
     const hash = r._id.slice("contact:".length);
     const prev = done.get(hash);
@@ -271,6 +272,9 @@ async function runCampaign(c: Campaign, settings: SenderSettings, deps: Required
     /* The owner's pause (or SEND_ENABLED not on) takes effect at the next recipient, not the next batch. */
     if (await campaignsBlocked()) break;
     const contact = await getContact(t.hash);
+    /* Topics switched off since the scan: no longer a recipient, so nothing is claimed or counted. */
+    const view = contact ? viewFor(c, contact) : null;
+    if (contact?.status === "active" && !view) continue;
     const base: SendResult = { _id: sendId(id, t.hash), type: "send", campaignId: id, contact: t.hash, status: "attempting", at: new Date(deps.now()).toISOString() };
     const stale = done.get(t.hash);
     if (stale) {
@@ -283,7 +287,7 @@ async function runCampaign(c: Campaign, settings: SenderSettings, deps: Required
       }
     } else if (!(await claimSend(base))) continue;
     /* Never to anyone no longer active or on the suppression list: checked on the fresh record, not the scan. */
-    if (!contact || contact.status !== "active" || cachedKind(t.hash, contact.email) || (await isSuppressed(contact.email))) {
+    if (!contact || !view || contact.status !== "active" || cachedKind(t.hash, contact.email) || (await isSuppressed(contact.email))) {
       await finishSend({ ...base, status: "suppressed" });
       mailSends.inc({ result: "suppressed" });
       suppressed++;
@@ -298,7 +302,7 @@ async function runCampaign(c: Campaign, settings: SenderSettings, deps: Required
     used++;
     let result: Awaited<ReturnType<Deliver>>[number] | undefined;
     try {
-      const mail = await renderCampaignMail(c, { lang: contact.lang ?? "en" }, t.hash, settings);
+      const mail = await renderCampaignMail(view, { lang: contact.lang ?? "en" }, t.hash, settings);
       [result] = await deps.deliver([{ to: contact.email, ...mail }], { from: from.from, replyTo: from.replyTo });
     } catch (err) {
       result = { ok: false as const, error: err instanceof Error ? err.message : String(err) };

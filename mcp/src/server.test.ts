@@ -1,6 +1,6 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { FetchLike } from "./api.js";
@@ -294,6 +294,20 @@ describe("media library tools", () => {
     expect(w.auth).toBe(`Bearer ${TOKEN}`);
     expect(w.path).toMatch(/^\/api\/admin\/media\?alt=A\+test&filename=photo\.png&kind=image$/);
     expect(w.body).toBeInstanceOf(Uint8Array);
+  });
+
+  it("upload_media refuses a symlink, for the file and for a poster", async () => {
+    const { call, api } = await connect(TOKEN);
+    const link = join(dir, "link.png");
+    symlinkSync(file, link);
+    const r = await call("upload_media", { path: link, alt: "x", dryRun: false });
+    expect(r.isError).toBe(true);
+    expect(r.text).toMatch(/symbolic link/);
+    const video = join(dir, "clip.mp4");
+    writeFileSync(video, Buffer.from([0, 0, 0, 1]));
+    const p = await call("upload_media", { path: video, kind: "video", posterPath: link, alt: "x", dryRun: false });
+    expect(p.text).toMatch(/symbolic link/);
+    expect(api.calls).toHaveLength(0);
   });
 
   it("upload_media refuses what is not an image file, and needs alt text", async () => {

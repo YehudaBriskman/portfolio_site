@@ -26,10 +26,10 @@ import { linkablePosts, neighbours, newestFirst, relatedPosts } from "../service
 import { PERSON_ID, WEBSITE_ID, personNode, personRef, siteNameIn, websiteNode, withHebrewName } from "../services/seo-entity.js";
 import { areaHasHebrew, postHasHebrew, projectHasHebrew } from "../services/seo-translation.js";
 import { breadcrumbs, fitTitle, graph, homeGraph, itemList, webPage } from "../services/seo-template.js";
-import { contentModifiedAt } from "../services/content-modified.js";
+import { contentModifiedAt, itemModifiedAt } from "../services/content-modified.js";
 import { rawImageUrlOrNull, type Collection, type Post } from "../schemas/content.js";
 import type { ContentBundle } from "../schemas/site-content.js";
-import { publishedBundleOrSeed } from "../services/site-content.js";
+import { publishedBundleOrSeed, getContentDoc } from "../services/site-content.js";
 import { sectionVisible, type SiteSettings } from "../schemas/site-settings.js";
 import { settingsOrDefault } from "../services/site-settings.js";
 import { dropHiddenAreaNotes, publicNoteOrUndefined } from "../services/public-notes.js";
@@ -58,12 +58,24 @@ async function publishedCollections(): Promise<Collection[]> {
 router.get(
   "/sitemap.xml",
   asyncHandler(async (_req, res) => {
-    const [posts, collections, store, settings] = await Promise.all([publishedPosts(), publishedCollections(), storeProjects(), settingsOrDefault()]);
+    const [posts, collections, store, settings, projectsDoc] = await Promise.all([
+      publishedPosts(),
+      publishedCollections(),
+      storeProjects(),
+      settingsOrDefault(),
+      // Only for its dates: a store hiccup costs those, not the sitemap.
+      getContentDoc("projects").catch(() => null),
+    ]);
     res.type("application/xml").set("Cache-Control", "public, max-age=600");
     const live = new Map(collections.map((c) => [c.slug, c]));
     res.send(
       buildSitemap(posts, collections, {
-        projects: [...store.values()].map((p) => ({ slug: p.slug, hebrew: projectHasHebrew(p, live.get(p.slug)) })),
+        projects: [...store.values()].map((p) => ({
+          slug: p.slug,
+          hebrew: projectHasHebrew(p, live.get(p.slug)),
+          lastmod: itemModifiedAt(projectsDoc, p.slug, "en"),
+          lastmodHe: itemModifiedAt(projectsDoc, p.slug, "he"),
+        })),
         postHebrew: postHasHebrew,
         areaHebrew: areaHasHebrew,
         contactShown: sectionVisible(settings, "contact"),
@@ -884,10 +896,10 @@ page("/blog/area/:slug", async (req, res, lang) => {
   });
 });
 
-/** Home > Blogs > this note, as visible links; the JSON-LD says the same trail. */
-function breadcrumbHtml(current: string, lang: Lang): string {
+/** Home > section > this page, as visible links; the JSON-LD says the same trail. */
+function breadcrumbHtml(section: { name: string; path: string }, current: string, lang: Lang): string {
   const w = SEO_WORDS[lang];
-  return `<nav aria-label="${escapeHtml(w.breadcrumb)}"><ol><li><a href="${href("/", lang)}">${escapeHtml(w.home)}</a></li><li><a href="${href("/blog", lang)}">${escapeHtml(w.blogs)}</a></li><li aria-current="page">${en(current, lang)}</li></ol></nav>`;
+  return `<nav aria-label="${escapeHtml(w.breadcrumb)}"><ol><li><a href="${href("/", lang)}">${escapeHtml(w.home)}</a></li><li><a href="${href(section.path, lang)}">${escapeHtml(section.name)}</a></li><li aria-current="page">${en(current, lang)}</li></ol></nav>`;
 }
 
 /**
@@ -972,7 +984,7 @@ page("/blog/:slug", async (req, res, lang) => {
     modifiedAt: contentModifiedAt(post, modLang),
     tags: post.tags,
     noindex: post.seo.noindex,
-    bodyHtml: `<main>${marker}${breadcrumbHtml(post.title, lang)}<article${bodyInEnglish ? ' lang="en" dir="ltr"' : ""}><h1>${en(post.title, lang)}</h1>${
+    bodyHtml: `<main>${marker}${breadcrumbHtml({ name: w.blogs, path: "/blog" }, post.title, lang)}<article${bodyInEnglish ? ' lang="en" dir="ltr"' : ""}><h1>${en(post.title, lang)}</h1>${
       post.subtitle ? `<p>${en(post.subtitle, lang)}</p>` : ""
     }<p>${en(post.excerpt, lang)}</p>${markdownToFallbackHtml(post.body)}</article>${noteLinks}</main>`,
     jsonLd: graph(
@@ -1003,7 +1015,7 @@ page("/blog/:slug", async (req, res, lang) => {
 });
 
 /** A project's page body, as Project.tsx lays it out, from the same store. */
-function projectHtml(v: ProjectView, others: ProjectView[], lang: Lang): string {
+function projectHtml(v: ProjectView, others: ProjectView[], notes: { area: Collection | null; posts: Post[] }, lang: Lang): string {
   const w = SEO_WORDS[lang];
   const e = v.entry;
   const parts: string[] = [`<h1>${en(v.title, lang)}</h1>`];
@@ -1022,6 +1034,12 @@ function projectHtml(v: ProjectView, others: ProjectView[], lang: Lang): string 
     ];
     if (links.length) parts.push(`<ul>${links.map((l) => `<li><a href="${escapeHtml(l.url)}">${tx(l.label, lang)}</a></li>`).join("")}</ul>`);
   }
+  const area = notes.area;
+  if (area || notes.posts.length) {
+    const name = escapeHtml(areaTitleName(area?.title ?? v.title, w.notes));
+    parts.push(`<h2>${area ? `<a href="${href(`/blog/area/${area.slug}`, lang)}">${name}</a>` : name}</h2>`);
+    if (notes.posts.length) parts.push(`<ul>${notes.posts.map((p) => `<li><a href="${href(`/blog/${p.slug}`, lang)}">${en(p.title, lang)}</a></li>`).join("")}</ul>`);
+  }
   if (others.length) {
     parts.push(
       `<h2>${escapeHtml(w.elsewhere)}</h2><ul>${others
@@ -1030,7 +1048,7 @@ function projectHtml(v: ProjectView, others: ProjectView[], lang: Lang): string 
     );
   }
   parts.push(`<p><a href="${href("/projects", lang)}">${escapeHtml(w.allProjects)}</a> · <a href="${href("/blog", lang)}">${escapeHtml(w.notes)}</a></p>`);
-  return `<main>${parts.join("")}</main>`;
+  return `<main>${breadcrumbHtml({ name: w.work, path: "/projects" }, v.title, lang)}${parts.join("")}</main>`;
 }
 
 page("/projects/:slug", async (req, res, lang) => {
@@ -1048,6 +1066,17 @@ page("/projects/:slug", async (req, res, lang) => {
     ? `https://github.com/${v.collection.repo.owner}/${v.collection.repo.name}`
     : (v.entry?.github ?? undefined);
   const image = rawImageUrlOrNull(v.collection?.coverImage ?? null) ?? absoluteUrl(`/api/seo/og/projects/${v.slug}.png`);
+  /* The project's notes, where it has an area: links a crawler would otherwise
+     only find after the app runs (#527). A store hiccup costs the links only. */
+  const collection = v.collection;
+  const notes = collection
+    ? linkablePosts(await publishedPosts().catch((): Post[] => []), lang)
+        .filter((p) => p.collection === collection.slug)
+        .sort(newestFirst)
+        .slice(0, 6)
+        .map((p) => local(p, lang))
+    : [];
+  const area = collection && (lang === "en" || areaHasHebrew(collection)) ? collection : null;
 
   await sendShell(res, {
     ...at(`/projects/${v.slug}`, lang),
@@ -1061,6 +1090,7 @@ page("/projects/:slug", async (req, res, lang) => {
     bodyHtml: projectHtml(
       v,
       views.filter((o) => o.slug !== v.slug && (lang === "en" || projectHasHebrew(o.entry, o.collection))),
+      { area, posts: notes },
       lang,
     ),
     /* Source code when there is a repository to point at, a creative work

@@ -67,6 +67,12 @@ const ZERO_SHA = /^0+$/;
 // The paths that select the public phone matrix on a pull request (#764).
 export const PUBLIC_MATRIX_INPUTS = /^web\/(src|public|scripts)\//;
 
+// Files that a test in the OTHER component reads (a copied schema, a seed, a
+// shared fixture). A change to one selects web and backend, or the reader's
+// suite is first run on main (#929 broke it that way).
+export const CROSS_READ_INPUTS =
+  /^(backend\/src\/(schemas\/site-(content|settings)\.ts|content\/seed\.ts|signature\/strokes\.ts|services\/(help-pages\.json|seo-words\.ts)|audience\/schemas\.ts)|web\/(index\.html|src\/(App\.tsx|i18n\/[^/]+|components\/admin\/announce\/sender\/rules\.cases\.json)))$/;
+
 // First match wins. `widen` means the path selects every component.
 const RULES = [
   // Prose GitHub renders and nothing in CI reads (see the header).
@@ -182,6 +188,7 @@ export function classify({ paths, full, release, mode }) {
       if (c.widen) reasons.push(`${p}: ${c.why}`);
       else changed[c.component] = true;
       if (PUBLIC_MATRIX_INPUTS.test(p)) publicWeb = true;
+      if (CROSS_READ_INPUTS.test(p)) changed.web = changed.backend = true;
     }
   }
   const all = reasons.length > 0;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { contentModifiedAt, stampContentModified } from "./content-modified.js";
+import { contentModifiedAt, itemModifiedAt, stampItemsModified, stampContentModified } from "./content-modified.js";
 import { buildSitemap } from "./seo.js";
 import type { Post } from "../schemas/content.js";
 
@@ -53,5 +53,32 @@ describe("contentModifiedAt", () => {
     const block = (path: string) => xml.split("<url>").find((u) => u.includes(`<loc>${path}`) || u.includes(`${path}</loc>`)) ?? "";
     expect(block("/blog/a-post")).toContain(`<lastmod>${T1}`);
     expect(block("/he/blog/a-post")).toContain(`<lastmod>${T2}`);
+  });
+});
+
+describe("project dates (#529)", () => {
+  const item = (slug: string, en: string, heText?: string, order = 1) => ({ slug, order, fact: { en, ...(heText ? { he: heText, heSrc: "x" } : {}) } });
+
+  it("moves only the language that changed, and ignores order and fingerprints", () => {
+    const first = stampItemsModified({ items: [item("a", "one", "אחת")], at: T1 }, [item("a", "one", "אחת", 2)], undefined, T2);
+    expect(first.a.en!.at).toBe(T1);
+    expect(first.a.he!.at).toBe(T1);
+    const second = stampItemsModified({ items: [item("a", "one", "אחת")], at: T2 }, [item("a", "one", "שתיים")], first, T3);
+    expect(second.a.en!.at).toBe(T1);
+    expect(second.a.he!.at).toBe(T3);
+  });
+
+  it("gives a new project the publish date, and no date to one unchanged since the seed", () => {
+    const out = stampItemsModified({ items: [item("a", "one")], at: null }, [item("a", "one"), item("b", "two")], undefined, T2);
+    expect(out.a).toEqual({});
+    expect(out.b.en!.at).toBe(T2);
+    const again = stampItemsModified({ items: [item("a", "one"), item("b", "two")], at: T2 }, [item("a", "one"), item("b", "two")], out, T3);
+    expect(again.a).toEqual({});
+  });
+
+  it("falls back to the document's publish date for one stored before the stamps", () => {
+    expect(itemModifiedAt({ publishedAt: T1 }, "a", "en")).toBe(T1);
+    expect(itemModifiedAt({ publishedAt: T1, itemMod: {} }, "a", "en")).toBeUndefined();
+    expect(itemModifiedAt(null, "a", "en")).toBeUndefined();
   });
 });

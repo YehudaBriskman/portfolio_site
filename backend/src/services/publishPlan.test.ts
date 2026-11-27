@@ -1,3 +1,4 @@
+import { excerptOf } from "../schemas/content.js";
 import { planPublish } from "./publishPlan.js";
 import type { Post, PostContent } from "../schemas/content.js";
 
@@ -52,5 +53,12 @@ describe("planPublish", () => {
   it("he: refused when nothing is live", () => {
     expect(planPublish(null, content(), "he")).toBeNull();
     expect(planPublish(published({ status: "draft" }), content(), "he")).toBeNull();
+  });
+});
+
+describe("excerptOf (#435): one automatic excerpt for every save path", () => {
+  it("drops Markdown marks, brackets included, and stops at 300", () => {
+    expect(excerptOf("## A [link] *here*")).toBe(" A link here");
+    expect(excerptOf("x".repeat(400))).toHaveLength(300);
   });
 });

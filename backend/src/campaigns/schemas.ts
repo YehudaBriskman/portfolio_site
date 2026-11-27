@@ -10,7 +10,11 @@ export type PauseReason = "auth" | "consecutive" | "failure-rate" | "hard-bounce
 /** Results since the campaign started or was last resumed: what the auto-pause rules are judged on. */
 export type Health = { sent: number; failed: number; hard: number; streak: number; /** Spam complaints received while it was sending; written by the webhook. */ complaints?: number };
 
-export type Block = { type: "p" | "h2" | "ul" | "cta" | "image" | "facts" | "dot" | "rule"; tone?: "strong" | "muted"; outline?: boolean; text?: string; items?: string[]; url?: string; label?: string; rows?: Array<{ label: string; value: string }>; lang?: "en" | "he" };
+export type Topic = "blog" | "releases";
+
+export type Block = { type: "p" | "h2" | "ul" | "cta" | "image" | "facts" | "dot" | "rule"; tone?: "strong" | "muted"; outline?: boolean; text?: string; items?: string[]; url?: string; label?: string; rows?: Array<{ label: string; value: string }>; lang?: "en" | "he"; /** Only for people who have this topic on (campaigns/topics.ts); none = everyone. */ topic?: Topic };
+
+type Lines = { subject: string; preheader: string };
 
 export type Campaign = {
   _id: string;
@@ -26,11 +30,13 @@ export type Campaign = {
   kind?: "issue";
   /** The instant an issue's window ended; the next issue starts here once this one was sent. */
   compiledUntil?: string;
+  /** The subject and preview line an issue was compiled with, whole and for people who get one topic only. */
+  topicLines?: Lines & Partial<Record<Topic, Lines>>;
   /** Mark the mail as an advertisement ("פרסומת" label and subject prefix). New campaigns default to false; absent on older ones = the sender setting decides, as before. */
   labelAd?: boolean;
   groups: string[];
   lang?: "en" | "he" | "all";
-  topic?: "blog" | "releases";
+  topic?: Topic;
   status: CampaignStatus;
   sendAt?: string;
   counters: { queued: number; sent: number; failed: number; suppressed: number; /** Skipped by the per-person monthly limit; absent until one is. */ capped?: number };
@@ -73,17 +79,19 @@ const Preheader = z.string().trim().max(200).refine(NoLineBreak, "One line");
 /* The cleaned copy is what is stored, so what the owner previews is what is sent. */
 const Url = z.string().max(2000);
 const BlockLang = z.enum(["en", "he"]).optional();
+const TopicName = z.enum(["blog", "releases"]);
+const Scope = { lang: BlockLang, topic: TopicName.optional() };
 const Blocks = z
   .array(
     z.discriminatedUnion("type", [
-      z.object({ type: z.literal("p"), text: z.string().min(1).max(5000), tone: z.enum(["strong", "muted"]).optional(), lang: BlockLang }).strict(),
-      z.object({ type: z.literal("h2"), text: z.string().min(1).max(300), lang: BlockLang }).strict(),
-      z.object({ type: z.literal("ul"), items: z.array(z.string().min(1).max(1000)).min(1).max(50), lang: BlockLang }).strict(),
-      z.object({ type: z.literal("cta"), url: Url.refine((u) => safeHref(u) !== null, "A http(s) or mailto link"), label: z.string().min(1).max(100), outline: z.boolean().optional(), lang: BlockLang }).strict(),
-      z.object({ type: z.literal("facts"), rows: z.array(z.object({ label: z.string().min(1).max(60), value: z.string().min(1).max(300) }).strict()).min(1).max(8), lang: BlockLang }).strict(),
-      z.object({ type: z.literal("dot"), lang: BlockLang }).strict(),
-      z.object({ type: z.literal("rule"), lang: BlockLang }).strict(),
-      z.object({ type: z.literal("image"), url: Url.refine((u) => safeImage(u) !== null, "An https image on this site"), text: z.string().max(300).optional(), lang: BlockLang }).strict(),
+      z.object({ type: z.literal("p"), text: z.string().min(1).max(5000), tone: z.enum(["strong", "muted"]).optional(), ...Scope }).strict(),
+      z.object({ type: z.literal("h2"), text: z.string().min(1).max(300), ...Scope }).strict(),
+      z.object({ type: z.literal("ul"), items: z.array(z.string().min(1).max(1000)).min(1).max(50), ...Scope }).strict(),
+      z.object({ type: z.literal("cta"), url: Url.refine((u) => safeHref(u) !== null, "A http(s) or mailto link"), label: z.string().min(1).max(100), outline: z.boolean().optional(), ...Scope }).strict(),
+      z.object({ type: z.literal("facts"), rows: z.array(z.object({ label: z.string().min(1).max(60), value: z.string().min(1).max(300) }).strict()).min(1).max(8), ...Scope }).strict(),
+      z.object({ type: z.literal("dot"), ...Scope }).strict(),
+      z.object({ type: z.literal("rule"), ...Scope }).strict(),
+      z.object({ type: z.literal("image"), url: Url.refine((u) => safeImage(u) !== null, "An https image on this site"), text: z.string().max(300).optional(), ...Scope }).strict(),
     ]),
   )
   .max(200);
@@ -98,7 +106,7 @@ const Fields = {
   blocks: Blocks,
   groups: Groups,
   lang: z.enum(["en", "he", "all"]),
-  topic: z.enum(["blog", "releases"]),
+  topic: TopicName,
 };
 
 /* The form sends null for "no blocks" and "no topic"; on create that means the field is absent, so null is never stored. */
@@ -147,7 +155,7 @@ export const PreviewBody = z
   .strict();
 /* The audience selection of a draft that may not be saved yet. */
 export const AudienceBody = z
-  .object({ groups: Groups, lang: Fields.lang.default("all"), topic: Fields.topic.nullable().optional() })
+  .object({ groups: Groups, lang: Fields.lang.default("all"), topic: Fields.topic.nullable().optional(), blocks: Blocks.nullable().optional(), kind: z.literal("issue").optional() })
   .strict();
 
 /* Compile an issue; `since` overrides the start of the window. */

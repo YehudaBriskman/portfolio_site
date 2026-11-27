@@ -14,6 +14,9 @@ const SlugSchema = z
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "lowercase words separated by single hyphens");
 /* As backend/src/schemas/i18n.ts defines it (#303). */
 const Fingerprint = z.string().regex(/^[0-9a-f]{12}$/);
+/* As backend/src/services/content-modified.ts defines it (#529). */
+type ContentStamp = { hash: string; at: string };
+type ContentMod = { en?: ContentStamp; he?: ContentStamp };
 // ---- copy below ----
 
 /*
@@ -112,7 +115,13 @@ export const ImageRefSchema = z
   .max(500)
   .regex(/^(\/[^\s]*|https:\/\/\S+)$/, "A path starting with / or an https:// URL");
 
-const Url = z.string().trim().url("A full URL, with https://").max(500);
+/* Printed as a link, so the scheme is limited: z.url() alone takes any scheme. */
+const Url = z
+  .string()
+  .trim()
+  .url("A full URL, with https://")
+  .max(500)
+  .regex(/^(https?:\/\/|mailto:)/i, "Must be an http(s) or mailto: address");
 const Byte = z.number().int().min(0, "0 to 255").max(255, "0 to 255");
 
 export const FIELD_KINDS = ["state", "tech", "where", "when", "count"] as const;
@@ -291,6 +300,8 @@ export type ContentDoc<T = unknown> = {
   createdAt: string;
   updatedAt: string;
   publishedAt: string;
+  /** Projects only: per item and language, when its published content last changed (#529). */
+  itemMod?: Record<string, ContentMod>;
   /** Who wrote the published version: the seed, or the owner. */
   source: "seed" | "admin";
 };

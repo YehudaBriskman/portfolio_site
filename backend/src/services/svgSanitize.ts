@@ -55,8 +55,12 @@ function squash(value: string): string {
   return out;
 }
 
-/** Every `url(` in a value must point inside the document: `url(#id)`. */
+/**
+ * Every `url(` in a value must point inside the document: `url(#id)`. A CSS
+ * escape can spell `url(` without the letters, so a backslash is refused.
+ */
 function urlsAreLocal(squashed: string): boolean {
+  if (squashed.includes("\\")) return false;
   let at = squashed.indexOf("url(");
   while (at !== -1) {
     let i = at + 4;

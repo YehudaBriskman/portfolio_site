@@ -72,6 +72,17 @@ export function blockProblem(b: Block): "empty" | "link" | "image" | null {
   }
 }
 
+/**
+ * What the audience count needs beyond groups, language and topic: an issue is split by its blocks' topics
+ * (the server's rule, backend/src/campaigns/topics.ts). Nothing for a hand-written campaign. Blocks the server
+ * would refuse are left out.
+ */
+export function issueContent(kind: "issue" | null | undefined, blocks: Block[] | null): { kind?: "issue"; blocks?: Block[] } {
+  const marked = blocks?.some((b) => b.topic || b.type === "dot" || b.type === "rule");
+  if (kind !== "issue" && !marked) return {};
+  return { ...(kind ? { kind } : {}), ...(blocks ? { blocks: cleanBlocks(blocks).filter((b) => !blockProblem(b)) } : {}) };
+}
+
 /* ------------------------------------------------------------ time zones */
 
 /**
