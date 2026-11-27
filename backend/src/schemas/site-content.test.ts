@@ -99,3 +99,32 @@ describe("activity events carry structure, not only a sentence (#306)", () => {
     expect(events.find((e) => e.kind === "post")!.meta.he).toBeNull();
   });
 });
+
+describe("content links are web or mail addresses only", () => {
+  const withUrls = (url: string) => {
+    const c = seed();
+    const projects = structuredClone(c.projects);
+    projects.items[0].link = url;
+    const github = structuredClone(c.projects);
+    github.items[0].github = url;
+    const links = structuredClone(c.projects);
+    links.items[0].links = [{ label: { en: "x" }, url }];
+    const profiles = structuredClone(c.siteCopy);
+    profiles.profiles[0].url = url;
+    const footer = structuredClone(c.siteCopy);
+    footer.footer.work[0].url = url;
+    return [
+      ...[projects, github, links].map((v) => ProjectsContentSchema.safeParse(v).success),
+      ...[profiles, footer].map((v) => SiteCopySchema.safeParse(v).success),
+    ];
+  };
+
+  it.each(["javascript:alert(1)", "JavaScript:alert(1)", " javascript:alert(1)", "data:text/html,x", "vbscript:x", "file:///etc/passwd"])(
+    "refuses %s",
+    (url) => expect(withUrls(url)).toEqual([false, false, false, false, false]),
+  );
+
+  it.each(["https://example.com/a", "http://example.com", "HTTPS://example.com", "mailto:someone@example.com"])("accepts %s", (url) =>
+    expect(withUrls(url)).toEqual([true, true, true, true, true]),
+  );
+});

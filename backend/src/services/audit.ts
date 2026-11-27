@@ -55,6 +55,9 @@ export function docHash(doc: unknown): string | null {
 
 const SAFE = new Set(["GET", "HEAD", "OPTIONS"]);
 
+/* The path is the caller's to choose; every real route is far shorter. */
+const PATH_MAX = 512;
+
 export function auditEntry(input: {
   at: Date;
   actor: AuditEntry["actor"];
@@ -70,7 +73,7 @@ export function auditEntry(input: {
     at,
     actor: input.actor,
     method: input.method,
-    path: input.path,
+    path: input.path.slice(0, PATH_MAX),
     status: input.status,
     target: input.change?.target ?? null,
     beforeHash: docHash(input.change?.before),

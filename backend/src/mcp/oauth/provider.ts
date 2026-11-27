@@ -88,6 +88,8 @@ export type McpTxnDoc = {
   clientId: string;
   clientName: string;
   redirectUri: string;
+  /* False when the client left it out and the registered one was filled in. */
+  redirectUriGiven?: boolean;
   codeChallenge: string;
   requestedScopes: Scope[];
   state: string | null;
@@ -109,6 +111,8 @@ type McpCodeDoc = {
   clientId: string;
   clientName: string;
   redirectUri: string;
+  /* As on the transaction; absent counts as given. */
+  redirectUriGiven?: boolean;
   codeChallenge: string;
   scopes: Scope[];
   resource: string;
@@ -396,6 +400,8 @@ export const provider: OAuthServerProvider = {
       clientId: client.client_id,
       clientName: client.client_name ?? "Unnamed client",
       redirectUri: params.redirectUri,
+      // The SDK fills in a lone registered URI, so ask the request itself.
+      redirectUriGiven: (res.req.method === "POST" ? res.req.body : res.req.query)?.redirect_uri !== undefined,
       codeChallenge: params.codeChallenge,
       requestedScopes: requested,
       state: params.state ?? null,
@@ -439,7 +445,10 @@ export const provider: OAuthServerProvider = {
     const doc = await loadCode(code);
     if (doc.clientId !== client.client_id || doc.usedAt) throw new InvalidGrantError("Invalid authorization code");
     if (Date.parse(doc.expiresAt) < Date.now()) throw new InvalidGrantError("Authorization code expired");
-    if (redirectUri !== undefined && redirectUri !== doc.redirectUri) throw new InvalidGrantError("redirect_uri does not match");
+    // RFC 6749 §4.1.3: required here if the authorization request had it.
+    if (redirectUri === undefined ? doc.redirectUriGiven !== false : redirectUri !== doc.redirectUri) {
+      throw new InvalidGrantError("redirect_uri does not match");
+    }
     if (resource && !sameResource(resource.href, doc.resource)) throw new InvalidTargetError("resource does not match");
 
     const now = Date.now();
@@ -594,6 +603,7 @@ export async function createCode(txn: McpTxnDoc, scopes: Scope[]) {
     clientId: txn.clientId,
     clientName: txn.clientName,
     redirectUri: txn.redirectUri,
+    redirectUriGiven: txn.redirectUriGiven,
     codeChallenge: txn.codeChallenge,
     scopes,
     resource: txn.resource,

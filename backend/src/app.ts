@@ -123,6 +123,11 @@ export function createApp() {
    * The gate holds, but an unmetered endpoint is an oracle for guessing the
    * proxy secret. Every write past the gate is recorded, refusals included (#252).
    */
+  /* Nothing from the admin is kept by a cache, refusals included. A route that sets its own header wins. */
+  app.use('/api/admin', (_req, res, next) => {
+    res.set("Cache-Control", "no-store");
+    next();
+  });
   app.use('/api/admin', adminLimiter, createBearerFailureLimiter(), requireAdmin, express.json({ limit: "1mb" }), auditWrites, indexNowOnWrite, announceOnWrite, adminRoutes);
   app.use(express.json({ limit: "1mb" }));
   app.use("/api/images", readLimiter);
