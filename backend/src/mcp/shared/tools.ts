@@ -794,7 +794,7 @@ export function registerTools(server: McpServer, api: PortfolioApi, access: Tool
         subtitle: z.string().max(300).nullable().optional(),
         excerpt: z.string().max(320).optional(),
         body: z.string().optional().describe("Markdown"),
-        tags: z.array(z.string().regex(/^[a-z0-9-]+$/)).max(8).optional(),
+        tags: z.array(z.string().regex(/^[a-z0-9-]+$/).max(40)).max(8).optional(),
         area: slug.optional().describe("Area slug; default `site`"),
         coverImage: httpUrl.nullable().optional(),
         links: z.array(link).max(8).optional(),

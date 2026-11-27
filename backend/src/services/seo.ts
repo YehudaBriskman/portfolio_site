@@ -213,23 +213,23 @@ export type SitemapEntry = {
  * channel log, and named two projects by hand; the projects now come from
  * the content store, as the pages themselves do.
  */
-const STATIC_ENTRIES: SitemapEntry[] = [
+const STATIC_ENTRIES: (SitemapEntry & { inCode?: true })[] = [
   { loc: "/", changefreq: "monthly", priority: 1.0 },
   { loc: "/blog", changefreq: "weekly", priority: 0.8 },
   { loc: "/projects", changefreq: "weekly", priority: 0.8 },
   { loc: "/story", changefreq: "monthly", priority: 0.7 },
   { loc: "/blog/log", changefreq: "daily", priority: 0.4 },
   // The remote MCP server's page (#263): the one place to learn how to connect.
-  { loc: "/developers/mcp", changefreq: "monthly", priority: 0.5 },
-  { loc: "/accessibility", changefreq: "yearly", priority: 0.3 },
-  { loc: "/privacy", changefreq: "yearly", priority: 0.3 },
-  { loc: "/help", changefreq: "yearly", priority: 0.3 },
+  { loc: "/developers/mcp", changefreq: "monthly", priority: 0.5, inCode: true },
+  { loc: "/accessibility", changefreq: "yearly", priority: 0.3, inCode: true },
+  { loc: "/privacy", changefreq: "yearly", priority: 0.3, inCode: true },
+  { loc: "/help", changefreq: "yearly", priority: 0.3, inCode: true },
 ];
 
 /** What the sitemap lists beyond the posts and the published collections. */
 export type SitemapExtras = {
   /** The content store's projects, which render with or without a collection row. */
-  projects?: { slug: string; hebrew: boolean }[];
+  projects?: { slug: string; hebrew: boolean; lastmod?: string; lastmodHe?: string }[];
   /** Whether a post, an area or a collection's project page has published Hebrew (#304). */
   postHebrew?: (p: Post) => boolean;
   areaHebrew?: (c: Collection) => boolean;
@@ -238,6 +238,11 @@ export type SitemapExtras = {
   /** Whether a help page has Hebrew of its own (#318). Default: what the page's words say. */
   helpHebrew?: (id: string) => boolean;
 };
+
+/** The later of two stored ISO dates, either of which may be absent. */
+function later(a: string | undefined, b: string | undefined): string | undefined {
+  return !a || (b && b > a) ? b : a;
+}
 
 /**
  * @param collections every published collection: each is an area page
@@ -249,12 +254,13 @@ export function buildSitemap(posts: Post[], collections: Collection[], extras: S
 
 function sitemapEntries(posts: Post[], collections: Collection[], extras: SitemapExtras): SitemapEntry[] {
   /*
-   * The static routes carry the most recent content date rather than nothing.
-   * A <url> with no <lastmod> gives a crawler no reason to come back, and these
-   * are the pages whose contents change whenever a post or project does.
+   * The pages that list content carry the newest content date: they change when
+   * a post or project does. A page whose words are in the code (`inCode`, and
+   * the help guides below) has no stored date, and gets none (#529).
    */
-  const newest = newestContentModified([...posts, ...collections]);
-  const entries: SitemapEntry[] = STATIC_ENTRIES.map((e) => ({ ...e, lastmod: e.lastmod ?? newest }));
+  const newest = [newestContentModified([...posts, ...collections]), ...(extras.projects ?? []).flatMap((p) => [p.lastmod, p.lastmodHe])]
+    .reduce(later, undefined);
+  const entries: SitemapEntry[] = STATIC_ENTRIES.map(({ inCode, ...e }) => (inCode ? e : { ...e, lastmod: newest }));
   const add = (e: SitemapEntry) => {
     // A real collection replaces its store entry rather than duplicating it.
     const at = entries.findIndex((x) => x.loc === e.loc);
@@ -268,22 +274,27 @@ function sitemapEntries(posts: Post[], collections: Collection[], extras: Sitema
     // and a sitemap must not advertise what the page itself says not to index.
     if (p.group !== null) continue;
     if (p.id === HELP_CONTACT_PAGE && extras.contactShown === false) continue;
-    add({ loc: `/help/${p.id}`, lastmod: newest, changefreq: "yearly", priority: 0.3, hebrew: (extras.helpHebrew ?? (() => p.hebrew))(p.id) });
+    // No lastmod: the guides are words in the code, with no stored date, and a borrowed one would be false (#529).
+    add({ loc: `/help/${p.id}`, changefreq: "yearly", priority: 0.3, hebrew: (extras.helpHebrew ?? (() => p.hebrew))(p.id) });
   }
 
   const areaHebrew = extras.areaHebrew ?? (() => true);
   const postHebrew = extras.postHebrew ?? (() => true);
-  const storeHebrew = new Map((extras.projects ?? []).map((p) => [p.slug, p.hebrew]));
+  const store = new Map((extras.projects ?? []).map((p) => [p.slug, p]));
   for (const p of extras.projects ?? []) {
-    add({ loc: `/projects/${p.slug}`, lastmod: newest, changefreq: "monthly", priority: 0.7, hebrew: p.hebrew });
+    add({ loc: `/projects/${p.slug}`, lastmod: p.lastmod, lastmodHe: p.lastmodHe, changefreq: "monthly", priority: 0.7, hebrew: p.hebrew });
   }
 
   for (const c of collections) {
     if (c.kind === "project") {
       /* The project page reads the store's entry when there is one, so its
          Hebrew is the entry's; otherwise the collection's own. */
-      const hebrew = storeHebrew.get(c.slug) ?? areaHebrew(c);
-      add({ loc: `/projects/${c.slug}`, lastmod: contentModifiedAt(c, "en"), lastmodHe: contentModifiedAt(c, "he"), changefreq: "weekly", priority: 0.7, hebrew });
+      const entry = store.get(c.slug);
+      const hebrew = entry?.hebrew ?? areaHebrew(c);
+      /* The page prints both, so it changed when either did. */
+      const lastmod = later(entry?.lastmod, contentModifiedAt(c, "en"));
+      const lastmodHe = later(entry?.lastmodHe ?? entry?.lastmod, contentModifiedAt(c, "he"));
+      add({ loc: `/projects/${c.slug}`, lastmod, lastmodHe, changefreq: "weekly", priority: 0.7, hebrew });
     }
     add({ loc: `/blog/area/${c.slug}`, lastmod: contentModifiedAt(c, "en"), lastmodHe: contentModifiedAt(c, "he"), changefreq: "weekly", priority: 0.5, hebrew: areaHebrew(c) });
   }

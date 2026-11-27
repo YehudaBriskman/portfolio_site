@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { findTexts, isText } from "../schemas/i18n.js";
 
 /*
  * The date a page's CONTENT last changed, per language. `updatedAt` moves on
@@ -68,4 +69,58 @@ export function newestContentModified(docs: Stampable[]): string | undefined {
     .filter((x): x is string => Boolean(x))
     .sort()
     .pop();
+}
+
+/*
+ * The same for the items of a content document (#529). The projects live in one
+ * document, so its own dates move when any one of them is published; these keep
+ * a fingerprint and a date per item, so a project page's date is its own.
+ */
+type Item = { slug: string; order?: number };
+
+/** What an item says in one language: its place in the list and the Hebrew fingerprints are not content. */
+function itemHash(item: Item, lang: Lang): string | null {
+  const { order: _order, ...content } = item;
+  if (lang === "en") return sha([JSON.parse(JSON.stringify(content, (_k, v) => (isText(v) ? { en: v.en } : v)))]);
+  const he = findTexts(content).flatMap(({ path, text }) => (text.he?.trim() ? [[path, text.he]] : []));
+  return he.length ? sha(he) : null;
+}
+
+/**
+ * The stamps for the items about to be published. A date moves to `now` only
+ * for a language whose content changed. A document published before the stamps
+ * existed (`prevMod` absent) keeps `prev.at` for what did not change; an item
+ * with no date to keep (`at` null: still the seed) gets none.
+ */
+export function stampItemsModified(
+  prev: { items: Item[]; at: string | null },
+  next: Item[],
+  prevMod: Record<string, ContentMod> | undefined,
+  now: string,
+): Record<string, ContentMod> {
+  return Object.fromEntries(
+    next.map((item) => {
+      const old = prev.items.find((p) => p.slug === item.slug);
+      const mod: ContentMod = {};
+      for (const lang of ["en", "he"] as const) {
+        const hash = itemHash(item, lang);
+        if (hash === null) continue;
+        const before = prevMod?.[item.slug]?.[lang];
+        const unchanged = before ? before.hash === hash : !!old && itemHash(old, lang) === hash;
+        const at = unchanged ? (before?.at ?? (prevMod ? null : prev.at)) : now;
+        if (at) mod[lang] = { hash, at };
+      }
+      return [item.slug, mod];
+    }),
+  );
+}
+
+/** An item's content date; the document's publish date for one stored before the stamps. */
+export function itemModifiedAt(
+  doc: { publishedAt?: string; itemMod?: Record<string, ContentMod> } | null,
+  slug: string,
+  lang: Lang,
+): string | undefined {
+  if (!doc) return undefined;
+  return doc.itemMod ? doc.itemMod[slug]?.[lang]?.at : doc.publishedAt;
 }

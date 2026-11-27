@@ -1,3 +1,4 @@
+import type { ContentMod } from "../services/content-modified.js";
 import { z } from "zod";
 import { Fingerprint } from "./i18n.js";
 import { SlugSchema } from "./content.js";
@@ -283,6 +284,8 @@ export type ContentDoc<T = unknown> = {
   createdAt: string;
   updatedAt: string;
   publishedAt: string;
+  /** Projects only: per item and language, when its published content last changed (#529). */
+  itemMod?: Record<string, ContentMod>;
   /** Who wrote the published version: the seed, or the owner. */
   source: "seed" | "admin";
 };

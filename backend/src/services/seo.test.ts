@@ -83,6 +83,10 @@ describe("clampDescription", () => {
   });
 });
 
+/** The <url> block for one path. */
+const urlBlock = (xml: string, path: string) =>
+  xml.split("<url>").find((u) => u.includes(`<loc>https://yehudabriskman.com${path}</loc>`)) ?? "missing";
+
 describe("buildSitemap", () => {
   it("lists static routes, projects and posts as absolute URLs", () => {
     const xml = buildSitemap([post()], [collection()]);
@@ -130,6 +134,39 @@ describe("buildSitemap", () => {
     const xml = buildSitemap([], [], { helpHebrew: (id) => id !== "rss" });
     expect(xml).toContain("<loc>https://yehudabriskman.com/help/rss</loc>");
     expect(xml).not.toContain("/he/help/rss");
+  });
+
+  it("gives a help topic no lastmod: its words have no stored date (#529)", () => {
+    const xml = buildSitemap([post()], []);
+    expect(urlBlock(xml, "/help/rss")).not.toContain("<lastmod>");
+    expect(urlBlock(xml, "/he/help/rss")).not.toContain("<lastmod>");
+  });
+
+  it("dates the pages that list content, and not the ones written in the code (#529)", () => {
+    const xml = buildSitemap([post()], []);
+    for (const p of ["/", "/blog", "/projects", "/story", "/blog/log"]) expect(urlBlock(xml, p), p).toContain("<lastmod>2026-01-03");
+    for (const p of ["/developers/mcp", "/accessibility", "/privacy", "/help"]) expect(urlBlock(xml, p), p).not.toContain("<lastmod>");
+  });
+
+  it("dates a store-only project by its own content, never by the newest post (#529)", () => {
+    const xml = buildSitemap([post({ updatedAt: "2026-05-05T00:00:00.000Z" })], [], {
+      projects: [
+        { slug: "icaros", hebrew: true, lastmod: "2026-02-01T00:00:00.000Z", lastmodHe: "2026-02-02T00:00:00.000Z" },
+        { slug: "undated", hebrew: true },
+      ],
+    });
+    expect(urlBlock(xml, "/projects/icaros")).toContain("<lastmod>2026-02-01");
+    expect(urlBlock(xml, "/he/projects/icaros")).toContain("<lastmod>2026-02-02");
+    expect(urlBlock(xml, "/projects/undated")).not.toContain("<lastmod>");
+  });
+
+  it("dates a project page by the later of its store entry and its collection (#529)", () => {
+    const xml = buildSitemap([], [collection()], {
+      projects: [{ slug: "bothy", hebrew: true, lastmod: "2026-03-01T00:00:00.000Z", lastmodHe: "2025-01-01T00:00:00.000Z" }],
+    });
+    expect(urlBlock(xml, "/projects/bothy")).toContain("<lastmod>2026-03-01");
+    expect(urlBlock(xml, "/he/projects/bothy")).toContain("<lastmod>2026-01-04");
+    expect(urlBlock(xml, "/blog/area/bothy")).toContain("<lastmod>2026-01-04");
   });
 
   it("does not list a project twice once it has a real collection", () => {

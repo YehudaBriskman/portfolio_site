@@ -56,6 +56,12 @@ export const httpUrl = z
 
 const LinkItemSchema = z.object({ label: z.string().min(1).max(60), url: httpUrl });
 
+/** A tag as every write accepts it. */
+export const TagSchema = z.string().regex(/^[a-z0-9-]+$/).max(40);
+
+/** The excerpt of a note saved without one: the body's start, Markdown marks dropped. */
+export const excerptOf = (body: string) => body.replace(/[#*`>_[\]-]/g, "").slice(0, 300);
+
 export const PostSeoSchema = z.object({
   title: z.string().max(200).nullable().default(null),
   description: z.string().max(320).nullable().default(null),
@@ -100,7 +106,7 @@ export const PostContentSchema = z.object({
   subtitle: z.string().max(300).nullable().default(null),
   excerpt: z.string().max(320).default(""),
   body: z.string().max(200_000).default(""),
-  tags: z.array(z.string().regex(/^[a-z0-9-]+$/).max(40)).max(8).default([]),
+  tags: z.array(TagSchema).max(8).default([]),
   collection: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).default("site"),
   coverImage: httpUrl.nullable().default(null),
   links: z.array(LinkItemSchema).max(8).default([]),
@@ -177,6 +183,8 @@ export const PostSchema = z.object({
   /* Per-language fingerprint and date of the last real content change; moves the
      sitemap lastmod. Absent on older documents, which fall back to updatedAt. */
   contentMod: ContentModSchema.nullable().optional(),
+  /* No length cap on a stored tag: a note saved before TagSchema reached every
+     write path must still be read. */
   tags: z.array(z.string().regex(/^[a-z0-9-]+$/)).max(8).default([]),
   /* Which shelf this sits on. "site" is writing about this site and the craft
      behind it; anything else is a project's own notes. */

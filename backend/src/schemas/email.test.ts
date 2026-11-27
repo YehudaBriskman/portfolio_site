@@ -1,4 +1,4 @@
-import { SendSchema } from "./email.js";
+import { SendSchema, sendSchemaFor } from "./email.js";
 
 const form = {
   subject: "Portfolio contact from Ada",
@@ -37,5 +37,19 @@ describe("SendSchema keeps no field the service ignores", () => {
       expect(r.data).not.toHaveProperty("to");
       expect(r.data).not.toHaveProperty("idempotencyKey");
     }
+  });
+});
+
+describe("sendSchemaFor", () => {
+  const emailjs = { provider: "emailjs", templateId: "t", variables: { a: "b" }, subject: "s" };
+
+  it("takes the emailjs shape only on an emailjs deploy", () => {
+    expect(sendSchemaFor("emailjs").safeParse(emailjs).success).toBe(true);
+    expect(sendSchemaFor("smtp").safeParse(emailjs).success).toBe(false);
+  });
+
+  it("refuses an smtp payload on an emailjs deploy, which could not send it", () => {
+    expect(sendSchemaFor("emailjs").safeParse(form).success).toBe(false);
+    expect(sendSchemaFor("smtp").safeParse({ ...form, provider: "smtp" }).success).toBe(true);
   });
 });
