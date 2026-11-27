@@ -34,6 +34,7 @@ import FilterControl, { FilterTokens, SearchField, type FacetSpec } from "@/comp
 import { activeCount, hrefCleared, readSelection } from "@/components/gallery/facets";
 import { NOTE_FACETS, SEARCH_FROM, filterNotes, noteOptions, type NoteFacet } from "@/components/notes/shelf";
 import { inEnglish } from "@/i18n/words";
+import { useNotesWords } from "@/i18n/pages";
 import { blog, topPosts, type Collection, type PostSummary } from "@/services/blog";
 import { activity, type ActivityEvent, type Area } from "@/services/activity";
 
@@ -161,11 +162,12 @@ export function TopPostCard({ p, t, lang, areaTitle }: { p: PostSummary; t: Word
 }
 
 function TopicChips({ post, label }: { post: PostSummary; label: string }) {
+  const words = useNotesWords();
   if (post.tags.length === 0) return null;
   return (
     <Chips label={label}>
       {post.tags.map((tag) => (
-        <Chip key={tag} to={`/blog?view=feed&tag=${encodeURIComponent(tag)}`}>
+        <Chip key={tag} to={`/blog?view=feed&tag=${encodeURIComponent(tag)}`} name={words.tagged(tag)}>
           {tag}
         </Chip>
       ))}
@@ -178,6 +180,7 @@ export default function Blog() {
   const location = useLocation();
   const navigate = useNavigate();
   const [t, lang] = useWords();
+  const notesWords = useNotesWords();
   const view: View = params.get("view") === "feed" ? "feed" : "home";
   const selection = readSelection(params, NOTE_FACETS);
   const q = (params.get("q") ?? "").trim();
@@ -285,7 +288,7 @@ export default function Blog() {
       <ViewNav
         label={t.views}
         views={[
-          { key: "home", label: t.home, to: homeHref, icon: <House />, current: view === "home" },
+          { key: "home", label: t.home, name: t.homeName, to: homeHref, icon: <House />, current: view === "home" },
           { key: "feed", label: t.feed, to: feedHref, icon: <Rss />, current: view === "feed" },
         ]}
       />
@@ -493,7 +496,7 @@ export default function Blog() {
           <ul className={styles.quickChips} aria-label={t.quickTopics}>
             {topics.slice(0, 5).map(([tag]) => (
               <li key={tag}>
-                <Link rel="nofollow" to={`/blog?view=feed&tag=${encodeURIComponent(tag)}`} className={styles.quickChip} translate="no">
+                <Link rel="nofollow" to={`/blog?view=feed&tag=${encodeURIComponent(tag)}`} className={styles.quickChip} aria-label={notesWords.tagged(tag)} translate="no">
                   <Hash aria-hidden="true" />
                   {tag}
                 </Link>

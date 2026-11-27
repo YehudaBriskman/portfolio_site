@@ -304,7 +304,7 @@ export default function BlogLog() {
       <ViewNav
         label={t.views}
         views={[
-          { key: "home", label: t.home, to: "/blog", icon: <House />, current: false },
+          { key: "home", label: t.home, name: t.homeName, to: "/blog", icon: <House />, current: false },
           { key: "feed", label: t.feed, to: "/blog?view=feed", icon: <Rss />, current: false },
           { key: "log", label: w.log, to: LOG_PATH, icon: <List />, current: true },
         ]}
