@@ -135,10 +135,10 @@ describe("EXIF and location", () => {
       expect(f.data.includes(Buffer.from("Exif\0\0")), f.name).toBe(false);
     }
     expect(doc).toMatchObject({ type: "media", alt: "A field", width: 1700, height: 1000, kind: "image", format: "jpeg", createdBy: env.ADMIN_GITHUB_LOGIN });
-    expect(doc.id).toMatch(/^img-0001-[0-9a-f]{6}$/);
+    expect(doc.id).toMatch(/^img-0001-[0-9a-f]{16}$/);
     // Each variant is named by its own bytes.
     expect(new Set(doc.variants.map((v) => v.hash)).size).toBe(doc.variants.length);
-    expect(res.body.item.srcset.avif).toMatch(/^\/api\/images\/m\/img-0001-[0-9a-f]{6}\/w400-[0-9a-f]{16}\.avif 400w, /);
+    expect(res.body.item.srcset.avif).toMatch(/^\/api\/images\/m\/img-0001-[0-9a-f]{16}\/w400-[0-9a-f]{16}\.avif 400w, /);
     expect(res.body.item.url).toBe(`${env.SITE_URL}/api/images/media/${doc.id}`);
   });
 

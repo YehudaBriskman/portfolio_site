@@ -24,8 +24,8 @@ describe("card formats", () => {
     ["og", 1200, 630],
     ["square", 1080, 1080],
     ["story", 1080, 1920],
-  ] as const)("%s renders at %dx%d", (format, w, h) => {
-    expect(size(renderCardPng(LONG, format))).toEqual({ w, h });
+  ] as const)("%s renders at %dx%d", async (format, w, h) => {
+    expect(size(await renderCardPng(LONG, format))).toEqual({ w, h });
     expect(cardSvg(LONG, format)).toContain(`width="${w}" height="${h}"`);
   });
 
@@ -56,10 +56,10 @@ describe("the default card is unchanged", () => {
     expect(sha(cardSvg(LONG))).toBe("ef0b7267d184d0e9f0fc83f1f7114fb16ef9ddcffd75676cf943ae002618cd1c");
   });
 
-  it("PNG bytes are identical to the pre-format renderer", () => {
-    expect(sha(renderCardPng(SHORT))).toBe("db99bbb02f3d12b7909e910173a0889c2ce7bc9e8e5bc85e8ae52926edd3bbae");
-    expect(sha(renderCardPng(LONG, "og"))).toBe("80d499f81a6414f6174437b51e8c66d69f1ab83d6bc53260ece533db7261eb38");
-    expect(size(renderCardPng(SHORT))).toEqual({ w: 1200, h: 630 });
+  it("PNG bytes are identical to the pre-format renderer", async () => {
+    expect(sha(await renderCardPng(SHORT))).toBe("db99bbb02f3d12b7909e910173a0889c2ce7bc9e8e5bc85e8ae52926edd3bbae");
+    expect(sha(await renderCardPng(LONG, "og"))).toBe("80d499f81a6414f6174437b51e8c66d69f1ab83d6bc53260ece533db7261eb38");
+    expect(size(await renderCardPng(SHORT))).toEqual({ w: 1200, h: 630 });
   });
 });
 
@@ -80,10 +80,10 @@ describe("Hebrew cards", () => {
     expect(svg).not.toContain("IBM Plex Mono");
   });
 
-  it.each(OG_FORMATS)("render at the %s size and differ from English", (format) => {
-    const he = renderCardPng(HE, format);
-    expect(size(he)).toEqual(size(renderCardPng(LONG, format)));
-    expect(sha(he)).not.toBe(sha(renderCardPng({ ...HE, lang: "en" }, format)));
+  it.each(OG_FORMATS)("render at the %s size and differ from English", async (format) => {
+    const he = await renderCardPng(HE, format);
+    expect(size(he)).toEqual(size(await renderCardPng(LONG, format)));
+    expect(sha(he)).not.toBe(sha(await renderCardPng({ ...HE, lang: "en" }, format)));
   });
 
   it("truncate a very long title instead of overflowing", () => {
@@ -120,4 +120,26 @@ describe("Hebrew cards", () => {
       expect(runs("כותרת קצרה")).toEqual(["1:כותרת קצרה"]);
     });
   });
+});
+
+describe("rendering", () => {
+  it("leaves the event loop free while a card is drawn", async () => {
+    let turned = false;
+    setImmediate(() => (turned = true));
+    await renderCardPng({ title: "A card nothing has drawn yet" });
+    expect(turned).toBe(true);
+  });
+
+  it("draws a card asked for twice at once only once, and then keeps it", async () => {
+    const input = { title: "Asked for twice" };
+    const [a, b] = await Promise.all([renderCardPng(input), renderCardPng(input)]);
+    expect(b).toBe(a);
+    expect(await renderCardPng(input)).toBe(a);
+  });
+
+  it("keeps more than 64 small cards", async () => {
+    const first = await renderCardPng({ title: "card 0" });
+    for (let i = 1; i <= 70; i++) await renderCardPng({ title: `card ${i}` });
+    expect(await renderCardPng({ title: "card 0" })).toBe(first);
+  }, 60_000);
 });

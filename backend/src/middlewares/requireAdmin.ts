@@ -1,4 +1,3 @@
-import { timingSafeEqual } from "node:crypto";
 import type { Request, RequestHandler } from "express";
 import rateLimit from "express-rate-limit";
 import { couch, CouchError } from "../db/couch.js";
@@ -6,6 +5,7 @@ import { env } from "../env.js";
 import { logger } from "../logger.js";
 import { redeemTicket } from "../mcp/internal.js";
 import { auditEntry } from "../services/audit.js";
+import { safeEqual } from "../services/safeEqual.js";
 import {
   parseToken,
   tokenDocId,
@@ -36,13 +36,6 @@ declare global {
       admin?: Admin;
     }
   }
-}
-
-function safeEqual(a: string, b: string) {
-  const ab = Buffer.from(a);
-  const bb = Buffer.from(b);
-  if (ab.length !== bb.length) return false;
-  return timingSafeEqual(ab, bb);
 }
 
 /*

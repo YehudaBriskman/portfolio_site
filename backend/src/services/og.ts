@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { Resvg } from "@resvg/resvg-js";
+import { renderAsync } from "@resvg/resvg-js";
 import { z } from "zod";
 import { escapeXml as esc } from "./escape.js";
 
@@ -438,28 +438,63 @@ export function cardSvg(input: OgCardInput, format: OgFormat = "og"): string {
 </svg>`;
 }
 
-/** Rendered cards are small and change only when a post is edited. */
+/*
+ * Rendered cards change only when a post is edited, so they are kept, the least
+ * recently asked for leaving first once they weigh more than the budget (a card
+ * is about 200 KB).
+ */
 const pngCache = new Map<string, Buffer>();
-const PNG_CACHE_MAX = 64;
+const PNG_CACHE_MAX_BYTES = 24 * 1024 * 1024;
+let pngCacheBytes = 0;
+const rendering = new Map<string, Promise<Buffer>>();
 
-export function renderCardPng(input: OgCardInput, format: OgFormat = "og"): Buffer {
-  // The `og` key stays the bare input so existing cache entries are unchanged.
-  const key = format === "og" ? JSON.stringify(input) : `${format}:${JSON.stringify(input)}`;
-  const hit = pngCache.get(key);
-  if (hit) return hit;
+/*
+ * Drawn off the event loop, one at a time: the renderer works on libuv's small
+ * thread pool, which name lookups and file reads need too.
+ */
+let renderQueue: Promise<unknown> = Promise.resolve();
 
-  const resvg = new Resvg(cardSvg(input, format), {
+async function draw(input: OgCardInput, format: OgFormat): Promise<Buffer> {
+  const image = await renderAsync(cardSvg(input, format), {
     fitTo: { mode: "width", value: LAYOUTS[format].w },
     // Bundled fonts only: the container has no system fonts, and relying on
     // them would make the card render differently in dev and in production.
     font: { fontFiles: fonts().files, loadSystemFonts: false, defaultFontFamily: FONT_SANS },
   });
-  const png = Buffer.from(resvg.render().asPng());
+  return Buffer.from(image.asPng());
+}
 
-  if (pngCache.size >= PNG_CACHE_MAX) {
-    const oldest = pngCache.keys().next().value;
-    if (oldest !== undefined) pngCache.delete(oldest);
-  }
+function keep(key: string, png: Buffer): void {
   pngCache.set(key, png);
-  return png;
+  pngCacheBytes += png.length;
+  for (const [oldest, old] of pngCache) {
+    if (pngCacheBytes <= PNG_CACHE_MAX_BYTES) break;
+    pngCache.delete(oldest);
+    pngCacheBytes -= old.length;
+  }
+}
+
+export function renderCardPng(input: OgCardInput, format: OgFormat = "og"): Promise<Buffer> {
+  // The `og` key stays the bare input so existing cache entries are unchanged.
+  const key = format === "og" ? JSON.stringify(input) : `${format}:${JSON.stringify(input)}`;
+  const hit = pngCache.get(key);
+  if (hit) {
+    // Back to the young end of the map.
+    pngCache.delete(key);
+    pngCache.set(key, hit);
+    return Promise.resolve(hit);
+  }
+  let pending = rendering.get(key);
+  if (!pending) {
+    pending = renderQueue
+      .then(() => draw(input, format))
+      .then((png) => {
+        keep(key, png);
+        return png;
+      })
+      .finally(() => rendering.delete(key));
+    renderQueue = pending.catch(() => undefined);
+    rendering.set(key, pending);
+  }
+  return pending;
 }

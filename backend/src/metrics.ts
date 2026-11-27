@@ -1,6 +1,6 @@
 import express from "express";
 import type { NextFunction, Request, Response } from "express";
-import { timingSafeEqual } from "node:crypto";
+import { safeEqual } from "./services/safeEqual.js";
 import { Counter, Gauge, Histogram, Registry, collectDefaultMetrics } from "prom-client";
 import type { EmailProvider } from "./types/provider.js";
 
@@ -118,9 +118,7 @@ export function instrumentProvider(p: EmailProvider): EmailProvider {
 }
 
 function bearerOk(header: string | undefined, token: string): boolean {
-  const given = Buffer.from((header ?? "").replace(/^Bearer /i, ""));
-  const want = Buffer.from(token);
-  return given.length === want.length && timingSafeEqual(given, want);
+  return safeEqual((header ?? "").replace(/^Bearer /i, ""), token);
 }
 
 /**

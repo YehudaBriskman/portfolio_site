@@ -35,6 +35,7 @@ export class ImagesController {
 
       // Headers
       res.setHeader("Content-Type", payload.contentType);
+      res.setHeader("X-Content-Type-Options", "nosniff");
       res.setHeader("Content-Length", String(payload.size));
       res.setHeader("ETag", payload.etag);
       res.setHeader("Last-Modified", payload.lastModified.toUTCString());

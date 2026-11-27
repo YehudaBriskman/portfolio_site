@@ -112,7 +112,7 @@ export function newMediaId(fileName: string): string {
     .replace(/^-+|-+$/g, "")
     .slice(0, 40)
     .replace(/-+$/, "");
-  return `${stem || "image"}-${randomBytes(3).toString("hex")}`;
+  return `${stem || "image"}-${randomBytes(8).toString("hex")}`;
 }
 
 export function cleanName(fileName: string | undefined): string {
