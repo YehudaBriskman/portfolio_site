@@ -39,6 +39,9 @@ label+label{border-top:1px solid var(--rule)}
 input[type=checkbox]{width:1.25rem;height:1.25rem;margin:.2rem 0 0;accent-color:var(--signal);flex:none}
 label span b{display:block;font-weight:700}
 code{font-size:.9375rem}
+.dest{border:2px solid var(--ink);border-radius:4px;padding:.75rem 1rem}
+.dest .host{display:block;margin:.25rem 0 .5rem;font-size:1.5rem;line-height:1.3}
+.dest p:last-child{margin:0;font-size:.9375rem;color:var(--ink-soft)}
 .actions{display:flex;flex-wrap:wrap;gap:.75rem;margin-top:1.5rem}
 button,.btn{font:inherit;font-weight:700;min-height:44px;padding:.5rem 1.25rem;border-radius:4px;border:1px solid var(--ink);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center}
 .primary{background:var(--signal);border-color:var(--signal);color:#fff}
@@ -86,13 +89,15 @@ export function consentPage(
     title: `Connect ${o.clientName}?`,
     body: `
 <p>Signed in with GitHub as <b class="mono">@${escapeHtml(o.login)}</b>.</p>
-<p><b>${escapeHtml(o.clientName)}</b> is asking to use this site's MCP server as you. If you allow it, it receives a token at <code class="mono">${escapeHtml(target.origin + target.pathname)}</code>.</p>
+<p><b>${escapeHtml(o.clientName)}</b> is asking to use this site's MCP server as you.</p>
+<div class="dest"><p class="eyebrow">Access will be sent to</p><b class="host mono">${escapeHtml(target.host)}</b>
+<p>The app chose its own name, so check that you recognise this address. If you allow it, it receives a token at <code class="mono">${escapeHtml(target.origin + target.pathname)}</code>.</p></div>
 <form method="post" action="/mcp/oauth/consent">
 <input type="hidden" name="txn" value="${escapeHtml(o.txn)}">
 <input type="hidden" name="csrf" value="${escapeHtml(o.csrf)}">
 <fieldset><legend>Access</legend>
-<label><input type="checkbox" checked disabled><span><b>mcp:read</b>Read every post (drafts included), area and the admin audit log.</span></label>
-<label><input type="checkbox" name="write" value="on"><span><b>mcp:write</b>${o.writeRequested ? '<i class="soft">Requested by this app. </i>' : ""}Create and edit posts and areas. Every write is a dry run unless the tool is told otherwise, and a delete needs <code>confirm: true</code>. Each one is in the audit log under this app's name.</span></label>
+<label><input type="checkbox" checked disabled><span><b>mcp:read</b>Read everything in the admin tools: every post (drafts and archived included), every area (hidden ones too), the projects, story and site text with their drafts, site settings and their history, the media library, Hebrew translations and the admin audit log.</span></label>
+<label><input type="checkbox" name="write" value="on"><span><b>mcp:write</b>${o.writeRequested ? '<i class="soft">Requested by this app. </i>' : ""}Change the site: create, edit, publish, unpublish and archive posts; create, edit, sync and hide areas; edit, publish and discard drafts of the projects, story and site text; change and revert site settings; edit media details and delete media files for good; write Hebrew translations. Changes to published posts, areas, media details and settings are live at once. Most changes can be previewed first, and deleting needs <code>confirm: true</code>, but the app controls both. Each change is in the audit log under this app's name.</span></label>
 </fieldset>
 <div class="actions"><button class="primary" type="submit" name="decision" value="approve">Allow</button><button class="ghost" type="submit" name="decision" value="deny">Deny</button></div>
 </form>

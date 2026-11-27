@@ -547,6 +547,29 @@ describe("the sign-in", () => {
     expect((await post({ txn, csrf, decision: "approve" }, cookie)).status).toBe(400);
   });
 
+  it("consent says what each scope allows, and shows the redirect host on its own", async () => {
+    const { consentPage } = await signIn(createApp(), { scope: "mcp:read mcp:write" });
+    const text = (scope: string) =>
+      new RegExp(`<b>${scope}</b>([\\s\\S]*?)</label>`).exec(consentPage!)![1].replace(/<[^>]+>/g, "");
+    for (const words of [/drafts and archived/, /hidden/, /settings/, /media library/, /Hebrew translations/, /audit log/]) {
+      expect(text("mcp:read")).toMatch(words);
+    }
+    // Everything the write tools reach (shared/tools.ts), not only posts and areas.
+    for (const words of [
+      /publish, unpublish and archive posts/,
+      /hide areas/,
+      /publish and discard drafts/,
+      /change and revert site settings/,
+      /delete media files for good/,
+      /Hebrew translations/,
+      /live at once/,
+    ]) {
+      expect(text("mcp:write")).toMatch(words);
+    }
+    expect(consentPage).toContain('<b class="host mono">localhost:53682</b>');
+    expect(consentPage).toContain(REDIRECT);
+  });
+
   it("deny sends access_denied back and issues nothing", async () => {
     const app = createApp();
     const c = await register(app);
