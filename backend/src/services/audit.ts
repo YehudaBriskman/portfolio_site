@@ -35,11 +35,14 @@ export type AuditEntry = {
   afterHash: string | null;
 };
 
+/* Not localeCompare: stored hashes depend on this order. */
+const byCodeUnit = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0);
+
 function canonical(v: unknown): unknown {
   if (Array.isArray(v)) return v.map(canonical);
   if (v && typeof v === "object") {
     const out: Record<string, unknown> = {};
-    for (const k of Object.keys(v as object).sort()) {
+    for (const k of Object.keys(v as object).sort(byCodeUnit)) {
       if (k === "_rev") continue;
       out[k] = canonical((v as Record<string, unknown>)[k]);
     }

@@ -53,7 +53,7 @@ const toForm = (c: Campaign): Form => ({
   groups: c.groups, lang: c.lang, topic: c.topic ?? "", labelAd: c.labelAd === true,
 });
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
-const audienceKey = (f: Form) => JSON.stringify([[...f.groups].sort(), f.lang, f.topic]);
+const audienceKey = (f: Form) => JSON.stringify([[...f.groups].sort((a, b) => a.localeCompare(b)), f.lang, f.topic]);
 
 const ZONES = ["Asia/Jerusalem", "UTC", "Europe/London", "America/New_York"];
 const localZone = () => {

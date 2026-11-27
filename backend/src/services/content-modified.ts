@@ -66,6 +66,6 @@ export function newestContentModified(docs: Stampable[]): string | undefined {
   return docs
     .flatMap((d) => [contentModifiedAt(d, "en"), contentModifiedAt(d, "he")])
     .filter((x): x is string => Boolean(x))
-    .sort()
+    .sort((a, b) => a.localeCompare(b))
     .pop();
 }
