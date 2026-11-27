@@ -27,7 +27,7 @@ import BudgetPlan from "./BudgetPlan";
 import EmailPreview from "../previews/EmailPreview";
 import BlocksEditor from "./BlocksEditor";
 import { contentWarnings, suggestedSlot } from "./warnings";
-import { blockProblem, blocksToText, cleanBlocks, createPayload, toInput, zonedToIso, type Form } from "./helpers";
+import { blockProblem, blocksToText, cleanBlocks, createPayload, issueContent, toInput, zonedToIso, type Form } from "./helpers";
 import Progress from "./Progress";
 import { pillState } from "./status";
 import { Disclosure } from "@/components/ui/Disclosure";
@@ -53,7 +53,9 @@ const toForm = (c: Campaign): Form => ({
   groups: c.groups, lang: c.lang, topic: c.topic ?? "", labelAd: c.labelAd === true,
 });
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
-const audienceKey = (f: Form) => JSON.stringify([[...f.groups].sort(), f.lang, f.topic]);
+/* Only what can change who gets it, so typing in a block does not ask again. */
+const audienceKey = (f: Form, content: ReturnType<typeof issueContent>) =>
+  JSON.stringify([[...f.groups].sort(), f.lang, f.topic, content.kind, content.blocks?.map((b) => [b.type, b.topic, b.lang])]);
 
 const ZONES = ["Asia/Jerusalem", "UTC", "Europe/London", "America/New_York"];
 const localZone = () => {
@@ -140,12 +142,13 @@ export default function CampaignEditor({
   const blockBad = form.useBlocks && (form.blocks.length === 0 || form.blocks.some((b) => blockProblem(b)));
 
   /* The count follows what is ticked now, saved or not: the server counts, never the page. */
-  const akey = audienceKey(form);
+  const content = issueContent(campaign?.kind, form.useBlocks ? form.blocks : null);
+  const akey = audienceKey(form, content);
   useEffect(() => {
     if (form.groups.length === 0) return;
     let live = true;
     const t = setTimeout(() => {
-      adminCampaigns.audienceOf({ groups: form.groups, lang: form.lang, topic: form.topic || null }).then(
+      adminCampaigns.audienceOf({ groups: form.groups, lang: form.lang, topic: form.topic || null, ...content }).then(
         (a) => live && setAudienceRes({ key: akey, data: a }),
         () => live && setAudienceRes({ key: akey, data: "failed" }),
       );

@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import { Router, type Response } from "express";
 import { asyncHandler } from "../middlewares/asyncHandler.js";
 import { toIssues } from "../schemas/site-content.js";
-import { listRecipients, hashEmail } from "../audience/store.js";
+import { hashEmail } from "../audience/store.js";
 import { loadSendSettings, loadSettings } from "../announce/store.js";
 import { missingIdentity, validateSenderTexts } from "../announce/schemas.js";
 import { emailService } from "../services/email.service.js";
@@ -15,6 +15,7 @@ import { isTested, contentFingerprint } from "./readiness.js";
 import { campaignsBlocked, sendingState, setPaused } from "./killSwitch.js";
 import { compileIssue } from "./issue.js";
 import { renderCampaignMail } from "./render.js";
+import { recipientsOf } from "./topics.js";
 import { AudienceBody, CompileBody, SendingBody, CampaignCreate, CampaignId, CampaignPatch, PreviewBody, ScheduleBody, SendNowBody, type Campaign } from "./schemas.js";
 import { CAP_WINDOW_MS } from "./sender.js";
 import { dnsOverride, sendReadiness } from "./sendReadiness.js";
@@ -222,9 +223,6 @@ router.delete(
   }),
 );
 
-const recipientsOf = (c: Campaign) =>
-  listRecipients({ groups: c.groups, ...(c.lang && c.lang !== "all" ? { lang: c.lang } : {}), ...(c.topic ? { topic: c.topic } : {}) });
-
 /** How many mails each contact got in the monthly window (null when the limit is off). */
 async function capState(max: number, except?: string): Promise<Map<string, number> | null> {
   return max > 0 ? sentCounts(Date.now() - CAP_WINDOW_MS, except) : null;
@@ -232,7 +230,7 @@ async function capState(max: number, except?: string): Promise<Map<string, numbe
 const limitOf = (s: { maxPerContact30d: number }) => Math.max(0, Math.floor(s.maxPerContact30d));
 
 /* Reservoir of 3: a random sample without holding the list. Also counts who is already at the monthly limit when `counts` is given. */
-async function sampleOf(recipients: ReturnType<typeof listRecipients>, counts: Map<string, number> | null = null, max = 0) {
+async function sampleOf(recipients: ReturnType<typeof recipientsOf>, counts: Map<string, number> | null = null, max = 0) {
   const sample: string[] = [];
   let n = 0;
   let over = 0;
@@ -281,7 +279,8 @@ router.post(
     const b = AudienceBody.safeParse(req.body);
     if (!b.success) return res.status(400).json({ ok: false, error: "Check the fields and try again.", issues: toIssues(b.error) });
     res.locals.noAudit = true;
-    res.set("Cache-Control", "no-store").json({ ok: true, ...(await audienceOf({ groups: b.data.groups, lang: b.data.lang, ...(b.data.topic ? { topic: b.data.topic } : {}) } as Campaign)) });
+    const { groups, lang, topic, blocks, kind } = b.data;
+    res.set("Cache-Control", "no-store").json({ ok: true, ...(await audienceOf({ groups, lang, ...(topic ? { topic } : {}), ...(blocks ? { blocks } : {}), ...(kind ? { kind } : {}) } as Campaign)) });
   }),
 );
 
