@@ -153,6 +153,7 @@ export default function PhoneBrowse({
     >
       <div
         className={styles.root}
+        role="presentation"
         onClick={(e) => {
           const a = (e.target as HTMLElement).closest("a[href]");
           if (a && !a.closest("[data-filter-scope]")) onClose();

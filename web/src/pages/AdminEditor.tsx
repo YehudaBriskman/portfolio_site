@@ -180,6 +180,7 @@ function TagsField({
       {/* The box is the target, not only the 21px input inside it; a chip's own button keeps its click. */}
       <div
         className={styles.tags}
+        role="presentation"
         onClick={(e) => {
           if (!(e.target as HTMLElement).closest("button, input")) e.currentTarget.querySelector("input")?.focus();
         }}

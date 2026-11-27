@@ -216,6 +216,7 @@ export default function DashboardShell({
           <BottomSheet open={browseOpen} onClose={() => setBrowseOpen(false)} title={t.browse}>
             <div
               className={styles.localBody}
+              role="presentation"
               onClick={(e) => {
                 const a = (e.target as HTMLElement).closest("a[href]");
                 if (a && !a.closest("[data-filter-scope]")) setBrowseOpen(false);
@@ -249,6 +250,7 @@ export default function DashboardShell({
               and either way the sheet has done its job. */}
           <div
             className={styles.sheetBody}
+            role="presentation"
             onClick={(e) => {
               const a = (e.target as HTMLElement).closest("a[href]");
               if (a && !a.closest("[data-filter-scope]")) close();
