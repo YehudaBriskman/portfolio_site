@@ -2,7 +2,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render } from "@testing-library/react";
 import { PULL_IDLE, PULL_MAX, PULL_THRESHOLD, damp, overscrollOffset, popupOpen, pullEnd, pullMove, pullStart } from "@/components/ui/pullReveal";
 import { PullTitle } from "@/components/ui/PullTitle";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
+const CSS = readFileSync(resolve(__dirname, "PullTitle.module.css"), "utf8");
 const top = { atTop: true, blocked: false };
 
 describe("pull state machine", () => {
@@ -104,6 +107,21 @@ describe("PullTitle", () => {
     expect(p()).toBe(1);
     act(() => touch("touchend", 150));
     expect(p()).toBe(0);
+  });
+
+  it("steps the same way under the site's Pause", () => {
+    reduce(false);
+    document.body.classList.add("motion-paused");
+    render(<PullTitle title="Posts" enabled />);
+    act(() => touch("touchstart", 100));
+    act(() => touch("touchmove", 150));
+    expect(p()).toBe(1);
+    act(() => touch("touchend", 150));
+    document.body.classList.remove("motion-paused");
+  });
+
+  it("does not travel in the stylesheet under Pause either", () => {
+    expect(CSS).toMatch(/:global\(body\.motion-paused\) \.title\s*\{\s*transform:\s*none;/);
   });
 
   it("ignores a gesture that starts below the top and one made while a popup is open", () => {

@@ -14,8 +14,8 @@ const shortDate = (iso: string, lang: keyof typeof INTL) =>
   dateIn(lang, iso, { day: "numeric", month: "short", year: "numeric" });
 
 /*
- * A note, as a piece on the gallery wall (#193): the same wall, sizes and
- * arrival as /projects (`gallery/Wall.tsx`), in the clean dark card the
+ * A note, in the wall's sizes (#193; the type is `gallery/Wall.tsx`'s, though
+ * no page renders that wall now), in the clean dark card the
  * notes have worn since #179/#185 (`DarkCard.module.css`, beside
  * `.on-panel`, which is what re-inks everything inside it).
  *

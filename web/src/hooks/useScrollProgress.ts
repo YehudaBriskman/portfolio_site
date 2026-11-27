@@ -1,15 +1,12 @@
 import { useEffect, type RefObject } from "react";
 import { prefersReducedMotion } from "@/hooks/motionOff";
+import { useIsMotionPaused } from "@/hooks/useIsMotionPaused";
 
 /*
- * Publishes on <html> and nothing else:
- *   --p          0..1 palette progress, floored to a minimum travel distance
- *   --pr         0..1 unfloored progress through the WHOLE document
- *   --vh         0..n viewports scrolled
- *   --layer-N    0..2 the Nth layer: 0..1 rises to its ridge, 1..2 pushes past
- * Every scroll-linked effect on the site reads these, so there is exactly one
- * scroll listener no matter how many things animate. Deliberately not a React
- * state value: this changes every frame and must never trigger a re-render.
+ * Writes one custom property, --vh (viewports scrolled), on the element it is
+ * given, or on <html> without one. One reader: the cover figure's drift on a
+ * project page. Deliberately not a React state value: it changes while the
+ * reader scrolls and must never trigger a re-render.
  *
  * ── mounted on one route, deliberately ───────────────────────────────────
  *
@@ -39,6 +36,7 @@ import { prefersReducedMotion } from "@/hooks/motionOff";
  * one is a figure.
  */
 export function useScrollProgress(target?: RefObject<HTMLElement | null>) {
+  const paused = useIsMotionPaused();
   useEffect(() => {
     /* Read per write, not once: the figure renders after the project loads,
        so it is not there on the first frame. Until it is, nothing reads the
@@ -46,34 +44,12 @@ export function useScrollProgress(target?: RefObject<HTMLElement | null>) {
     const at = (): HTMLElement | null => (target ? target.current : document.documentElement);
     let raf = 0;
 
-    /*
-     * Nothing to drive under reduced motion.
-     *
-     * The layers take a static resting pose from CSS in that case (see
-     * `.scene-layer` in index.css), and this loop used to keep running anyway:
-     * a layout read and four transform writes every frame, all of them
-     * immediately overridden. Returning early also means the inline transforms
-     * never appear, so the stylesheet's resting rules are the only thing
-     * positioning the scene and do not have to fight inline specificity.
-     */
-    if (prefersReducedMotion()) return;
+    /* Both off-switches: the drift is set from script, so no stylesheet rule
+       can stop it, and a value nothing reads is not worth a listener. */
+    if (paused || prefersReducedMotion()) return;
 
-    /*
-     * The section list is queried once, not on every frame. querySelectorAll
-     * plus a getBoundingClientRect per section, sixty times a second, forces a
-     * layout each frame for a list that only changes on navigation or resize.
-     */
-    /*
-     * Nothing to collect any more. This used to query every section and every
-     * layer so it could measure one against the other each frame; the scene
-     * no longer depends on that relationship.
-     */
-
-    /*
-     * Writing a custom property on the root invalidates style for everything
-     * that reads it, so only write when the value has actually changed. During
-     * a slow scroll most frames produce the same rounded value.
-     */
+    /* Writing a custom property invalidates style for everything that
+       inherits it, so only write when the value has actually changed. */
     let last: Record<string, string> = {};
     let lastEl: HTMLElement | null = null;
     const put = (name: string, value: string) => {
@@ -91,42 +67,21 @@ export function useScrollProgress(target?: RefObject<HTMLElement | null>) {
     const measure = () => {
       raf = 0;
 
-      /*
-       * Two numbers and no layout read. The interleaved read-write pass this
-       * used to run existed to position the layers against their sections;
-       * with the scene static there is nothing to measure.
-       */
       const y = window.scrollY;
       const vh = Math.max(1, window.innerHeight);
 
       /*
-       * One write, three decimals, and it is still the most expensive thing
-       * on any page that mounts this.
-       *
-       * These are inherited custom properties on the root, so every write
-       * invalidates style for the whole document and re-resolves every var()
-       * in it. The `put()` guard suppresses that when the value has not
-       * changed, and quantising to a hundredth of a viewport means most
-       * frames write nothing.
-       *
-       * It is not enough on its own. Measured over a six-second scroll at 4x
-       * CPU throttling, with this line and the old --pr line stubbed out:
-       * 29.9fps and 97.5% dropped frames became 59.9fps and 0.3%, and style
-       * recalculation fell from 4.80s to 0.38s of a 6.3s pass. Either write
-       * alone held the page at 30fps, so suppressing one saved nothing — the
-       * cost is per-frame whole-document invalidation, not per-property.
-       *
-       * Which is why --pr is gone and why this hook is no longer mounted on
-       * every page. It writes one value, for one reader, on one route.
+       * One value, quantised to a hundredth of a viewport so most frames write
+       * nothing. Measured over a six-second scroll at 4x CPU throttling, when
+       * this and a second property were written on the root: 29.9fps and 97.5%
+       * dropped frames against 59.9fps and 0.3% without them, style
+       * recalculation 4.80s against 0.38s of a 6.3s pass. Either write alone
+       * held the page at 30fps: the cost is per-frame whole-document
+       * invalidation, not per-property. Hence the element target.
        */
       put("--vh", (Math.round((y / vh) * 100) / 100).toFixed(2));
     };
 
-    /*
-     * No will-change management left to do. It existed to hint four layer
-     * transforms; with nothing transforming, hinting a full-viewport surface
-     * would hold a compositor texture for no reason.
-     */
     const onScroll = () => {
       if (!raf) raf = requestAnimationFrame(measure);
     };
@@ -139,5 +94,5 @@ export function useScrollProgress(target?: RefObject<HTMLElement | null>) {
       window.removeEventListener("resize", onResize);
       if (raf) cancelAnimationFrame(raf);
     };
-  }, [target]);
+  }, [target, paused]);
 }

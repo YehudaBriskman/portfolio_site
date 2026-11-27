@@ -94,10 +94,10 @@ export default function Hero({ pinnedBehindNextAct = true }: { pinnedBehindNextA
   const fact = withHebrewName(plateTitle.fact, useLang());
   /*
     The desktop-only object: the particle word (the h1's own text, drawn as
-    particles). `useParticleGate` is false on the
-    server, on a phone or a coarse pointer, under reduced motion, Pause,
-    forced colours, print, or without a canvas - and then neither is mounted
-    and this is the static hero. See `hero/ParticleWord.tsx`.
+    particles). Parked: see `PARTICLE_WORD_ENABLED`. `useParticleGate` is
+    false on the server, on a phone or a coarse pointer, under reduced motion,
+    Pause, forced colours, print, or without a canvas - and then it is not
+    mounted and this is the static hero. See `hero/ParticleWord.tsx`.
   */
   const gate = useParticleGate(plate.name);
   const particles = PARTICLE_WORD_ENABLED && gate;

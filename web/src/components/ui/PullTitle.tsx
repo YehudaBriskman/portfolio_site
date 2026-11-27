@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { PULL_MAX, usePullReveal } from "@/components/ui/pullReveal";
 import styles from "@/components/ui/PullTitle.module.css";
+import { motionOff } from "@/hooks/motionOff";
 
 /*
  * The phone's page title, shown only while the page is pulled down from its top (#896).
@@ -9,8 +10,9 @@ import styles from "@/components/ui/PullTitle.module.css";
  * hidden by `.a-main h1` on a phone, still exposed to a screen reader and still the one h1). It moves with
  * transform and opacity only, through one custom property `--pull` (0..1) that this component writes straight
  * to the element, so a pull does no React render and no layout. While a finger is down it follows the finger;
- * on release a CSS transition takes it back, and a timer, not animationend, marks it at rest. For a viewer who
- * asked for less motion it does not slide at all: the title steps in and out by opacity on the same gesture.
+ * on release a CSS transition takes it back, and a timer, not animationend, marks it at rest. With motion off
+ * (reduced motion or the site's Pause) it does not slide at all: the title steps in and out by opacity on the
+ * same gesture.
  */
 
 const REST_MS = 260;
@@ -24,8 +26,8 @@ export function PullTitle({ title, enabled, isBlocked }: { title: string; enable
     const node = el.current;
     if (!node) return;
     clearTimeout(timer.current);
-    const reduce = typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const p = reduce ? (offset > 0 ? 1 : 0) : Math.min(1, offset / PULL_MAX);
+    const still = motionOff();
+    const p = still ? (offset > 0 ? 1 : 0) : Math.min(1, offset / PULL_MAX);
     node.style.setProperty("--pull", p.toFixed(3));
     if (held || offset > 0) {
       node.dataset.state = held ? "pull" : "release";

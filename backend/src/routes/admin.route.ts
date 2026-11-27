@@ -183,6 +183,11 @@ router.get(
   })
 );
 
+/*
+ * The whole-note write, older than draft/publish below: "move to drafts" in the
+ * admin and the MCP write tools still use it. Unlike those two it writes the
+ * live fields and the status it is given, at once.
+ */
 router.put(
   "/posts/:slug",
   asyncHandler(async (req, res) => {
@@ -234,6 +239,7 @@ router.put(
     if (!ok.success) {
       return res.status(400).json({ ok: false, error: "invalid document", details: ok.error.flatten() });
     }
+    doc.contentMod = stampContentModified(existing, doc, now).contentMod;
     try {
       const put = await couch.put<{ rev?: string }>(doc._id!, doc);
       /* The revision the store now holds, so the editor's next write names it. */
