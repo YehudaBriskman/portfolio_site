@@ -37,21 +37,34 @@ import { helpPageSeo } from "../services/help-pages.js";
 
 const router = Router();
 
-async function publishedPosts(): Promise<Post[]> {
+/*
+ * Every page here reads whole lists, so requests that arrive while a list is
+ * being read share that read. Nothing is kept once it settles: the next request
+ * asks the store again. Each caller gets its own array.
+ */
+function sharedRead<T>(read: () => Promise<T[]>): () => Promise<T[]> {
+  let pending: Promise<T[]> | null = null;
+  return async () => {
+    pending ??= read().finally(() => (pending = null));
+    return [...(await pending)];
+  };
+}
+
+const publishedPosts = sharedRead(async () => {
   const { docs } = await couch.find<Post>({
     selector: { type: "post", status: "published" },
     limit: 500,
   });
   return dropHiddenAreaNotes(docs);
-}
+});
 
-async function publishedCollections(): Promise<Collection[]> {
+const publishedCollections = sharedRead(async () => {
   const { docs } = await couch.find<Collection>({
     selector: { type: "collection", status: "published" },
     limit: 200,
   });
   return docs;
-}
+});
 
 /* ------------------------------------------------------------ crawler files */
 
@@ -165,7 +178,7 @@ router.get(
       if (!post) return res.status(404).json({ ok: false, error: "Not Found" });
       return sendPng(
         res,
-        renderCardPng(
+        await renderCardPng(
           {
             eyebrow: post.collection === "site" ? (he ? "הערה" : "Note") : post.collection.replace(/-/g, " "),
             title: (he && post.he?.title?.trim()) || post.title,
@@ -189,7 +202,7 @@ router.get(
       if (!title) return res.status(404).json({ ok: false, error: "Not Found" });
       return sendPng(
         res,
-        renderCardPng(
+        await renderCardPng(
           {
             eyebrow: he ? "פרויקט" : "Project",
             title: (he && collection?.he?.title?.trim()) || title,
@@ -210,7 +223,7 @@ router.get(
       const date = Number.isNaN(Date.parse(release.publishedAt)) ? "" : ` · ${release.publishedAt.slice(0, 10)}`;
       return sendPng(
         res,
-        renderCardPng(
+        await renderCardPng(
           { eyebrow: he ? "גרסה" : "Release", title: `${releases.repo.name} ${release.tag}`, meta: `yehudabriskman.com${date}`, ...lang },
           format,
         ),

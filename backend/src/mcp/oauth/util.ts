@@ -1,4 +1,3 @@
-import { timingSafeEqual } from "node:crypto";
 import { couch, CouchError } from "../../db/couch.js";
 
 export async function tryGet<T>(id: string): Promise<T | null> {
@@ -10,9 +9,4 @@ export async function tryGet<T>(id: string): Promise<T | null> {
   }
 }
 
-/** Constant-time string equality (a length mismatch returns early). */
-export function safeEqual(a: string, b: string) {
-  const ab = Buffer.from(a);
-  const bb = Buffer.from(b);
-  return ab.length === bb.length && timingSafeEqual(ab, bb);
-}
+export { safeEqual } from "../../services/safeEqual.js";

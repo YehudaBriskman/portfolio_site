@@ -38,6 +38,11 @@ describe("legacy image route conditional GET", () => {
     expect(res.headers["ETag"]).toMatch(/^"\d+-[\d.]+"$/);
   });
 
+  it("tells the browser not to guess the type", async () => {
+    const { controller } = setup();
+    expect((await run(controller, {})).headers["X-Content-Type-Options"]).toBe("nosniff");
+  });
+
   it("304 on a matching If-None-Match", async () => {
     const { controller } = setup();
     const etag = (await run(controller, {})).headers["ETag"];
