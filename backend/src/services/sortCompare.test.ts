@@ -1,12 +1,13 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { docHash } from "./audit.js";
 
 /* #827: a sort says how it compares. */
 describe("sort calls", () => {
   it.each(["audit.ts", "content-modified.ts"])("%s passes a compare function", (file) => {
-    expect(readFileSync(new URL(file, import.meta.url), "utf8")).not.toMatch(/\.(sort|toSorted)\(\s*\)/);
+    expect(readFileSync(join(__dirname, file), "utf8")).not.toMatch(/\.(sort|toSorted)\(\s*\)/);
   });
 });
 
