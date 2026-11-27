@@ -550,7 +550,7 @@ describe("the sign-in", () => {
   it("consent says what each scope allows, and shows the redirect host on its own", async () => {
     const { consentPage } = await signIn(createApp(), { scope: "mcp:read mcp:write" });
     const text = (scope: string) =>
-      new RegExp(`<b>${scope}</b>([\\s\\S]*?)</label>`).exec(consentPage!)![1].replace(/<[^>]+>/g, "");
+      new RegExp(`<b>${scope}</b>([\\s\\S]*?)</label>`).exec(consentPage!)![1].split(/<[^>]*>/).join("");
     for (const words of [/drafts and archived/, /hidden/, /settings/, /media library/, /Hebrew translations/, /audit log/]) {
       expect(text("mcp:read")).toMatch(words);
     }
