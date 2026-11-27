@@ -5,7 +5,7 @@ import type { Collection } from "@/services/blog";
 /*
  * The seed table.
  *
- * These four entries are the fallback behind /projects, not its source of truth —
+ * The entries below are the fallback behind /projects, not its source of truth:
  * a published `kind: "project"` collection with the same slug wins outright (see
  * `useProjects`). They exist because the collections database can be empty and a
  * portfolio whose Projects page is blank is worse than one that is slightly

@@ -31,6 +31,7 @@ import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { relatedTo, useProjects } from "@/hooks/useProjects";
 import { blog, type PostSummary } from "@/services/blog";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
+import { useIsMotionPaused } from "@/hooks/useIsMotionPaused";
 import { activity, areaFeedUrl, type ActivityEvent } from "@/services/activity";
 import Tabs from "@/components/work/Tabs";
 import tabStyles from "@/components/work/Tabs.module.css";
@@ -127,6 +128,8 @@ export default function Project() {
   const [releasesError, setReleasesError] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const reduced = usePrefersReducedMotion();
+  const paused = useIsMotionPaused();
+  const still = reduced || paused;
   const [t, lang] = useWorkWords();
   const w = useProjectWords();
   const [hw] = useHistoryWords();
@@ -665,7 +668,7 @@ export default function Project() {
                     <div
                       ref={drift}
                       className={styles.figure}
-                      style={reduced ? undefined : { transform: "translate3d(0, calc(var(--vh, 0) * -14px), 0)" }}
+                      style={still ? undefined : { transform: "translate3d(0, calc(var(--vh, 0) * -14px), 0)" }}
                     >
                       <Figure index={1} caption={c.tagline || c.title} note={entry.year ?? undefined}>
                         {c.coverImage ? (

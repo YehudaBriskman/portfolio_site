@@ -19,10 +19,9 @@ export type LabelScale = "plate" | "object" | "inline";
  *
  * The name is the object's heading in the document, so its rank is the
  * caller's to decide — a pile of projects under a section head wants `h3`, the
- * title plate wants `h1`. `p` is for the handful of places a label appears
- * where it is not a heading at all, such as inside another object's card.
+ * title plate wants `h1`.
  */
-export type NameAs = "h1" | "h2" | "h3" | "h4" | "p";
+export type NameAs = "h1" | "h2" | "h3";
 
 export type ObjectLabelProps = ObjectLabelData & {
   scale?: LabelScale;

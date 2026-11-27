@@ -309,3 +309,16 @@ describe("second polish pass", () => {
     expect(screen.getAllByText("Forks")).toHaveLength(1);
   });
 });
+
+describe("the figure's drift, wide", () => {
+  afterEach(() => document.body.classList.remove("motion-paused"));
+  const drifting = () => document.querySelector('[style*="--vh"]');
+
+  it("drifts with the scroll, and stays put under the site's Pause", async () => {
+    media(false);
+    renderAt("/projects/bothy");
+    await waitFor(() => expect(drifting()).toBeTruthy());
+    document.body.classList.add("motion-paused");
+    await waitFor(() => expect(drifting()).toBeNull());
+  });
+});
