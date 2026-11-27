@@ -163,6 +163,21 @@ export const couch = {
   },
 };
 
+/*
+ * Every document a Mango query matches: one _find stops at its `limit`, and says
+ * nothing about the rest, so follow the bookmark until a page comes back short.
+ */
+export async function findEvery<T>(selector: unknown, pageSize = 500): Promise<T[]> {
+  const all: T[] = [];
+  let bookmark: string | undefined;
+  for (;;) {
+    const page = (await couch.find<T>({ selector, limit: pageSize, bookmark })) as { docs: T[]; bookmark?: string };
+    all.push(...page.docs);
+    if (page.docs.length < pageSize || !page.bookmark || page.bookmark === bookmark) return all;
+    bookmark = page.bookmark;
+  }
+}
+
 /** The document, or null when it does not exist; any other failure still throws. */
 export async function tryGet<T>(id: string): Promise<T | null> {
   try {
