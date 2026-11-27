@@ -1,4 +1,4 @@
-import { couch } from "../db/couch.js";
+import { findEvery } from "../db/couch.js";
 import type { MediaDoc } from "./media.js";
 import { mentionsMedia } from "./media.js";
 
@@ -59,11 +59,7 @@ export function resetPublicContentCache() {
 }
 
 async function loadBlobs(): Promise<string[]> {
-  const { docs } = await couch.find<Raw>({
-    selector: { type: { $in: ["post", "collection", "content"] } },
-    limit: 5000,
-  });
-  return publicContentBlobs(docs);
+  return publicContentBlobs(await findEvery<Raw>({ type: { $in: ["post", "collection", "content"] } }));
 }
 
 /*
