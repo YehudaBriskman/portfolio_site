@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createApp } from "../app";
 import { couch, CouchError } from "../db/couch.js";
 import { env } from "../env.js";
-import { memoryLedgerStore, resetLedgerCache, useLedgerStore } from "./ledger.js";
+import { memoryLedgerStore, useLedgerStore } from "./ledger.js";
 import { resetGuard } from "../campaigns/guard.js";
 import { hashEmail } from "./store.js";
 import { onComplaintReceived } from "./complaintHook.js";

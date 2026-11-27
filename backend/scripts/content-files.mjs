@@ -52,7 +52,7 @@ export function parseNote(text, file = "<note>") {
   try {
     meta = JSON.parse(normalised.slice(4, end));
   } catch (e) {
-    throw new Error(`${file}: header is not valid JSON (${e.message})`);
+    throw new Error(`${file}: header is not valid JSON (${e.message})`, { cause: e });
   }
   const body = normalised.slice(end + 5).trim();
   return { meta, body };
@@ -90,7 +90,7 @@ export function loadContent(root = CONTENT_DIR) {
   }));
 
   const postsDir = join(root, "posts");
-  let folders = [];
+  let folders;
   try {
     folders = readdirSync(postsDir)
       .filter((n) => statSync(join(postsDir, n)).isDirectory())

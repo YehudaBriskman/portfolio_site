@@ -381,7 +381,7 @@ export const CAPTIONS_MAX_BYTES = 200 * 1024;
 /** A WebVTT file: text, under the cap, starting with the signature. Returns it normalised to UTF-8. */
 export function checkCaptions(buf: Buffer): Buffer {
   if (buf.length > CAPTIONS_MAX_BYTES) throw new MediaRejected(413, "Captions are limited to 200 KB.");
-  const text = buf.toString("utf8").replace(/^﻿/, "");
+  const text = buf.toString("utf8").replace(/^\uFEFF/, "");
   if (!/^WEBVTT(?:[ \t][^\n]*)?\r?\n/.test(text + "\n")) {
     throw new MediaRejected(415, "Captions must be a WebVTT (.vtt) file.");
   }
