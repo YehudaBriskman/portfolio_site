@@ -497,7 +497,8 @@ router.post(
     for (const line of b.data.text.split(/\r?\n/)) {
       let found = false;
       for (const raw of line.split(/[\s,;]+/)) {
-        const t = raw.replace(/^[<("']+|[>)"'.]+$/g, "").trim();
+        /* Two passes; the lookbehind starts the tail match only at the head of a run, so a long run of quotes costs linear time. */
+        const t = raw.replace(/^[<("']+/, "").replace(/(?<![>)"'.])[>)"'.]+$/, "").trim();
         if (!t) continue;
         const e = Email.safeParse(t);
         if (e.success) {
