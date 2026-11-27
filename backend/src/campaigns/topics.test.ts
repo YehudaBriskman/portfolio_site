@@ -5,12 +5,11 @@ import { couch, CouchError } from "../db/couch.js";
 import { env } from "../env.js";
 import { DEFAULT_ANNOUNCE_SETTINGS, SETTINGS_DOC_ID, type AnnounceEvent } from "../announce/schemas.js";
 import { hashEmail } from "../audience/store.js";
-import { ledgerPut, memoryLedgerStore, resetLedgerCache, useLedgerStore } from "../audience/ledger.js";
-import { emailService } from "../services/email.service.js";
+import { memoryLedgerStore, resetLedgerCache, useLedgerStore } from "../audience/ledger.js";
 import { resetGuard } from "./guard.js";
 import { resetHold, runSenderTick, type Deliver } from "./sender.js";
 import { resetBudgetThresholds } from "./budgetStore.js";
-import { buildIssue, compileIssue } from "./issue.js";
+import { compileIssue } from "./issue.js";
 import { contentFingerprint } from "./readiness.js";
 import type { Campaign } from "./schemas.js";
 

@@ -113,7 +113,7 @@ seed: ## Fill the local content store with fixture posts
 # `npm install` for the same reason CI uses it: the lockfile is the input.
 check: ## Run the gates CI runs: lint, typecheck, tests, builds
 	cd web && npm ci && npm run lint && npm run typecheck && npm test && npm run build
-	cd backend && npm ci && npm run lint --if-present && npm test && npm run build
+	cd backend && npm ci && npm run lint && npm test && npm run build
 
 # Not a test suite — four requests that between them prove the whole chain is
 # wired: nginx serves, nginx reaches the API, the API reaches CouchDB, and the

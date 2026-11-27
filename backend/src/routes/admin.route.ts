@@ -15,7 +15,6 @@ import {
   readingMinutes,
   type Collection,
   type Post,
-  type PostContent,
 } from "../schemas/content.js";
 import { z } from "zod";
 import { fetchRepoStats } from "../services/github.js";
@@ -40,7 +39,7 @@ import { signatureAdminRoutes } from "../signature/route.js";
 import audienceAdminRoutes from "../audience/admin.route.js";
 import campaignRoutes from "../campaigns/route.js";
 import adminTranslationsRoutes from "./admin-translations.route.js";
-import { COLLECTION_FIELDS, stampHebrewMeta, stampTexts, type HebrewMeta } from "../schemas/i18n.js";
+import { COLLECTION_FIELDS, stampHebrewMeta, stampTexts } from "../schemas/i18n.js";
 import { stampContentModified } from "../services/content-modified.js";
 import { fromContent, planPublish, postVersions, stampPost } from "../services/publishPlan.js";
 

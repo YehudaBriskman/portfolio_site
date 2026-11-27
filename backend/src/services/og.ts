@@ -69,8 +69,6 @@ const LAYOUTS: Record<OgFormat, Layout> = {
   },
 };
 
-const W = LAYOUTS.og.w;
-
 const C = {
   bitumen: "#0F1515",
   surface: "#1B2527",

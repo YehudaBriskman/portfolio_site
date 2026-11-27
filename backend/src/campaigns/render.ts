@@ -3,7 +3,7 @@ import { env } from "../env.js";
 import { fillParts, hasLink, manageUrl, unsubscribeUrls } from "../audience/mail.js";
 import type { Lang } from "../audience/schemas.js";
 import { oneLine } from "../mail/escape.js";
-import { renderMail, type Inline, type MailBlock } from "../mail/render.js";
+import { renderMail, type MailBlock } from "../mail/render.js";
 import { autoPreheader } from "../mail/preheader.js";
 import { bodyBlocks } from "./body.js";
 import { resolveSignature } from "../signature/resolve.js";

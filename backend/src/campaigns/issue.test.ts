@@ -91,6 +91,7 @@ describe("grouping and order", () => {
     expect(types[0]).not.toBe("rule");
     expect(types.at(-1)).not.toBe("rule");
     b.forEach((x, i) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
       if (x.type === "dot") expect(["p", "ul", "cta"]).toContain(b[i - 1]?.type), expect(["p", "ul", "cta"]).toContain(b[i + 1]?.type);
     });
   });

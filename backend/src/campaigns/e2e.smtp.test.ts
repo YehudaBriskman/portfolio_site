@@ -64,9 +64,9 @@ function startSink(): Promise<number> {
         if (cmd === "EHLO" || cmd === "HELO") sock.write("250-sink\r\n250-AUTH PLAIN LOGIN\r\n250 8BITMIME\r\n");
         else if (cmd === "AUTH") say("235 ok");
         else if (cmd === "MAIL") say("250 ok");
-        else if (cmd === "RCPT") (to = /<([^>]+)>/.exec(line)![1]), say("250 ok");
-        else if (cmd === "DATA") (data = true), say("354 go");
-        else if (cmd === "QUIT") (say("221 bye"), sock.end());
+        else if (cmd === "RCPT") (to = /<([^>]+)>/.exec(line)![1]), say("250 ok"); // eslint-disable-line @typescript-eslint/no-unused-expressions
+        else if (cmd === "DATA") (data = true), say("354 go"); // eslint-disable-line @typescript-eslint/no-unused-expressions
+        else if (cmd === "QUIT") (say("221 bye"), sock.end()); // eslint-disable-line @typescript-eslint/no-unused-expressions
         else say("250 ok");
       }
     });
