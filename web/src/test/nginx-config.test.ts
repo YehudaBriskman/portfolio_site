@@ -139,7 +139,7 @@ describe("nginx config", () => {
 
   it("forwards the client address from every proxied location (#121)", () => {
     const proxied = locations.filter((loc) => loc.block!.some((d) => d.name === "proxy_pass"));
-    expect(proxied.length).toBe(26);
+    expect(proxied.length).toBe(27);
     const wrong = proxied.flatMap((loc) => {
       const headers = upstreamHeaders(loc);
       // $proxy_add_x_forwarded_for appends nginx's peer (Traefik) to what
@@ -524,6 +524,58 @@ describe("removed project URLs redirect to /projects", () => {
   it.each(["/projects/change11", "/projects/text-encrypting"])("%s is redirected in the app too", (route) => {
     const line = APP.split("\n").find((l) => l.includes(`path="${route}"`));
     expect(line).toContain('<Navigate to="/projects" replace />');
+  });
+});
+
+describe("request body limits (#413)", () => {
+  const ID = "photo-0a1b2c3d";
+  /** The limit nginx applies to a path: the location's, else the server's, else its 1m default. */
+  const bodyLimit = (uri: string) => {
+    const find = (list: Directive[]) => list.find((d) => d.name === "client_max_body_size")?.args[0];
+    return find(locationFor(uri)!.block!) ?? find(server) ?? "1m";
+  };
+
+  it.each([
+    "/api/admin/media",
+    "/api/admin/media/",
+    `/api/admin/media/${ID}/file`,
+    `/api/admin/media/${ID}/file/`,
+  ])("%s takes a whole video upload", (uri) => {
+    expect(bodyLimit(uri)).toBe("31m");
+  });
+
+  it.each([
+    "/api/blog/posts",
+    "/api/email",
+    "/api/webhooks/resend",
+    "/api/subscribe",
+    "/api/admin/posts/a-post",
+    "/api/admin/audience/contacts/import",
+    "/api/admin/medi",
+    "/api/admin/translations",
+    "/mcp",
+    "/mcp/public",
+    "/mcp/oauth/token",
+  ])("%s keeps the 1m the API parses", (uri) => {
+    // express.json is 1mb, the same 1048576 bytes as nginx's 1m.
+    expect(bodyLimit(uri)).toBe("1m");
+  });
+
+  it("raises the limit in one location only", () => {
+    const raised = locations.filter((l) => l.block!.some((d) => d.name === "client_max_body_size" && d.args[0] !== "1m"));
+    expect(raised.map(label)).toEqual(["location ^~ /api/admin/media"]);
+    expect(server.some((d) => d.name === "client_max_body_size")).toBe(false);
+  });
+
+  it("proxies the upload like the rest of /api/", () => {
+    const upload = locationFor("/api/admin/media")!;
+    const api = locationFor("/api/blog/posts")!;
+    const rest = (loc: Directive) =>
+      loc.block!
+        .filter((d) => d.name !== "client_max_body_size")
+        .map((d) => [d.name, ...d.args].join(" "));
+    expect(upload).not.toBe(api);
+    expect(rest(upload)).toEqual(rest(api));
   });
 });
 
