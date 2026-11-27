@@ -156,6 +156,28 @@ describe("/api/admin/content", () => {
     expect(couch.put).not.toHaveBeenCalled();
   });
 
+  it("dates each project by the publish that changed it, per language (#529)", async () => {
+    put(stored("projects", seed().projects));
+    const data = seed().projects;
+    const [changed, other] = data.items;
+    changed.fact = { ...changed.fact, en: "A new line of fact" };
+    const res = await asAdmin(request(createApp()).post("/api/admin/content/projects/publish")).send({ data, _rev: "1-projects" });
+    expect(res.status).toBe(200);
+    const doc = store.get("content:projects")!;
+    expect(doc.itemMod![changed.slug].en!.at).toBe(doc.publishedAt);
+    expect(doc.itemMod![other.slug].en!.at).toBe(NOW);
+    expect(doc.itemMod![changed.slug].he!.at).toBe(NOW);
+
+    /* A later draft save keeps the dates, and the sitemap reads them. */
+    await asAdmin(request(createApp()).put("/api/admin/content/projects/draft")).send({ data, _rev: doc._rev });
+    expect(store.get("content:projects")!.itemMod).toEqual(doc.itemMod);
+    vi.spyOn(couch, "find").mockResolvedValue({ docs: [] });
+    const xml = (await request(createApp()).get("/api/seo/sitemap.xml")).text;
+    const block = (slug: string) => xml.split("<url>").find((u) => u.includes(`/projects/${slug}</loc>`))!;
+    expect(block(other.slug)).toContain(`<lastmod>${NOW}`);
+    expect(block(changed.slug)).toContain(`<lastmod>${doc.publishedAt}`);
+  });
+
   it("publishes: the draft becomes live and is cleared", async () => {
     const data = seed().story;
     data.roles[1].when = { en: "2024" };

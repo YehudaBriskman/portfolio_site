@@ -1,3 +1,4 @@
+import { PostSchema } from "../schemas/content.js";
 import { EventEmitter } from "node:events";
 import request from "supertest";
 import { createApp } from "../app";
@@ -78,6 +79,31 @@ describe("PUT /posts/:slug publishedAt", () => {
     );
     expect(res.status).toBe(200);
     expect(res.body.post).toMatchObject({ status: "draft", publishedAt: NOW });
+  });
+});
+
+describe("what both save paths agree on (#435)", () => {
+  const put = () => {
+    vi.spyOn(couch, "get").mockRejectedValue(missing());
+    return vi.spyOn(couch, "put").mockResolvedValue({ ok: true, rev: "1-x" });
+  };
+
+  it("gives the legacy PUT the same automatic excerpt as draft and publish", async () => {
+    put();
+    const body = { title: "T", body: "## A [link] *here*" };
+    const legacy = await asAdmin(request(createApp()).put("/api/admin/posts/a-note").send(body));
+    const draft = await asAdmin(request(createApp()).put("/api/admin/posts/a-note/draft").send(body));
+    expect(legacy.body.post.excerpt).toBe(" A link here");
+    expect(draft.body.post.excerpt).toBe(legacy.body.post.excerpt);
+  });
+
+  it("caps a tag at 40 characters on the legacy PUT too, and still reads a stored longer one", async () => {
+    const stored = put();
+    const long = "t".repeat(41);
+    const res = await asAdmin(request(createApp()).put("/api/admin/posts/a-note").send({ title: "T", tags: [long] }));
+    expect(res.status).toBe(400);
+    expect(stored).not.toHaveBeenCalled();
+    expect(PostSchema.safeParse(post({ tags: [long] })).success).toBe(true);
   });
 });
 

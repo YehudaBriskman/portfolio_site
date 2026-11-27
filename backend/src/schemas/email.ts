@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { env } from '../env.js';
 
 /*
  * The public contact endpoint takes only what the form sends. Zod strips any other key
@@ -33,7 +34,15 @@ const EmailJSSchema = BaseSchema.extend({
 
 const SmtpLikeSchema = BaseSchema.extend({
   provider: z.literal('smtp').optional()
-}).refine(d => d.text || d.template, { message: 'Provide text or a template' });
+}).refine(d => d.text?.trim() || d.template, { message: 'Provide text or a template' });
 
-export const SendSchema = z.union([EmailJSSchema, SmtpLikeSchema]);
-export type SendPayload = z.infer<typeof SendSchema>;
+export type SendPayload = z.infer<typeof EmailJSSchema> | z.infer<typeof SmtpLikeSchema>;
+
+/*
+ * The provider is the server's (EMAIL_PROVIDER), so only its shape is accepted: an
+ * emailjs payload on an SMTP deploy needs no text and would send an empty mail (#435).
+ */
+export const sendSchemaFor = (provider: 'smtp' | 'emailjs'): z.ZodType<SendPayload> =>
+  provider === 'emailjs' ? EmailJSSchema : SmtpLikeSchema;
+
+export const SendSchema = sendSchemaFor(env.EMAIL_PROVIDER);

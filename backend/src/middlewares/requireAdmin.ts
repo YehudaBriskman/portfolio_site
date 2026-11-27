@@ -74,10 +74,15 @@ function safeEqual(a: string, b: string) {
  *    management is proxy-only (see admin.route.ts), so a leaked token cannot
  *    mint another. A refusal is logged with the id's first characters only.
  *
- * The proxy path is checked first and is unchanged: a request carrying the
- * proof header is judged on it alone.
+ * The proxy path is checked first: a request carrying the proof header is
+ * judged on it alone. Its credential is the browser's cookie, so a write the
+ * browser itself marks as coming from another origin (Sec-Fetch-Site) is
+ * refused. The admin calls the API on its own origin; a client that sends no
+ * such header is not a browser page and passes.
  */
 const SAFE = new Set(["GET", "HEAD"]);
+/* The Sec-Fetch-Site values a session write may carry. */
+const OWN_SITE = new Set(["same-origin", "none"]);
 const LOOPBACK = new Set(["127.0.0.1", "::1", "::ffff:127.0.0.1"]);
 
 export const bearerOf = (req: Request) => /^Bearer\s+(\S+)$/i.exec(req.header("authorization") ?? "")?.[1];
@@ -174,6 +179,11 @@ export const requireAdmin: RequestHandler = (req, res, next) => {
   }
   const login = req.header("x-auth-request-user") ?? "";
   if (!login || login.toLowerCase() !== env.ADMIN_GITHUB_LOGIN.toLowerCase()) {
+    return res.status(403).json({ ok: false, error: "forbidden" });
+  }
+  const site = req.header("sec-fetch-site");
+  if (!SAFE.has(req.method) && req.method !== "OPTIONS" && site !== undefined && !OWN_SITE.has(site)) {
+    logger.warn({ site, method: req.method }, "admin write from another origin refused");
     return res.status(403).json({ ok: false, error: "forbidden" });
   }
   req.admin = { login, email: req.header("x-auth-request-email") ?? null, via: "proxy", tokenId: null, client: null, scope: "write" };

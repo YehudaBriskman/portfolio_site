@@ -241,6 +241,8 @@ export const filesOf = (p: Processed) => [
 
 /* ---------------------------------------------------------------- store -- */
 
+const REFERRER_PAGE = 1000;
+
 export const mediaStore = {
   async get(id: string): Promise<MediaDoc | null> {
     try {
@@ -304,10 +306,19 @@ export const mediaStore = {
    * runs only on admin reads and on delete.
    */
   async referrers(): Promise<Array<{ _id: string; type?: string; title?: string; slug?: string; key?: string; json: string }>> {
-    const { docs } = await couch.find<Record<string, unknown>>({
-      selector: { type: { $nin: ["media", "audit", "apitoken"] } },
-      limit: 5000,
-    });
+    // Paged to the end: a reference past a cap would let a used item be deleted.
+    const docs: Record<string, unknown>[] = [];
+    let bookmark: string | undefined;
+    for (;;) {
+      const page = (await couch.find<Record<string, unknown>>({
+        selector: { type: { $nin: ["media", "audit", "apitoken"] } },
+        limit: REFERRER_PAGE,
+        bookmark,
+      })) as { docs: Record<string, unknown>[]; bookmark?: string };
+      docs.push(...page.docs);
+      if (page.docs.length < REFERRER_PAGE || !page.bookmark) break;
+      bookmark = page.bookmark;
+    }
     return docs.map((d) => ({
       _id: String(d._id),
       type: typeof d.type === "string" ? d.type : undefined,

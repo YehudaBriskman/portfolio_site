@@ -1,3 +1,4 @@
+import type { ContentMod } from "../services/content-modified.js";
 import { z } from "zod";
 import { Fingerprint } from "./i18n.js";
 import { SlugSchema } from "./content.js";
@@ -98,7 +99,13 @@ export const ImageRefSchema = z
   .max(500)
   .regex(/^(\/[^\s]*|https:\/\/\S+)$/, "A path starting with / or an https:// URL");
 
-const Url = z.string().trim().url("A full URL, with https://").max(500);
+/* Printed as a link, so the scheme is limited: z.url() alone takes any scheme. */
+const Url = z
+  .string()
+  .trim()
+  .url("A full URL, with https://")
+  .max(500)
+  .regex(/^(https?:\/\/|mailto:)/i, "Must be an http(s) or mailto: address");
 const Byte = z.number().int().min(0, "0 to 255").max(255, "0 to 255");
 
 export const FIELD_KINDS = ["state", "tech", "where", "when", "count"] as const;
@@ -277,6 +284,8 @@ export type ContentDoc<T = unknown> = {
   createdAt: string;
   updatedAt: string;
   publishedAt: string;
+  /** Projects only: per item and language, when its published content last changed (#529). */
+  itemMod?: Record<string, ContentMod>;
   /** Who wrote the published version: the seed, or the owner. */
   source: "seed" | "admin";
 };
