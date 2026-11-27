@@ -32,7 +32,7 @@ const cases = [
   ["7.1 docs only", [["M", "docs/story/README.md"], ["A", "docs/story/shot.png"]], ["static"], [], false],
   ["7.1 root README", [["M", "README.md"]], ["static"], [], false],
   ["7.1 docs build script is still docs", [["M", "docs/hero-portrait/build.sh"]], ["static"], [], false],
-  ["web only", [["M", "web/src/App.tsx"], ["A", "web/public/img/x.webp"]], ["static", "frontend", "browser", "public-matrix", "scan"], ["web"], false],
+  ["web only", [["M", "web/src/main.tsx"], ["A", "web/public/img/x.webp"]], ["static", "frontend", "browser", "public-matrix", "scan"], ["web"], false],
   ["web config that is not shared", [["M", "web/vite.config.ts"]], ["static", "frontend", "browser", "scan"], ["web"], false],
   ["backend only", [["M", "backend/src/server.ts"]], ["static", "backend", "scan"], ["api"], false],
   ["web and backend", [["M", "web/src/a.ts"], ["M", "backend/src/b.ts"]], ["static", "frontend", "browser", "public-matrix", "backend", "scan"], ["web", "api"], false],
@@ -40,6 +40,23 @@ const cases = [
   ["mcp only: its own job, no image", [["M", "mcp/src/server.ts"], ["A", "mcp/README.md"]], ["static", "mcp"], [], false],
   ["mcp and backend", [["M", "mcp/src/api.ts"], ["M", "backend/src/app.ts"]], ["static", "backend", "mcp", "scan"], ["api"], false],
 ];
+// A test in one component reads these files of the other, so a change to one
+// must run both suites.
+for (const path of [
+  "backend/src/schemas/site-content.ts",
+  "backend/src/schemas/site-settings.ts",
+  "backend/src/content/seed.ts",
+  "backend/src/signature/strokes.ts",
+  "backend/src/services/help-pages.json",
+  "backend/src/services/seo-words.ts",
+  "backend/src/audience/schemas.ts",
+  "web/index.html",
+  "web/src/App.tsx",
+  "web/src/i18n/subscribe.ts",
+  "web/src/components/admin/announce/sender/rules.cases.json",
+]) {
+  cases.push([`cross-read: ${path}`, [["M", path]], ["static", "frontend", "browser", ...(path.startsWith("web/") && path !== "web/index.html" ? ["public-matrix"] : []), "backend", "scan"], ["web", "api"], false]);
+}
 const ALL_PR = ["static", "frontend", "browser", "public-matrix", "backend", "mcp", "scan"];
 const widening = [
   ["Dockerfile (web)", "web/Dockerfile"],

@@ -14,6 +14,9 @@ const SlugSchema = z
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "lowercase words separated by single hyphens");
 /* As backend/src/schemas/i18n.ts defines it (#303). */
 const Fingerprint = z.string().regex(/^[0-9a-f]{12}$/);
+/* As backend/src/services/content-modified.ts defines it (#529). */
+type ContentStamp = { hash: string; at: string };
+type ContentMod = { en?: ContentStamp; he?: ContentStamp };
 // ---- copy below ----
 
 /*
@@ -297,6 +300,8 @@ export type ContentDoc<T = unknown> = {
   createdAt: string;
   updatedAt: string;
   publishedAt: string;
+  /** Projects only: per item and language, when its published content last changed (#529). */
+  itemMod?: Record<string, ContentMod>;
   /** Who wrote the published version: the seed, or the owner. */
   source: "seed" | "admin";
 };
