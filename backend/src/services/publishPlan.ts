@@ -1,4 +1,4 @@
-import { rawImageUrlOrNull, readingMinutes, type Post, type PostContent } from "../schemas/content.js";
+import { excerptOf, rawImageUrlOrNull, readingMinutes, type Post, type PostContent } from "../schemas/content.js";
 import { LINK_LABEL_PATHS, POST_FIELDS, postEnglish, stampHebrewMeta, type HebrewMeta } from "../schemas/i18n.js";
 
 /** A published note's live content, in the shape a save sends. */
@@ -51,7 +51,7 @@ export function fromContent(c: PostContent) {
   return {
     title: c.title,
     subtitle: c.subtitle,
-    excerpt: c.excerpt || c.body.replace(/[#*`>_[\]-]/g, "").slice(0, 300),
+    excerpt: c.excerpt || excerptOf(c.body),
     body: c.body,
     tags: c.tags,
     collection: c.collection,

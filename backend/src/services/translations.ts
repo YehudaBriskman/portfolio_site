@@ -451,7 +451,7 @@ async function contentDraft(key: ContentKey, input: DraftInput): Promise<DraftRe
   const now = new Date().toISOString();
   const next: ContentDoc = existing
     ? { ...existing, draft: data, updatedAt: now }
-    : { _id: target, type: "content", key, published, draft: data, createdAt: now, updatedAt: now, publishedAt: now, source: "seed" } as ContentDoc;
+    : { _id: target, type: "content", key, published, draft: data, createdAt: now, updatedAt: now, publishedAt: now, source: "seed", ...(key === "projects" ? { itemMod: {} } : {}) } as ContentDoc;
   const rev = await save(next);
   if (rev === null) return conflictAck;
   return { ok: true, dryRun: false, target, changes, warnings, rev, audit: { target, before: existing, after: next } };

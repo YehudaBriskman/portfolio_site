@@ -118,3 +118,21 @@ describe("POST /api/email/send: what the public endpoint no longer accepts", () 
     expect(JSON.stringify(res.body)).not.toContain("secret-host");
   });
 });
+
+describe("POST /api/email/send: the provider is the server's, not the caller's (#435)", () => {
+  it("refuses an emailjs-shaped payload on an SMTP deploy, so no empty mail is sent", async () => {
+    const send = vi.spyOn(emailService, "send");
+    const res = await request(createApp())
+      .post("/api/email/send")
+      .send({ provider: "emailjs", templateId: "t", variables: {}, subject: "x" });
+    expect(res.status).toBe(400);
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it("refuses a blank text with no template", async () => {
+    const send = vi.spyOn(emailService, "send");
+    const res = await request(createApp()).post("/api/email/send").send({ subject: "x", text: "  \n " });
+    expect(res.status).toBe(400);
+    expect(send).not.toHaveBeenCalled();
+  });
+});
