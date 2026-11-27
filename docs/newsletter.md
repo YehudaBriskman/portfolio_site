@@ -187,7 +187,7 @@ runbook).
 `listRecipients` (`store.ts`) yields only `active` contacts that are in at least
 one of the campaign's groups, match the campaign's language when it is not
 `all`, and have the campaign's topic switched on when it has one. An empty group
-list matches nobody. Scheduling a campaign is refused (422) when the audience
+list matches nobody. An issue is also split by topic ("Topics inside an issue"). Scheduling a campaign is refused (422) when the audience
 has no active recipient, or when the footer identity is empty.
 
 Admin audience actions: groups (list with counts, create, rename, delete a manual
@@ -911,6 +911,31 @@ One button, **Compile issue** (Marketing > Campaigns), builds a DRAFT campaign o
 | Subject "{n} notes and {m} releases since {date}", preview line = the lead title | editable per draft |
 
 A post with a Hebrew translation gets an English copy tagged `en` and a Hebrew copy tagged `he`; a blocks' `lang` limits it to recipients of that language, an untagged block goes to everyone. Releases and untranslated posts are untagged.
+
+### Topics inside an issue
+
+Nobody gets content of a topic they switched off (`campaigns/topics.ts`, the one
+rule for the sender, the audience counts and the schedule checks).
+
+- Every compiled block carries a `topic`: releases and the "Also shipped" line are
+  `releases`; posts and new projects are `blog` (the "New notes" box). The cover
+  takes the lead item's topic. Intro, outro and blocks added in the editor carry
+  none and go to every recipient, so release news typed by hand reaches notes-only
+  readers too.
+- Each person gets one mail with the untagged blocks and those of their topics. It
+  counts once towards the budget and the monthly limit.
+- With no block of their topics left (in their language) they are not a recipient:
+  not counted in the audience, no send doc, nothing spent. The topics are checked
+  again on the fresh contact just before each send.
+- The compiled subject and preview line are swapped for the per-topic ones
+  (`topicLines`) while unchanged; a line the owner edited goes to everyone. A
+  duplicated issue has no `topicLines`: the subject is kept as is and a reader of
+  one topic gets a preview line taken from their own blocks. A reader of one topic
+  gets no cover when the lead item is of the other.
+- An issue with **no** topic on any block (compiled before blocks carried one, its
+  duplicate, or switched to plain text) cannot be split: it goes only to people
+  with both topics on. Compile it again to reach the rest. A one-item duplicate of
+  such an old issue has no kind and no separator to recognise it by.
 
 **Automatic compile.** `issue.autoCompile` = `off` (default) / `weekly` / `monthly`. It is checked whenever an announce event is recorded: when the newest issue is older than the period and no unsent issue draft is waiting, a draft is compiled. Still only a draft. The old per-event auto-draft (`autoDraftCampaign`, default off) is kept for those who want one draft per event.
 

@@ -453,6 +453,13 @@ describe("admin audience", () => {
     expect((await admin(request(app()).get(`${A}/suppression`))).body.suppressed).toHaveLength(4);
   });
 
+  it("bulk paste with a long run of quotes does not stall the event loop", async () => {
+    const text = `a${'"'.repeat(99_998)}a`;
+    const t0 = performance.now();
+    const r = await admin(request(app()).post(`${A}/suppression/bulk`).send({ text }));
+    expect(r.status).toBe(200);
+    expect(performance.now() - t0).toBeLessThan(2_000);
+  });
   it("bulk suppression: empty, unknown fields and more than 500 addresses are refused", async () => {
     expect((await admin(request(app()).post(`${A}/suppression/bulk`).send({}))).status).toBe(400);
     expect((await admin(request(app()).post(`${A}/suppression/bulk`).send({ text: "a@example.com", extra: 1 }))).status).toBe(400);

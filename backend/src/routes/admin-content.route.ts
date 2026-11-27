@@ -13,7 +13,10 @@ import {
   type ContentDoc,
   type ContentKey,
   type Issue,
+  ProjectsContentSchema,
+  type ProjectsContent,
 } from "../schemas/site-content.js";
+import { stampItemsModified } from "../services/content-modified.js";
 import {
   contentId,
   getContentDoc,
@@ -177,7 +180,15 @@ function fresh(key: ContentKey, now: string, existing: ContentDoc | null): Conte
     updatedAt: now,
     publishedAt: existing?.publishedAt ?? now,
     source: existing?.source ?? "seed",
+    /* Empty on a new document: nothing in it has been published, so nothing has a date. */
+    ...(key !== "projects" ? {} : existing ? (existing.itemMod ? { itemMod: existing.itemMod } : {}) : { itemMod: {} }),
   };
+}
+
+function projectStamps(existing: ContentDoc | null, next: ProjectsContent, now: string) {
+  const parsed = ProjectsContentSchema.safeParse(existing ? existing.published : seedFor("projects"));
+  const prev = { items: parsed.success ? parsed.data.items : [], at: existing?.publishedAt ?? null };
+  return stampItemsModified(prev, next.items, existing?.itemMod, now);
 }
 
 router.put(
@@ -209,6 +220,7 @@ router.post(
       draft: null,
       publishedAt: now,
       source: "admin",
+      ...(p.key === "projects" ? { itemMod: projectStamps(p.existing, p.data as ProjectsContent, now) } : {}),
     };
     if ((await write(doc)) === "conflict") return res.status(409).json(conflict);
     res.locals.audit = { target: doc._id, before: p.existing, after: doc };

@@ -15,8 +15,8 @@ export type CampaignLang = "en" | "he" | "all";
 export type PauseReason = "auth" | "consecutive" | "failure-rate" | "hard-bounce-rate" | "complaint";
 export type CampaignTopic = "blog" | "releases";
 
-/* `lang` limits a block to recipients of that language; no lang = everyone. */
-type L = { lang?: "en" | "he" };
+/* `lang` limits a block to recipients of that language, `topic` to those who have that topic on; neither = everyone. */
+type L = { lang?: "en" | "he"; topic?: CampaignTopic };
 export type Block =
   | ({ type: "p"; text: string; tone?: "strong" | "muted" } & L)
   | ({ type: "h2"; text: string } & L)
@@ -155,7 +155,7 @@ export const adminCampaigns = {
     (await call<{ campaign: Campaign }>(`/${enc(id)}`, { method: "PATCH", body: JSON.stringify({ ...b, ...(rev ? { _rev: rev } : {}) }) })).campaign,
   remove: (id: string) => call<{ ok: true }>(`/${enc(id)}`, { method: "DELETE" }),
   /** The count and masked samples for a selection, saved or not: the page asks as the boxes are ticked. */
-  audienceOf: async (sel: { groups: string[]; lang: CampaignLang; topic: CampaignTopic | null }): Promise<AudienceSample> => {
+  audienceOf: async (sel: { groups: string[]; lang: CampaignLang; topic: CampaignTopic | null; /** An issue only: who it reaches depends on its blocks. */ kind?: "issue"; blocks?: Block[] | null }): Promise<AudienceSample> => {
     const r = await call<AudienceSample>("/audience", json(sel));
     return { count: r.count ?? 0, samples: Array.isArray(r.samples) ? r.samples : [], ...(typeof r.overCap === "number" && typeof r.cap === "number" ? { overCap: r.overCap, cap: r.cap } : {}) };
   },

@@ -206,13 +206,13 @@ const cookieFrom = (res: request.Response) =>
   ([] as string[]).concat(res.headers["set-cookie"] ?? []).map((c) => c.split(";")[0]).find((c) => c.startsWith("mcp_txn="))!;
 
 /** Register, sign in through (fake) GitHub, consent; returns the code and what it takes to spend it. */
-async function signIn(app: ReturnType<typeof createApp>, opts: { write?: boolean; scope?: string; client?: { client_id: string } } = {}) {
+async function signIn(app: ReturnType<typeof createApp>, opts: { write?: boolean; scope?: string; client?: { client_id: string }; omitRedirect?: boolean } = {}) {
   const client = opts.client ?? (await register(app));
   const { verifier, challenge } = pkce();
   const auth = await request(app).get("/mcp/oauth/authorize").query({
     response_type: "code",
     client_id: client.client_id,
-    redirect_uri: REDIRECT,
+    ...(opts.omitRedirect ? {} : { redirect_uri: REDIRECT }),
     code_challenge: challenge,
     code_challenge_method: "S256",
     state: "client-state",
@@ -611,6 +611,30 @@ describe("PKCE", () => {
     const again = await exchange(app, s.code!, s.client.client_id, s.verifier);
     expect(again.status).toBe(400);
     expect((await rpc(app, "/mcp", "tools/list", {}, right.body.access_token)).status).toBe(401);
+  });
+});
+
+describe("redirect_uri at the token endpoint (RFC 6749 §4.1.3)", () => {
+  const spend = (app: ReturnType<typeof createApp>, code: string, clientId: string, verifier: string, redirect?: string) =>
+    request(app)
+      .post("/mcp/oauth/token")
+      .type("form")
+      .send({ grant_type: "authorization_code", code, code_verifier: verifier, client_id: clientId, ...(redirect ? { redirect_uri: redirect } : {}) });
+
+  it("is required when the authorization request named one", async () => {
+    const app = createApp();
+    const s = await signIn(app);
+    const res = await spend(app, s.code!, s.client.client_id, s.verifier);
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe("invalid_grant");
+    // Nothing was spent: the same code still works with it.
+    expect((await spend(app, s.code!, s.client.client_id, s.verifier, REDIRECT)).status).toBe(200);
+  });
+
+  it("may be left out when the authorization request left it out", async () => {
+    const app = createApp();
+    const s = await signIn(app, { omitRedirect: true });
+    expect((await spend(app, s.code!, s.client.client_id, s.verifier)).status).toBe(200);
   });
 });
 

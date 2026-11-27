@@ -5,7 +5,7 @@ import { listEvents, loadSettings } from "../announce/store.js";
 import { SYSTEM_GROUP } from "../audience/schemas.js";
 import { SITE_URL, absoluteUrl, pathIn } from "../services/seo.js";
 import { safeHref } from "./body.js";
-import type { Block, Campaign } from "./schemas.js";
+import type { Block, Campaign, Topic } from "./schemas.js";
 import { campaignId, createCampaign, listCampaigns } from "./store.js";
 
 /*
@@ -23,6 +23,8 @@ import { campaignId, createCampaign, listCampaigns } from "./store.js";
  *  - only the lead (newest) item carries the cover image
  *  - each item: title, date and read time, a longer summary, a "Read more" button
  *  - nothing new: no draft
+ *  - every block of an item carries its topic (releases are `releases`, posts and
+ *    new projects are `blog`), so each person gets only theirs (topics.ts)
  */
 export const PATCH_RELEASE = /^v?\d+\.\d+\.[1-9]\d*$/;
 const DAY = 86_400_000;
@@ -31,11 +33,13 @@ type Lang = "en" | "he";
 type Item = { ev: AnnounceEvent; at: string };
 type Section = { newest: string; heading: Block[]; items: Item[]; render: (it: Item, lead: boolean) => Block[] };
 
-export type Issue = { blocks: Block[]; bodyText: string; subject: string; name: string; preheader: string; notes: number; releases: number; since: string; until: string };
+export type Issue = { blocks: Block[]; bodyText: string; subject: string; name: string; preheader: string; topicLines: NonNullable<Campaign["topicLines"]>; notes: number; releases: number; since: string; until: string };
 
 const day = (iso: string, lang: Lang) => new Intl.DateTimeFormat(lang === "he" ? "he-IL" : "en-US", { dateStyle: "long", timeZone: "UTC" }).format(new Date(iso));
 const hasHe = (ev: AnnounceEvent) => Boolean(ev.titleHe || ev.summaryHe);
 const tag = (l: Lang | null): { lang?: Lang } => (l ? { lang: l } : {});
+const topicOf = (ev: AnnounceEvent): Topic => (ev.kind === "release" ? "releases" : "blog");
+const scoped = (topic: Topic, blocks: Block[]): Block[] => blocks.map((b) => ({ ...b, topic }));
 
 /** At most `max` characters, cut at a word boundary, with an ellipsis when cut. */
 export function clip(text: string, max: number): string {
@@ -157,39 +161,50 @@ export function buildIssue(events: AnnounceEvent[], settings: AnnounceSettings, 
   ].filter((b) => b.text.trim()) as Block[];
   const cover = lead ? cardUrl(lead.ev, SITE_URL) : null;
   if (cover && lead) {
-    if (lead.ev.kind === "post" && hasHe(lead.ev)) blocks.push({ type: "image", url: cover, text: lead.ev.title, lang: "en" }, { type: "image", url: cover, text: lead.ev.titleHe ?? lead.ev.title, lang: "he" });
-    else blocks.push({ type: "image", url: cover, text: lead.ev.title });
+    const images: Block[] =
+      lead.ev.kind === "post" && hasHe(lead.ev)
+        ? [{ type: "image", url: cover, text: lead.ev.title, lang: "en" }, { type: "image", url: cover, text: lead.ev.titleHe ?? lead.ev.title, lang: "he" }]
+        : [{ type: "image", url: cover, text: lead.ev.title }];
+    blocks.push(...scoped(topicOf(lead.ev), images));
   }
   sections.forEach((s, si) => {
-    if (si) blocks.push({ type: "rule" });
-    blocks.push(...s.heading);
-    s.items.slice(0, cfg.maxPerSection).forEach((it, i) => {
-      if (i) blocks.push({ type: "dot" });
-      blocks.push(...s.render(it, it === lead));
-    });
+    const topic = topicOf(s.items[0].ev);
+    const body = s.items.slice(0, cfg.maxPerSection).flatMap((it, i) => [...(i ? [{ type: "dot" as const }] : []), ...s.render(it, it === lead)]);
+    blocks.push(...scoped(topic, [...(si ? [{ type: "rule" as const }] : []), ...s.heading, ...body]));
   });
   if (patches.length) {
-    if (sections.length) blocks.push({ type: "rule" });
-    for (const l of ["en", "he"] as const) blocks.push({ type: "p", text: `${W[l].alsoShipped}: ${patches.map((p) => `${projectOf(p.ev)} ${p.ev.version ?? p.ev.ref}`).join(", ")}`, tone: "muted", lang: l });
+    if (sections.length) blocks.push(...scoped("releases", [{ type: "rule" }]));
+    for (const l of ["en", "he"] as const) blocks.push({ type: "p", text: `${W[l].alsoShipped}: ${patches.map((p) => `${projectOf(p.ev)} ${p.ev.version ?? p.ev.ref}`).join(", ")}`, tone: "muted", lang: l, topic: "releases" });
   }
   for (const l of ["en", "he"] as const) if (cfg.outro[l].trim()) blocks.push({ type: "p", text: cfg.outro[l], lang: l });
 
-  const notesN = inWindow.filter((i) => i.ev.kind !== "release").length;
-  const relN = inWindow.length - notesN;
   const w = W.en;
-  const parts = [
-    notesN ? (notesN === 1 ? w.noteOne : w.noteMany).replace("{n}", String(notesN)) : "",
-    relN ? (relN === 1 ? w.releaseOne : w.releaseMany).replace("{n}", String(relN)) : "",
-  ].filter(Boolean);
-  const subject = `${parts.join(` ${w.and} `)} ${w.since.replace("{date}", day(since.toISOString(), "en"))}`;
+  /* The subject and preview line for a set of items: the whole issue, and each topic on its own. */
+  const linesFor = (items: Item[]) => {
+    const notes = items.filter((i) => i.ev.kind !== "release").length;
+    const releases = items.length - notes;
+    const parts = [
+      notes ? (notes === 1 ? w.noteOne : w.noteMany).replace("{n}", String(notes)) : "",
+      releases ? (releases === 1 ? w.releaseOne : w.releaseMany).replace("{n}", String(releases)) : "",
+    ].filter(Boolean);
+    const subject = `${parts.join(` ${w.and} `)} ${w.since.replace("{date}", day(since.toISOString(), "en"))}`;
+    const first = items.find((i) => cards.includes(i));
+    return { notes, releases, lines: { subject: subject.slice(0, 200), preheader: clip(first ? first.ev.title : subject, 100) } };
+  };
+  const all = linesFor(inWindow);
+  const topicLines: Issue["topicLines"] = { ...all.lines };
+  for (const topic of ["blog", "releases"] as const) {
+    const items = inWindow.filter((i) => topicOf(i.ev) === topic);
+    if (items.length) topicLines[topic] = linesFor(items).lines;
+  }
   return {
     blocks,
     bodyText: blocksText(blocks),
-    subject: subject.slice(0, 200),
+    ...all.lines,
+    topicLines,
     name: `Issue ${now.toISOString().slice(0, 10)}`,
-    preheader: clip(lead ? lead.ev.title : subject, 100),
-    notes: notesN,
-    releases: relN,
+    notes: all.notes,
+    releases: all.releases,
     since: since.toISOString(),
     until: now.toISOString(),
   };
@@ -208,6 +223,7 @@ export async function compileIssue(now = new Date(), opts: { since?: string } = 
     name: issue.name,
     subject: issue.subject,
     preheader: issue.preheader,
+    topicLines: issue.topicLines,
     bodyText: issue.bodyText,
     blocks: issue.blocks,
     groups: [SYSTEM_GROUP],

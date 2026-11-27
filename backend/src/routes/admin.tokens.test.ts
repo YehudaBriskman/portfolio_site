@@ -379,3 +379,59 @@ describe("session-only areas: audience, campaigns, announce settings", () => {
     }
   });
 });
+
+describe("the proxy session and Sec-Fetch-Site", () => {
+  const post = (site?: string) => {
+    const r = asAdmin(request(createApp()).post("/api/admin/no-such-route"));
+    return site === undefined ? r : r.set("Sec-Fetch-Site", site);
+  };
+
+  it.each(["cross-site", "same-site", "something-else"])("refuses a write marked %s", async (site) => {
+    auditLog();
+    const res = await post(site);
+    expect(res.status).toBe(403);
+    expect(res.body).toEqual({ ok: false, error: "forbidden" });
+  });
+
+  it.each([undefined, "same-origin", "none"])("lets a write through the gate when the header is %s", async (site) => {
+    auditLog();
+    expect((await post(site)).status).toBe(404);
+  });
+
+  it("leaves reads alone", async () => {
+    const res = await asAdmin(request(createApp()).get("/api/admin/me")).set("Sec-Fetch-Site", "cross-site");
+    expect(res.status).toBe(200);
+  });
+
+  it("does not judge a bearer token by it", async () => {
+    const { token, doc } = storedToken("write");
+    storeWith(doc);
+    const res = await request(createApp())
+      .post("/api/admin/no-such-route")
+      .set("Authorization", `Bearer ${token}`)
+      .set("Sec-Fetch-Site", "cross-site");
+    expect(res.status).toBe(404);
+  });
+});
+
+describe("admin responses are not stored", () => {
+  it("says no-store on an answer and on a refusal", async () => {
+    const ok = await asAdmin(request(createApp()).get("/api/admin/me"));
+    expect(ok.status).toBe(200);
+    expect(ok.headers["cache-control"]).toBe("no-store");
+    const refused = await request(createApp()).get("/api/admin/me");
+    expect(refused.status).toBe(401);
+    expect(refused.headers["cache-control"]).toBe("no-store");
+  });
+});
+
+describe("the audit log's path", () => {
+  it("is capped", async () => {
+    const append = auditLog();
+    await asAdmin(request(createApp()).post(`/api/admin/${"a".repeat(4000)}`));
+    await vi.waitFor(() => expect(append).toHaveBeenCalled());
+    const path = auditPuts(append)[0].path as string;
+    expect(path).toHaveLength(512);
+    expect(path.startsWith("/api/admin/aaa")).toBe(true);
+  });
+});

@@ -1,4 +1,4 @@
-import { readFile, stat } from "node:fs/promises";
+import { lstat, readFile } from "node:fs/promises";
 import { basename, isAbsolute } from "node:path";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
@@ -44,7 +44,9 @@ async function localFile(path: string, rule: keyof typeof RULES): Promise<{ name
   if (!exts.includes(ext)) return `${basename(path)}: a ${rule} must be ${exts.map((e) => `.${e}`).join(", ")}.`;
   let size: number;
   try {
-    const s = await stat(path);
+    // lstat: a link could name any file under an innocent extension.
+    const s = await lstat(path);
+    if (s.isSymbolicLink()) return `${path} is a symbolic link; give the file's own path.`;
     if (!s.isFile()) return `${path} is not a file.`;
     size = s.size;
   } catch {
