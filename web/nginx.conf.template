@@ -130,11 +130,23 @@ map $host $www_apex {
   default "";
 }
 
+# The admin has one address. The sign-in sits in front of the admin host alone,
+# so the same pages on the public host could only answer every call with a 401:
+# they are not served there, they are sent to the admin host. The admin host's
+# bare root goes to the admin too, so its name is all there is to type. Preprod
+# and Compose gate /admin on their own host and match nothing here.
+map $host$uri $admin_away {
+  "~^yehudabriskman\.com/admin(/|$)"  https://admin.yehudabriskman.com$request_uri;
+  admin.yehudabriskman.com/            /admin;
+  default "";
+}
+
 server {
   listen 8080;
   server_name _;
 
   if ($www_apex) { return 301 https://$www_apex$request_uri; }
+  if ($admin_away) { return 302 $admin_away; }
 
   root /usr/share/nginx/html;
   index index.html;

@@ -633,3 +633,36 @@ describe("edge config details", () => {
     for (const l of captures) expect(l.args[1], label(l)).not.toMatch(/\[\^/);
   });
 });
+
+describe("the admin lives on one host", () => {
+  const top = parse(TEMPLATE, SNIPPETS);
+  const map = () => top.find((d) => d.name === "map" && d.args[1] === "$admin_away");
+  /* The map as nginx reads it: the first matching row, else the default. */
+  const away = (host: string, uri: string) => {
+    for (const row of map()!.block!) {
+      const [key, value] = [row.name, row.args[0]];
+      if (key === "default") continue;
+      if (key.startsWith("~") ? new RegExp(key.slice(1)).test(host + uri) : key === host + uri) return value;
+    }
+    return "";
+  };
+
+  it("sends the public host's admin pages, and the admin host's bare root, to the admin", () => {
+    expect(map()?.args[0]).toBe("$host$uri");
+    for (const uri of ["/admin", "/admin/", "/admin/posts/a"]) expect(away("yehudabriskman.com", uri), uri).toBe("https://admin.yehudabriskman.com$request_uri");
+    expect(away("admin.yehudabriskman.com", "/")).toBe("/admin");
+  });
+
+  it("leaves everything else alone", () => {
+    for (const [host, uri] of [
+      ["yehudabriskman.com", "/"], ["yehudabriskman.com", "/administration"], ["yehudabriskman.com", "/api/admin/me"],
+      ["admin.yehudabriskman.com", "/admin"], ["admin.yehudabriskman.com", "/blog"], ["preprod.yehudabriskman.com", "/admin"], ["localhost", "/admin"],
+    ]) expect(away(host, uri), host + uri).toBe("");
+  });
+
+  it("redirects before any location answers, without a cached permanence", () => {
+    const server = top.find((d) => d.name === "server")!;
+    const rule = server.block!.find((d) => d.name === "if" && d.args.join(" ").includes("$admin_away"));
+    expect(rule?.block).toEqual([{ name: "return", args: ["302", "$admin_away"] }]);
+  });
+});
