@@ -2,7 +2,7 @@ import { Email } from "./schemas.js";
 /* A small RFC 4180 reader/writer. Rows in, rows out; no dependency. */
 
 export function parseCsv(input: string): string[][] {
-  const text = input.replace(/^﻿/, "");
+  const text = input.replace(/^\uFEFF/, "");
   const rows: string[][] = [];
   let row: string[] = [];
   let cell = "";

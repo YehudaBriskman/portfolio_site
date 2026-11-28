@@ -1,7 +1,7 @@
 /*
  * The gallery wall, and `assemble`, which closes each band of it in from the
- * edges. Shared by /projects and /blog since #193; what goes IN a cell is
- * each page's own (`projects/Gallery.module.css`, `notes/NoteTile.module.css`).
+ * edges. No page renders it any more (see Wall.tsx); what goes IN a cell is
+ * the caller's own.
  *
  * LAYOUT
  * ------

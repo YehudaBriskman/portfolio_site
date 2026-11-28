@@ -772,22 +772,40 @@ Marketing > Settings: the master switch is in Everyday, the per-event choices, t
 
 The contact form shares the provider's daily quota (100 mails) with signup
 confirmations and campaigns, so `backend/src/services/contactGuard.ts` limits it.
-Every limit is silent: the visitor gets the same `200 {ok:true}` whether the
-message was sent, dropped by a limit or caught by the honeypot.
+What the visitor is told: a honeypot hit, a limited auto-reply and a message past
+the daily notice ceiling get the same `200 {ok:true}` as a send; a message refused
+by the per-client or whole-form limit gets a `429`, so the form never claims it was
+sent.
 
 | Limit | Value | When it trips |
 |---|---|---|
 | Honeypot (`website`) | must be empty | nothing is sent or counted |
-| Per client | 5 messages / 15 min | message dropped |
-| Whole form | 30 messages / hour | message dropped |
-| Per address | 1 auto-reply / hour | owner notice still sent, auto-reply skipped |
+| Per client (IPv4 address, or IPv6 /56 network) | 5 messages / 15 min | message refused (`429`) |
+| Whole form | 30 messages / hour | message refused (`429`) |
+| Per address (`+tag` variants count as one) | 1 auto-reply / hour | owner notice still sent, auto-reply skipped |
 | Daily mail ceiling | `CONTACT_DAILY_MAIL_CEILING`, default 30 mails / UTC day | both mails count; over it, auto-replies stop but owner notices are still sent |
 | Daily notice ceiling | `CONTACT_DAILY_NOTICE_CEILING`, default 40 notices / UTC day | over it, the message is dropped and a warning is logged (no address) |
 
-Counters live in memory (a restart resets them). The per-address window stores a
-SHA-256 of the address, never the address. A dropped message is logged as a
-warning without any address. The 40-requests / 15-minute junk limiter on
-`/api/email` still answers 429.
+`CONTACT_AUTO_REPLY=off` stops the auto-reply altogether (default `on`); owner
+notices are not affected. The per-address window stores a SHA-256 of the address,
+never the address. A refused or dropped message is logged as a warning without any
+address. The 40-requests / 15-minute junk limiter on `/api/email` also answers 429.
+
+### The counters are per process and in memory
+
+Every counter in the table, and the signup ceiling (`SIGNUP_DAILY_MAIL_CEILING`),
+lives in the API process's memory (#611, accepted):
+
+- A restart or deploy sets them all back to zero, daily ceilings included.
+- Each running API process counts separately. While two run (as during a rolling
+  restart), or if the API is ever scaled out, the effective ceilings add up: twice
+  the numbers above for two processes.
+- The mail provider's own quota is the limit that always holds. The per-day
+  `mailcount:` document of the mail budget records what was sent, but the contact
+  form does not read it.
+
+Before running more than one replica for good, move the daily counters to a shared
+store.
 
 ## Runbook
 

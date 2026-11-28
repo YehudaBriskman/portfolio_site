@@ -5,7 +5,7 @@ import emailRoutes from "../routes/email.route.js";
 import * as providers from "../providers/index.js";
 import { logger } from "../logger.js";
 import { env } from "../env.js";
-import { resetContactGuard, CLIENT_LIMIT, GLOBAL_LIMIT, ADDRESS_WINDOW_MS, allowAutoReply, reserveNotice, reserveAutoReply, reserveSignupMail, releaseSignupMail } from "./contactGuard.js";
+import { resetContactGuard, CLIENT_LIMIT, GLOBAL_LIMIT, ADDRESS_WINDOW_MS, allowAutoReply, allowMessage, reserveNotice, reserveAutoReply, reserveSignupMail, releaseSignupMail } from "./contactGuard.js";
 
 const body = (replyTo: string, extra: Record<string, unknown> = {}) => ({
   subject: "Hi",
@@ -99,6 +99,43 @@ describe("contact form limits", () => {
     expect(allowAutoReply("x@example.invalid", t0)).toBe(true);
     expect(allowAutoReply("X@example.invalid", t0 + ADDRESS_WINDOW_MS - 1)).toBe(false);
     expect(allowAutoReply("x@example.invalid", t0 + ADDRESS_WINDOW_MS + 1)).toBe(true);
+  });
+
+  it("treats a +tag variant as the same address for the auto-reply", () => {
+    const t0 = 1_000_000;
+    expect(allowAutoReply("x@example.invalid", t0)).toBe(true);
+    expect(allowAutoReply("x+one@example.invalid", t0 + 1)).toBe(false);
+    expect(allowAutoReply("X+two+three@Example.invalid", t0 + 2)).toBe(false);
+    expect(allowAutoReply("y+one@example.invalid", t0 + 3)).toBe(true);
+  });
+
+  it("counts one IPv6 network as one client, and IPv4 addresses one by one", () => {
+    const t0 = 1_000_000;
+    for (let i = 0; i < CLIENT_LIMIT; i++) expect(allowMessage(`2001:db8:1:1::${i + 1}`, t0)).toBe(true);
+    expect(allowMessage("2001:db8:1:1:ffff::9", t0)).toBe(false);
+    expect(allowMessage("2001:db8:2::1", t0)).toBe(true);
+    for (let i = 0; i < CLIENT_LIMIT; i++) expect(allowMessage("192.0.2.1", t0)).toBe(true);
+    expect(allowMessage("192.0.2.2", t0)).toBe(true);
+    for (let i = 0; i < CLIENT_LIMIT; i++) expect(allowMessage("::ffff:198.51.100.1", t0)).toBe(true);
+    expect(allowMessage("::ffff:198.51.100.2", t0)).toBe(true);
+  });
+
+  it("with the auto-reply switched off sends the owner notice only, and spends nothing on a reply", async () => {
+    const e = env as { CONTACT_AUTO_REPLY: "on" | "off" };
+    expect(e.CONTACT_AUTO_REPLY).toBe("on");
+    e.CONTACT_AUTO_REPLY = "off";
+    try {
+      const res = await post(body("quiet@example.invalid"));
+      expect(res.body).toEqual({ ok: true });
+      await settle();
+      expect(sentTo()).toEqual([env.CONTACT_TO]);
+      // Neither the address window nor the daily ceiling was used.
+      expect(allowAutoReply("quiet@example.invalid")).toBe(true);
+      for (let i = 0; i < env.CONTACT_DAILY_MAIL_CEILING - 1; i++) expect(reserveAutoReply()).toBe(true);
+      expect(reserveAutoReply()).toBe(false);
+    } finally {
+      e.CONTACT_AUTO_REPLY = "on";
+    }
   });
 
   it("at the mail ceiling stops auto-replies first and still sends every owner notice", async () => {

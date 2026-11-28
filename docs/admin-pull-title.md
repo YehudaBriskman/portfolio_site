@@ -21,6 +21,6 @@ The admin phone has no top bar. The page title is not in the normal flow: at the
 
 - `ui/pullReveal.ts`: a pure state machine (`pullStart`, `pullMove`, `pullEnd`, `damp`, `overscrollOffset`) and `usePullReveal`. Threshold 8px, cap 72px, `offset = 72 * (1 - exp(-d / 115))`.
 - `ui/PullTitle.tsx`: writes one custom property `--pull` (0..1) to the node. CSS reads it for `transform: translateY` and `opacity` only, no layout, no keyframes. While held it follows the finger; on release a 220ms transition (only under `prefers-reduced-motion: no-preference`) returns it, and a timer marks it at rest.
-- Reduced motion: no travel; opacity steps 0 or 1 on the same gesture.
+- Reduced motion or the site's Pause: no travel; opacity steps 0 or 1 on the same gesture.
 - Accessibility: the visible title is `aria-hidden`. The real page `h1` stays in the document (clipped to 1px on a phone, not `display: none`), so there is exactly one h1 and a screen reader always finds it. `document.title` is unchanged. A keyboard or switch user has no gesture and needs none: the h1 and the drawer's current item say where they are, and the back pill names the parent section.
 - Phone only: `enabled` is `usePhone()`. Crossing 600px unmounts the node and removes every listener; at and above 600px the admin is byte for byte the old one (top bar, PageHeader h1).

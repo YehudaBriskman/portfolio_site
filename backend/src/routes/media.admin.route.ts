@@ -95,6 +95,19 @@ async function part(form: FormData, name: string): Promise<Buffer | null> {
   return Buffer.from(await v.arrayBuffer());
 }
 
+/*
+ * A video is held several times over while its form is read and again while it
+ * is stored, so on a small pod one is handled at a time. A second one waits its
+ * turn; pictures and icons do not wait for it.
+ */
+let videoQueue: Promise<unknown> = Promise.resolve();
+function inTurn<T>(kind: MediaKind, job: () => Promise<T>): Promise<T> {
+  if (kind !== "video") return job();
+  const run = videoQueue.then(job);
+  videoQueue = run.catch(() => undefined);
+  return run;
+}
+
 /** The bytes of an upload, checked and processed by the rules of its kind. */
 async function processBody(
   req: Request,
@@ -204,27 +217,29 @@ router.post(
     if (!parsed.success) {
       return res.status(400).json({ ok: false, error: "invalid", details: parsed.error.flatten() });
     }
-    let processed;
-    try {
-      processed = await processBody(req, parsed.data.kind, {
-        lang: parsed.data.captionsLang ?? "en",
-        label: parsed.data.captionsLabel ?? "Captions",
+    await inTurn(parsed.data.kind, async () => {
+      let processed;
+      try {
+        processed = await processBody(req, parsed.data.kind, {
+          lang: parsed.data.captionsLang ?? "en",
+          label: parsed.data.captionsLabel ?? "Captions",
+        });
+      } catch (e) {
+        return rejected(res, e);
+      }
+      const name = cleanName(parsed.data.filename);
+      const doc = buildDoc({
+        id: newMediaId(name),
+        name,
+        meta: parsed.data,
+        processed,
+        by: req.admin!.login,
+        now: new Date(),
       });
-    } catch (e) {
-      return rejected(res, e);
-    }
-    const name = cleanName(parsed.data.filename);
-    const doc = buildDoc({
-      id: newMediaId(name),
-      name,
-      meta: parsed.data,
-      processed,
-      by: req.admin!.login,
-      now: new Date(),
+      const saved = await mediaStore.save(doc, filesOf(processed));
+      res.locals.audit = { target: saved._id, before: null, after: saved };
+      res.status(201).json({ ok: true, item: publicMedia(saved, [], false) });
     });
-    const saved = await mediaStore.save(doc, filesOf(processed));
-    res.locals.audit = { target: saved._id, before: null, after: saved };
-    res.status(201).json({ ok: true, item: publicMedia(saved, [], false) });
   }),
 );
 
@@ -276,42 +291,44 @@ router.put(
     const existing = id ? await mediaStore.get(id) : null;
     if (!existing) return res.status(404).json({ ok: false, error: "Not Found" });
     if (existing._rev !== rev.data.rev) return conflict(res);
-    let processed;
-    try {
-      // The same kind as before: an icon stays an icon wherever it is used.
-      // A video is replaced whole — video, poster and captions — like it was uploaded.
-      processed = await processBody(req, existing.kind, {
-        lang: rev.data.captionsLang ?? existing.captions?.lang ?? "en",
-        label: rev.data.captionsLabel ?? existing.captions?.label ?? "Captions",
-      });
-    } catch (e) {
-      return rejected(res, e);
-    }
-    const name = cleanName(rev.data.filename ?? existing.name);
-    const doc = buildDoc({
-      id: existing.id,
-      name,
-      meta: { alt: existing.alt, caption: existing.caption, credit: existing.credit, he: existing.he ? { alt: existing.he.alt ?? "", caption: existing.he.caption ?? "" } : null },
-      processed,
-      by: req.admin!.login,
-      now: new Date(),
-      existing,
-    });
-    let saved: MediaDoc;
-    try {
-      /* The whole attachment set is replaced: the tracks it keeps go with it. */
-      const kept = [];
-      for (const t of doc.moreCaptions ?? []) {
-        const f = await mediaStore.file(existing.id, t.name);
-        if (f) kept.push({ name: t.name, contentType: "text/vtt; charset=utf-8", data: f.data });
+    await inTurn(existing.kind, async () => {
+      let processed;
+      try {
+        // The same kind as before: an icon stays an icon wherever it is used.
+        // A video is replaced whole — video, poster and captions — like it was uploaded.
+        processed = await processBody(req, existing.kind, {
+          lang: rev.data.captionsLang ?? existing.captions?.lang ?? "en",
+          label: rev.data.captionsLabel ?? existing.captions?.label ?? "Captions",
+        });
+      } catch (e) {
+        return rejected(res, e);
       }
-      saved = await mediaStore.save(doc, [...filesOf(processed), ...kept]);
-    } catch (e) {
-      if (e instanceof CouchError && e.status === 409) return conflict(res);
-      throw e;
-    }
-    res.locals.audit = { target: saved._id, before: existing, after: saved };
-    res.json({ ok: true, item: publicMedia(saved) });
+      const name = cleanName(rev.data.filename ?? existing.name);
+      const doc = buildDoc({
+        id: existing.id,
+        name,
+        meta: { alt: existing.alt, caption: existing.caption, credit: existing.credit, he: existing.he ? { alt: existing.he.alt ?? "", caption: existing.he.caption ?? "" } : null },
+        processed,
+        by: req.admin!.login,
+        now: new Date(),
+        existing,
+      });
+      let saved: MediaDoc;
+      try {
+        /* The whole attachment set is replaced: the tracks it keeps go with it. */
+        const kept = [];
+        for (const t of doc.moreCaptions ?? []) {
+          const f = await mediaStore.file(existing.id, t.name);
+          if (f) kept.push({ name: t.name, contentType: "text/vtt; charset=utf-8", data: f.data });
+        }
+        saved = await mediaStore.save(doc, [...filesOf(processed), ...kept]);
+      } catch (e) {
+        if (e instanceof CouchError && e.status === 409) return conflict(res);
+        throw e;
+      }
+      res.locals.audit = { target: saved._id, before: existing, after: saved };
+      res.json({ ok: true, item: publicMedia(saved) });
+    });
   }),
 );
 

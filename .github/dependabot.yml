@@ -57,11 +57,13 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "@types/express"
         update-types: ["version-update:semver-major"]
-      # TypeScript 7 (the Go-native compiler). /backend is on it already: it
-      # only runs plain `tsc`. /web stays on 5.x because typescript-eslint
-      # (which lints /web with type information) declares
-      # `typescript: >=4.8.4 <6.1.0` as of 8.72. Revisit when a typescript-eslint
-      # release widens that peer range to 7; then bump /web by hand and drop this.
+      # TypeScript 7 (the Go-native compiler). /web stays on 5.x because
+      # typescript-eslint declares `typescript: >=4.8.4 <6.1.0` as of 8.74.
+      # /backend builds with 7 under the alias `@typescript/native`, and its
+      # `typescript` is the 6.x compatibility package for the same linter
+      # (backend/eslint.config.mjs). Revisit when a typescript-eslint release
+      # widens that peer range to 7; then bump /web and /backend by hand and
+      # drop this.
       - dependency-name: typescript
         update-types: ["version-update:semver-major"]
       # Tailwind 4 (and tailwind-merge 3, which supports only Tailwind 4). Tried

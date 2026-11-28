@@ -3,6 +3,7 @@ import type { AreaDraft, NoteFile } from "./content-files.mjs";
 
 export type HebrewAction = { field: string; action: "add" | "overwrite" | "kept" };
 export type Options = { overwriteHe?: boolean };
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Raw = Record<string, any>;
 
 export interface PlanItem {

@@ -614,13 +614,10 @@ disagree in sign over the same seventy loads, which is the honest summary and
 it is nothing. CLS was 0.0000 in all seventy and the hero photograph was the
 reported element in all seventy.
 
-**The device runs only while its act is on screen.** A continuously running
-animation has to justify itself while nobody is looking and it cannot, so
-`DarkAct.tsx` carries the page's third IntersectionObserver — one per act,
-firing at most twice a visit, flipping one attribute the stylesheet reads. Its
-`rootMargin` is a full viewport on the block axis, so the loops are always
-cancelled and restarted while the act is entirely off screen; cancelling
-restarts a loop at 0%, and that is only safe because nobody can see it happen.
+**The device ran only while its act was on screen, until #162.** It was then a
+clock, and `DarkAct.tsx` carried an IntersectionObserver that cancelled and
+restarted the loops while the act was off screen. #162 put `drift` on a view
+timeline and the observer went with the clock.
 
 Its three off-switches land on the act with its boundary intact — both arcs,
 both hairlines, the crest, and a flat `--panel` ground. Nothing is hidden and
@@ -1952,20 +1949,21 @@ next, so they went rather than being fixed in place. They are in the history if
 a future beat wants one — but it should be rebuilt against §4 rather than
 restored, because what was wrong with them is exactly what §4 exists to say.
 
-Since #162 the site has two `IntersectionObserver`s and neither reveals
-anything: `Written`'s near-watch (which paragraphs are in the reading zone,
-both ways, so words that cannot change stop animating) and `useDarkChrome`
-(the bar's material over the dark acts). `DarkAct`'s observer, `Rise`'s and
-`useEnteredOnce`'s went with the clocks they gated. `scrollOnly.test.ts`
-pins the list.
+The site has four `IntersectionObserver`s and none reveals anything:
+`Written`'s near-watch (which paragraphs are in the reading zone, both ways,
+so words that cannot change stop animating), `useDarkChrome` (the bar's
+material over the dark acts), `useFooterReached` (the bottom Dock leaves while
+the footer is near) and `ParticleWord` (§12, parked with the word). `DarkAct`'s
+observer, `Rise`'s and `useEnteredOnce`'s went with the clocks they gated.
+`scrollOnly.test.ts` pins the list.
 
 Plus two scroll-position publishers, which are not devices:
-`hooks/useScrollProgress.ts` (the home page's palette and layer progress) and
+`hooks/useScrollProgress.ts` (`--vh`, for the project page's figure drift) and
 `components/notes/ReadingBar.tsx` (a post's progress bar).
 
-**No motion component has a scroll listener, and only one has a
-`requestAnimationFrame` loop — `useCityHand`, for under a second after the
-reader lets go.** It turns the city back to rest on a damped spring, writes
+**No motion component has a scroll listener, and only one on a shipped page
+has a `requestAnimationFrame` loop (the parked particle word's is §10):
+`useCityHand`, for under a second after the reader lets go.** It turns the city back to rest on a damped spring, writes
 one inline `rotateZ` per frame and no React state, never starts without a
 press, and under reduced motion or Pause it does not coast or settle at all:
 the city snaps back on release. That is the whole of the exception; it is
@@ -1973,8 +1971,8 @@ answering a hand, not a clock, and measured it costs the act nothing it was
 not already paying (29fps dragging against 22–23fps scrolling, 4× throttle).
 Otherwise no component does per-frame work. The one hook with a scroll listener is
 `useScrollProgress`, mounted on a single route; it is rAF-throttled, writes a
-custom property on `<html>` rather than React state, and returns early under
-`prefers-reduced-motion`. Everything in the table is a class name a
+custom property on the figure rather than React state, and returns early under
+`prefers-reduced-motion` and Pause. Everything in the table is a class name a
 stylesheet acts on, or a hook or component named in it.
 
 **No motion component holds state since #162.** `useStagedArrival`, which
@@ -2137,9 +2135,9 @@ manipulation, like `useCityHand`), and particles still travelling back
 afterwards. `particlePhysics.step` reports rest and the loop does not re-arm;
 the next pointer event or resize starts it. A word nobody touches costs no
 frames. It is therefore not the "second ambient loop" §2 forbids beside the
-lamp: nothing in it runs while the reader does nothing. There is no
-`IntersectionObserver` (`scrollOnly.test.ts` lists the only two): the loop
-needs input to run, and the pointer's event target must be inside `#hero`, so
+lamp: nothing in it runs while the reader does nothing. The particles need no
+`IntersectionObserver` (the file's one is for §12's lines): the loop needs
+input to run, and the pointer's event target must be inside `#hero`, so
 a hero covered by the dark act, or scrolled away, cannot be pushed. A hidden
 tab pauses it (`visibilitychange`; rAF stops anyway).
 
@@ -2207,8 +2205,6 @@ physics are checked by calling the same pure `step` functions, and in the
 browser through a test hook that exists only with `?particles=settled|test` in
 the address (`window.__heroParticles`: fast-forward N frames, move a virtual
 pointer, read particle state). `?particles=settled` also skips the entrance.
-||||||| 105e66e
-
 ---
 
 ## 11. The corner phrases turn on a timer (2026-11-10)
@@ -2242,7 +2238,6 @@ forced colours) decides whether any of it exists; the loop draws every other
 frame when only the lines move, stops while the tab is hidden or the hero is
 off screen (an `IntersectionObserver`, both directions, a cost saving and not a
 reveal), and never runs in the test modes. No keyframes.
-||||||| a371804
 
 ## 13. Admin state-change motion on phones (2026-11-14, #709)
 

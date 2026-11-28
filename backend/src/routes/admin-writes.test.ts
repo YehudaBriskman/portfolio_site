@@ -7,6 +7,7 @@ import { env } from "../env.js";
 import { auditWrites } from "../services/audit.js";
 import { DEFAULT_SETTINGS } from "../schemas/site-settings.js";
 import { newTokenDoc } from "../services/apiTokenFormat.js";
+import { contentHash } from "../services/content-modified.js";
 
 /*
  * Admin writes: link schemes, the draft lock on translations, the audit
@@ -79,6 +80,28 @@ describe("PUT /posts/:slug publishedAt", () => {
     );
     expect(res.status).toBe(200);
     expect(res.body.post).toMatchObject({ status: "draft", publishedAt: NOW });
+  });
+});
+
+describe("PUT /posts/:slug content date", () => {
+  const put = () => vi.spyOn(couch, "put").mockResolvedValue({ ok: true, rev: "4-x" });
+  const send = (body: Record<string, unknown>) =>
+    asAdmin(request(createApp()).put("/api/admin/posts/a-note").send({ title: "Stored", excerpt: "e", body: "b", _rev: "3-abc", ...body }));
+  const OLD = "2026-01-01T00:00:00.000Z";
+  const stored = () => post({ contentMod: { en: { hash: contentHash(post(), "en")!, at: OLD } } });
+
+  it("keeps the date when only the status moves", async () => {
+    vi.spyOn(couch, "get").mockResolvedValue(stored());
+    const write = put();
+    expect((await send({ status: "draft" })).status).toBe(200);
+    expect((write.mock.calls[0][1] as { contentMod?: { en?: { at: string } } }).contentMod?.en?.at).toBe(OLD);
+  });
+
+  it("moves the date when the text changes", async () => {
+    vi.spyOn(couch, "get").mockResolvedValue(stored());
+    put();
+    const res = await send({ status: "published", body: "new words" });
+    expect(res.body.post.contentMod.en.at).toBe(res.body.post.updatedAt);
   });
 });
 
