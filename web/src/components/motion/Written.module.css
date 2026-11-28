@@ -87,14 +87,12 @@
  * Muted, then ink.
  *
  * MUTED IS STILL READABLE (owner, 2026-11-03: "text must always remain
- * readable"). It was `--ink-soft` (6.37:1) until #174 made it texture —
- * `--ink` at 22%, 1.60:1 — so the pen had something to give. That left
- * every word the reader had not reached yet unreadable, which is now ruled
- * out. It is `--ink` at 62%: 4.84:1 on paper, 4.69:1 on the raised paper,
- * over 6.5:1 on every dark ground — legible body text, and still a clear
- * step below the full ink (15.17:1) the pen writes it to. A test computes
- * the contrast on each ground from the tokens (`Written.test.tsx`), and
- * `npm run a11y` checks the off state is full ink on every route.
+ * readable"; #912, 2026-11-28). An unwritten word is `--ink` at 62% in the
+ * light theme and 52% in the dark one, each the faintest that clears 4.5:1
+ * on that theme's grounds, and still a clear step below the full ink the pen
+ * writes it to. A test computes the contrast on each ground from the tokens
+ * (`Written.test.tsx`), and `npm run a11y` checks the off state is full ink
+ * on every route.
  *
  * An alpha on `--ink`, not a mix of two tokens: the same ink, fainter, on
  * any ground. `.on-panel` re-points `--ink`, so prose on a dark act needs no
@@ -102,7 +100,11 @@
  * is set in, and a weight change moves advance widths and so line breaks.
  */
 .written {
-  --pen-muted: 0.42; /* was 0.62; the owner asked for it fainter, 2026-11-10 */
+  --pen-muted: 0.62; /* clears 4.5:1 on paper, raised paper and a quotation's tint (#912) */
+}
+
+:global(:root[data-theme="dark"]) .written {
+  --pen-muted: 0.52;
 }
 
 @keyframes written-pen {

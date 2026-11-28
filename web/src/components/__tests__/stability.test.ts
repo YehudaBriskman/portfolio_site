@@ -51,15 +51,6 @@ describe("the spec plate's count", () => {
   });
 });
 
-describe("the reading pen", () => {
-  it("mutes unread words well below the old 0.62, and says why", () => {
-    const css = read("components/motion/Written.module.css");
-    const v = Number(css.match(/--pen-muted:\s*([\d.]+)/)?.[1]);
-    expect(v).toBeLessThan(0.5);
-    expect(v).toBeGreaterThanOrEqual(0.3);
-  });
-});
-
 describe("lazy routes", () => {
   it("never render a blank fallback", () => {
     expect(read("App.tsx")).not.toContain("fallback={null}");
