@@ -735,6 +735,12 @@ page with all prose at full ink, which costs a reader nothing to choose. A peak 
 spends its budget on; this spends a frame cost, measured below, and nothing
 else.
 
+**Now: `--ink` at 0.62 in the light theme, 0.52 in the dark (#912,
+2026-11-28).** Each is the faintest value that clears 4.5:1 on that theme's
+grounds (a quotation's tint rules out 0.61). It replaces the 0.42 of
+2026-11-10, which did not. The dark-ground figure in the next paragraph is
+for the earlier single value.
+
 **Muted is readable again: `--ink` at 62% (2026-11-03).** The owner's rule
 now is that text must always remain readable, so the unwritten state may no
 longer be texture. It is `--ink` at 0.62: 4.84:1 on paper, 4.69:1 on the

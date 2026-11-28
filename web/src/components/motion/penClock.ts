@@ -16,21 +16,13 @@ export function penRange(i: number, n: number): [string, string] {
 }
 
 /**
- * The alpha on `--ink` an unwritten word rests at (`--pen-muted` in the
- * stylesheet). It was 0.22 after #174 — texture, 1.60:1 on paper — and is
- * now the lightest the ink can be and still be read (owner, 2026-11-03:
- * "text must always remain readable"): 0.62 is 4.84:1 on paper, 4.69:1 on
- * the raised paper, 6.5:1 and more on every dark ground. A test holds it
- * over 4.5:1 on each.
+ * The alpha on `--ink` an unwritten word rests at, per theme (`--pen-muted`
+ * in the stylesheet). The owner's rule is that text must always remain
+ * readable (2026-11-03). It was lowered to 0.42 on 2026-11-10, which failed
+ * contrast, and set here on 2026-11-28 (#912): each is the faintest that
+ * clears 4.5:1 on its theme's grounds. A test holds that.
  */
-/*
- * 2026-11-10, the owner: "harden the reading animation so the muted text is
- * more transparent". 0.62 → 0.42, which reverses the readable-floor of
- * 2026-11-03 for the words not yet reached: the pen has to read as a pen. The
- * floor is now 2.5:1 (a test holds it), and every word still lands on full
- * ink, so nothing stays faint; reduced motion and Pause show full ink at once.
- */
-export const PEN_MUTED = 0.42;
+export const PEN_MUTED = { light: 0.62, dark: 0.52 };
 
 /**
  * THE READING WINDOW (owner, 2026-11-03), the one pair of numbers every

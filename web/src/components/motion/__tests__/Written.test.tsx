@@ -162,12 +162,12 @@ describe("Written.module.css", () => {
     expect(word).toMatch(/color:\s*rgb\(var\(--ink\)\)/);
   });
 
-  it("mutes an unwritten word, and the muted word is still readable (owner, 2026-11-03)", () => {
-    const muted = Number(CSS.match(/--pen-muted:\s*([\d.]+)/)?.[1]);
-    expect(muted).toBe(PEN_MUTED);
+  it("mutes an unwritten word, and the muted word is still readable (#912)", () => {
+    const [light_, dark_] = [...CSS.matchAll(/--pen-muted:\s*([\d.]+)/g)].map((m) => Number(m[1]));
+    expect({ light: light_, dark: dark_ }).toEqual(PEN_MUTED);
+    expect(CSS).toMatch(/:global\(:root\[data-theme="dark"\]\) \.written \{\s*--pen-muted:/);
     /* Readable on every ground prose is set on, computed from the tokens
-       (index.css): the ink at this alpha over each ground clears 2.5:1 (the owner asked for it fainter, 2026-11-10;
-       it was 4.5:1). */
+       (index.css): the ink at that theme's alpha over each ground clears 4.5:1. */
     const tokens = readFileSync(resolve(process.cwd(), "src/index.css"), "utf8");
     const tok = (block: string, name: string) =>
       (block.match(new RegExp(`--${name}:\\s*(\\d+)\\s+(\\d+)\\s+(\\d+)`)) ?? []).slice(1).map(Number);
@@ -190,15 +190,21 @@ describe("Written.module.css", () => {
       ["dark paper", tok(dark, "ink"), tok(dark, "paper")],
       ["dark raised", tok(dark, "ink"), tok(dark, "paper-2")],
       ["panel", tok(light, "panel-ink"), tok(light, "panel")],
+      /* A quotation's tint, as the browser paints it (axe, 2026-11-28). */
+      ["quotation", tok(light, "ink"), [224, 219, 204]],
     ];
     for (const [name, ink, ground] of grounds) {
+      const muted = name.startsWith("dark") ? PEN_MUTED.dark : PEN_MUTED.light;
       expect(ink, name).toHaveLength(3);
       expect(ground, name).toHaveLength(3);
       const blend = ink.map((v, i) => muted * v + (1 - muted) * ground[i]);
-      expect(ratio(blend, ground), name).toBeGreaterThanOrEqual(2.5);
+      expect(ratio(blend, ground), name).toBeGreaterThanOrEqual(4.5);
       /* And still a visible step below the ink it is written to. */
       expect(ratio(ink, ground) / ratio(blend, ground), name).toBeGreaterThan(2);
     }
+    /* A dark act inside the dark theme takes the dark alpha. */
+    const act = tok(light, "panel-ink").map((v, i) => PEN_MUTED.dark * v + (1 - PEN_MUTED.dark) * tok(light, "panel")[i]);
+    expect(ratio(act, tok(light, "panel")), "panel, dark theme").toBeGreaterThanOrEqual(4.5);
     /* An alpha on the one ink, so it follows `.on-panel` with no second rule;
        never the page's secondary text colour or the non-text one. */
     expect(CSS).not.toMatch(/--ink-soft|--ink-faint/);
