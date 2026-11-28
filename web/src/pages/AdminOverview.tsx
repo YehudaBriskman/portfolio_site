@@ -4,7 +4,8 @@ import AdminShell from "@/components/admin/AdminShell";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ICON } from "@/components/ui/icons";
 import OverviewDashboard from "@/components/admin/overview/OverviewDashboard";
-import { type PillState } from "@/components/admin/ui";
+import { ErrorState, type PillState } from "@/components/admin/ui";
+import { isNotAuthorised, NOT_AUTHORISED } from "@/services/authError";
 import { useAdminWords, type AdminWords } from "@/i18n/admin";
 import { admin, type AdminCollection, type AdminPost, type McpGrant } from "@/services/admin";
 import { adminContent, type ContentView } from "@/services/adminContent";
@@ -107,11 +108,14 @@ export default function AdminOverview() {
   const w = useAdminWords();
   const go = useNavigate();
   const [d, setD] = useState<Data | null>(null);
+  const [signedOut, setSignedOut] = useState(false);
 
   useEffect(() => {
     let live = true;
+    const list = admin.list();
+    list.catch((e: unknown) => live && isNotAuthorised(e) && setSignedOut(true));
     void Promise.all([
-      settle(admin.list()),
+      settle(list),
       settle(admin.collections()),
       settle(media.list()),
       settle(admin.mcpGrants()),
@@ -152,7 +156,11 @@ export default function AdminOverview() {
           primary={{ id: "new", label: w.newNote, icon: ICON.add, onSelect: () => go("/admin/posts/new") }}
         />
 
-        <OverviewDashboard posts={posts} areas={areas} media={lib} grants={grants} feed={feed} loading={d === null} />
+        {signedOut ? (
+          <ErrorState message={NOT_AUTHORISED} />
+        ) : (
+          <OverviewDashboard posts={posts} areas={areas} media={lib} grants={grants} feed={feed} loading={d === null} />
+        )}
       </div>
     </AdminShell>
   );

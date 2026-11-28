@@ -235,3 +235,13 @@ describe("the Overview dashboard", () => {
     for (const t of tiles) expect((t.querySelector("span > span:last-child")?.textContent ?? "").length, t.getAttribute("data-kpi-name")!).toBeLessThanOrEqual(12);
   });
 });
+
+describe("signed out", () => {
+  it("says the session ended and offers a way to sign in", async () => {
+    stubFetch(() => json({ ok: false, error: "unauthenticated" }, 401));
+    page();
+    const link = await screen.findByRole("link", { name: /sign in/i });
+    expect(link).toHaveAttribute("href", "/oauth2/start?rd=%2F");
+    expect(screen.getByRole("alert")).toBeInTheDocument();
+  });
+});
