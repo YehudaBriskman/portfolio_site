@@ -166,10 +166,10 @@ export function Chips({ children, label }: { children: ReactNode; label: string 
   );
 }
 
-export function Chip({ to, children, current }: { to: string; children: ReactNode; current?: boolean }) {
+export function Chip({ to, children, current, name }: { to: string; children: ReactNode; current?: boolean; name?: string }) {
   return (
     <li>
-      <Link to={to} rel="nofollow" className={styles.chip} aria-current={current ? "true" : undefined} translate="no">
+      <Link to={to} rel="nofollow" className={styles.chip} aria-current={current ? "true" : undefined} aria-label={name} translate="no">
         {children}
       </Link>
     </li>
@@ -253,7 +253,8 @@ export function OwnerCard() {
   );
 }
 
-export type ViewLink = { key: string; label: string; to: string; icon: ReactNode; current: boolean };
+/** `name`: the link's accessible name, where `label` alone repeats another link's (#918). */
+export type ViewLink = { key: string; label: string; name?: string; to: string; icon: ReactNode; current: boolean };
 
 /** Home and Feed: the two views, each a URL. */
 export function ViewNav({ label, views }: { label: string; views: ViewLink[] }) {
@@ -262,7 +263,7 @@ export function ViewNav({ label, views }: { label: string; views: ViewLink[] }) 
       <ul>
         {views.map((v) => (
           <li key={v.key}>
-            <Link to={v.to} rel={facetRel(v.to)} className={styles.view} aria-current={v.current ? "page" : undefined}>
+            <Link to={v.to} rel={facetRel(v.to)} className={styles.view} aria-current={v.current ? "page" : undefined} aria-label={v.name}>
               {/* The current view is circled, the living line's
                   circle-around at rail size (#251). Same box either way,
                   so moving between views shifts nothing. */}

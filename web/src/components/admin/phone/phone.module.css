@@ -73,7 +73,6 @@
   border-radius: var(--a-r-box, 16px);
   color: rgb(var(--ink));
   text-decoration: none;
-  min-inline-size: 0;
 }
 
 .tile:focus-visible {

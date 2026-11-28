@@ -28,6 +28,7 @@ import { Disclosure } from "@/components/ui/Disclosure";
 import { usePhone } from "@/hooks/usePhone";
 import { admin, slugify, AdminValidationError, type AdminCollection, type AdminPost, type PostContent } from "@/services/admin";
 import { titleOf } from "@/lib/safeTitle";
+import { knownTagsOf } from "@/lib/knownTags";
 
 /*
  * The note editor (#250), the way Bothy edits files: write on one side, read
@@ -179,6 +180,7 @@ function TagsField({
       {/* The box is the target, not only the 21px input inside it; a chip's own button keeps its click. */}
       <div
         className={styles.tags}
+        role="presentation"
         onClick={(e) => {
           if (!(e.target as HTMLElement).closest("button, input")) e.currentTarget.querySelector("input")?.focus();
         }}
@@ -504,7 +506,7 @@ export default function AdminEditor() {
     return [...notes, ...areas, ...work];
   }, [all, cols, projects, f.slug]);
 
-  const knownTags = useMemo(() => [...new Set(all.flatMap((p) => p.tags))].sort(), [all]);
+  const knownTags = useMemo(() => knownTagsOf(all), [all]);
 
   /* ------------------------------------------------------------ status */
 

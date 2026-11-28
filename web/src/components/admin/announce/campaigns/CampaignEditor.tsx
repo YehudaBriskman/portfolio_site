@@ -55,7 +55,7 @@ const toForm = (c: Campaign): Form => ({
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 /* Only what can change who gets it, so typing in a block does not ask again. */
 const audienceKey = (f: Form, content: ReturnType<typeof issueContent>) =>
-  JSON.stringify([[...f.groups].sort(), f.lang, f.topic, content.kind, content.blocks?.map((b) => [b.type, b.topic, b.lang])]);
+  JSON.stringify([[...f.groups].sort((a, b) => a.localeCompare(b)), f.lang, f.topic, content.kind, content.blocks?.map((b) => [b.type, b.topic, b.lang])]);
 
 const ZONES = ["Asia/Jerusalem", "UTC", "Europe/London", "America/New_York"];
 const localZone = () => {

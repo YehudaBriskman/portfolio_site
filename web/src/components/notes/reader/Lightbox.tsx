@@ -157,6 +157,7 @@ export default function Lightbox({
 
           <div
             className={styles.viewerStage}
+            role="presentation"
             data-zoomed={zoom > 1 ? "" : undefined}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}

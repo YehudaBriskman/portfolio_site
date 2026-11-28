@@ -208,6 +208,7 @@ export default function Tree({ nodes, expanded, onExpandedChange, label, describ
                 its group is inside it as APG's structure requires. */}
             <span
               className={styles.treeRow}
+              role="presentation"
               data-level={level}
               onClick={() => {
                 setActive(n.id);

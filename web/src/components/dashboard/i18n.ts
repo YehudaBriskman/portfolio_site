@@ -125,6 +125,8 @@ const EN = {
   role: "Technical team lead",
   views: "Views",
   home: "Home",
+  /** The blog's Home view by name: the site has a Home of its own (#918). */
+  homeName: "Home (Blog)",
   feed: "Feed",
   topAreas: "Top areas",
   findArea: "Find an area",
@@ -188,6 +190,7 @@ const HE: Words = {
   role: "ראש צוות טכני",
   views: "תצוגות",
   home: "בית",
+  homeName: "בית (בלוג)",
   feed: "פיד",
   topAreas: "תחומים מובילים",
   findArea: "חיפוש תחום",

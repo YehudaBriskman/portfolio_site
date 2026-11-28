@@ -121,7 +121,7 @@ describe("the Blogs dashboard: views", () => {
     ]);
     /* Home is the current view, and Feed is one link away with the filters kept. */
     const views = screen.getByRole("navigation", { name: "Views" });
-    expect(within(views).getByRole("link", { name: "Home" })).toHaveAttribute("aria-current", "page");
+    expect(within(views).getByRole("link", { name: "Home (Blog)" })).toHaveAttribute("aria-current", "page");
     expect(within(views).getByRole("link", { name: "Feed" })).toHaveAttribute("href", "/blog?view=feed");
   });
 
@@ -174,6 +174,31 @@ describe("the Blogs dashboard: views", () => {
     fireEvent.keyDown(bothy, { key: "ArrowRight" });
     expect(screen.getByTestId("where")).toHaveTextContent("/blog?open=bothy");
     expect(screen.getByRole("tree").querySelector('a[href="/blog/b"]')).toHaveAttribute("role", "treeitem");
+  });
+});
+
+/* PSI (#918): two links with the same name and different destinations. The
+   footer owns "Home" (/) and "Privacy" (/privacy), so the blog's own links
+   say which one they are. */
+describe("the Blogs dashboard: distinct link names", () => {
+  it("the blog's Home view is not named like the site's Home", async () => {
+    stub();
+    renderAt("/blog");
+    const views = screen.getByRole("navigation", { name: "Views" });
+    expect(within(views).queryByRole("link", { name: "Home" })).toBeNull();
+    expect(within(views).getByRole("link", { name: "Home (Blog)" })).toHaveTextContent("Home");
+  });
+
+  it("a topic chip is named as a topic, not like a page of the site", async () => {
+    stub({ posts: [post("p", "site", ["privacy"], "2026-11-01")] });
+    renderAt("/blog");
+    await screen.findByRole("tree");
+    /* The footer's own "privacy" is the only link left with the bare word. */
+    for (const l of screen.queryAllByRole("link", { name: "privacy" })) expect(l).toHaveAttribute("href", "/privacy");
+    const chips = screen.getAllByRole("link", { name: "Notes tagged privacy" });
+    /* The quick topics under the search box and the card's own chip. */
+    expect(chips.length).toBeGreaterThanOrEqual(2);
+    for (const c of chips) expect(c).toHaveAttribute("href", "/blog?view=feed&tag=privacy");
   });
 });
 

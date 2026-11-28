@@ -102,7 +102,7 @@
   .mk-keys-wrap { position: relative; }
   .mk-keys-pop {
     position: absolute; inset-block-end: 100%; inset-inline-end: 0; z-index: 10; margin-block-end: .25rem; padding: .75rem;
-    width: max-content; max-width: min(22rem, calc(100vw - 2rem)); border: 1px solid rgb(var(--rule-firm)); border-radius: var(--a-r-box, 16px); box-shadow: var(--a-shadow-3);
+    width: max-content; max-width: min(22rem, calc(100vw - 2rem)); border: 1px solid rgb(var(--rule-firm)); border-radius: var(--a-r-box, 16px);
     background: rgb(var(--paper-2)); box-shadow: 0 4px 16px rgb(0 0 0 / .15);
   }
   .mk-link { min-height: 44px; }
