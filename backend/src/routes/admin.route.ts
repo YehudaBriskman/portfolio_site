@@ -15,7 +15,6 @@ import {
   readingMinutes,
   type Collection,
   type Post,
-  type PostContent,
 } from "../schemas/content.js";
 import { z } from "zod";
 import { fetchRepoStats } from "../services/github.js";
@@ -40,7 +39,7 @@ import { signatureAdminRoutes } from "../signature/route.js";
 import audienceAdminRoutes from "../audience/admin.route.js";
 import campaignRoutes from "../campaigns/route.js";
 import adminTranslationsRoutes from "./admin-translations.route.js";
-import { COLLECTION_FIELDS, stampHebrewMeta, stampTexts, type HebrewMeta } from "../schemas/i18n.js";
+import { COLLECTION_FIELDS, stampHebrewMeta, stampTexts } from "../schemas/i18n.js";
 import { stampContentModified } from "../services/content-modified.js";
 import { fromContent, planPublish, postVersions, stampPost } from "../services/publishPlan.js";
 
@@ -184,6 +183,11 @@ router.get(
   })
 );
 
+/*
+ * The whole-note write, older than draft/publish below: "move to drafts" in the
+ * admin and the MCP write tools still use it. Unlike those two it writes the
+ * live fields and the status it is given, at once.
+ */
 router.put(
   "/posts/:slug",
   asyncHandler(async (req, res) => {
@@ -235,6 +239,7 @@ router.put(
     if (!ok.success) {
       return res.status(400).json({ ok: false, error: "invalid document", details: ok.error.flatten() });
     }
+    doc.contentMod = stampContentModified(existing, doc, now).contentMod;
     try {
       const put = await couch.put<{ rev?: string }>(doc._id!, doc);
       /* The revision the store now holds, so the editor's next write names it. */

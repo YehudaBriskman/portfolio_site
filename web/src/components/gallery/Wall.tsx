@@ -2,9 +2,13 @@ import { useLayoutEffect, useRef, type CSSProperties, type ReactNode } from "rea
 import styles from "@/components/gallery/Wall.module.css";
 
 /*
- * The gallery wall (#175), shared by /projects and /blog since #193: a list
- * of pieces hung in a grid where the important ones are hung larger, each
- * arriving from its own side of the wall as it comes up the window.
+ * The gallery wall (#175): a list of pieces hung in a grid where the
+ * important ones are hung larger, each arriving from its own side of the wall
+ * as it comes up the window.
+ *
+ * UNUSED: no page renders it. /projects left it in #227 and /blog in #224; it
+ * is kept for the owner to delete or keep (docs/motion-contract.md). Only its
+ * `Size` type is still imported (notes/shelf.ts, notes/NoteTile.tsx).
  *
  * The wall owns the grid, the sizes' spans, the arrival and the re-hang. The
  * piece inside each cell is the page's (a project tile, a note card), and

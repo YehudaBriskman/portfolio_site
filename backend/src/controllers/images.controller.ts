@@ -35,10 +35,11 @@ export class ImagesController {
 
       // Headers
       res.setHeader("Content-Type", payload.contentType);
+      res.setHeader("X-Content-Type-Options", "nosniff");
       res.setHeader("Content-Length", String(payload.size));
       res.setHeader("ETag", payload.etag);
       res.setHeader("Last-Modified", payload.lastModified.toUTCString());
-      // Tune as you like; if filenames are immutable → year+immutable.
+      // A day and not immutable: a file here can be replaced under the same name.
       res.setHeader("Cache-Control", "public, max-age=86400");
 
       // Stream to client

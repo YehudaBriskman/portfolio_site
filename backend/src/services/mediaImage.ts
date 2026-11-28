@@ -27,6 +27,9 @@ export { isMonochrome, sanitizeSvg };
 
 export const MEDIA_MAX_BYTES = 10 * 1024 * 1024;
 const MAX_PIXELS = 40_000_000; // 40 MP: an 8000 x 5000 photo, decoded ~160 MB
+/* The same photo with four 8-bit channels. A 16-bit file reaches it at half the pixels or fewer. */
+const MAX_DECODED_BYTES = MAX_PIXELS * 4;
+const SAMPLE_BYTES: Partial<Record<string, number>> = { uchar: 1, char: 1, ushort: 2, short: 2, uint: 4, int: 4, float: 4, complex: 8, double: 8, dpcomplex: 16 };
 /* The rungs the site's static project screenshots already use (lib/projectImage.ts). */
 export const VARIANT_WIDTHS = [400, 800, 1200, 1600] as const;
 export const VARIANT_FORMATS = ["avif", "webp"] as const;
@@ -203,6 +206,9 @@ async function processRaster(input: Buffer, kind: Exclude<ImageFormat, "svg">): 
   if (!meta.width || !meta.height) throw new MediaRejected(422, "The file could not be read as an image.");
   if (meta.width * meta.height > MAX_PIXELS) {
     throw new MediaRejected(413, "The image has too many pixels (40 megapixels at most).");
+  }
+  if (meta.width * meta.height * (meta.channels ?? 4) * (SAMPLE_BYTES[meta.depth ?? "uchar"] ?? 1) > MAX_DECODED_BYTES) {
+    throw new MediaRejected(413, "The image is too large to process at its bit depth: save it at 8 bits per channel, or smaller.");
   }
   if ((meta.pages ?? 1) > 1) throw new MediaRejected(415, "Animated images are not accepted.");
 

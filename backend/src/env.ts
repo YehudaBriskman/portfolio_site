@@ -28,6 +28,8 @@ const EnvSchema = z.object({
   MAIL_FROM: z.string().min(1),
   MAIL_REPLY_TO: z.string().optional(),
   CONTACT_TO: z.string().email(),
+  // `off` stops the auto-reply to the visitor; the owner notice is sent either way.
+  CONTACT_AUTO_REPLY: z.enum(['on', 'off']).default('on'),
   // Most mails the public contact form may send a day (owner notice and auto-reply each count one).
   CONTACT_DAILY_MAIL_CEILING: z.coerce.number().int().min(0).default(30),
   // Hard ceiling on owner notices (the messages themselves) a day; auto-replies stop first, at the mail ceiling above.

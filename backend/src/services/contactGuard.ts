@@ -1,12 +1,15 @@
 import { createHash } from "node:crypto";
+import { ipKeyGenerator } from "express-rate-limit";
 import { env } from "../env.js";
 
 /*
- * What the public contact form may cost. Each check says yes or no and the caller
- * answers the visitor the same either way, so a bot learns nothing from a limit.
+ * What the public contact form may cost. Each check says yes or no; what the visitor
+ * is told is the caller's business (controllers/email.controller.ts).
  *
- * State is in process memory: the API is one process, and a restart only resets the
- * counters (a few extra mails at most, still bounded by the provider's own quota).
+ * State is in process memory (#611, accepted): a restart resets every counter, and
+ * each running API process counts on its own, so while two run (a rolling restart)
+ * the ceilings are per process and can add up to double. The provider's own quota is
+ * the limit that always holds. The signup ceiling below is counted the same way.
  * Addresses are never stored: the per-address window keys on a SHA-256 of the address.
  */
 
@@ -19,7 +22,7 @@ export const CLIENT_WINDOW_MS = 15 * MINUTE;
 /** Whole form, every client together: messages accepted in a window. */
 export const GLOBAL_LIMIT = 30;
 export const GLOBAL_WINDOW_MS = HOUR;
-/** The same address gets at most one auto-reply in this window. */
+/** The same address (any +tag of it) gets at most one auto-reply in this window. */
 export const ADDRESS_WINDOW_MS = HOUR;
 /** Safety cap on tracked keys, so a flood of distinct values cannot grow memory without bound. */
 const MAX_KEYS = 10_000;
@@ -65,11 +68,18 @@ let day = { key: "", mails: 0, notices: 0 };
 let signupDay = { key: "", mails: 0 };
 
 const dayKey = (now: number) => new Date(now).toISOString().slice(0, 10);
-const addressKey = (address: string) => createHash("sha256").update(address.trim().toLowerCase()).digest("hex");
+/* A +tag reaches the same mailbox, so it does not earn another auto-reply. */
+function untagged(address: string): string {
+  const plus = address.indexOf("+");
+  const at = address.indexOf("@", plus);
+  return plus < 0 || at < 0 ? address : address.slice(0, plus) + address.slice(at);
+}
+const addressKey = (address: string) => createHash("sha256").update(untagged(address.trim().toLowerCase())).digest("hex");
 
 /** Per-client and global limits for one incoming message. Both must pass; a refused client is not counted globally. */
 export function allowMessage(clientIp: string, now = Date.now()): boolean {
-  if (!clients.take(clientIp || "unknown", now)) return false;
+  // An IPv6 client holds a whole network of addresses: count the network, as the other limiters do.
+  if (!clients.take(clientIp ? ipKeyGenerator(clientIp) : "unknown", now)) return false;
   return overall.take("all", now);
 }
 

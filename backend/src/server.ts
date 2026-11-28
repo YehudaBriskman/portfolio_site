@@ -6,6 +6,7 @@ import type { Collection } from "./schemas/content.js";
 import { loadSiteReleases } from "./services/activity.js";
 import { createApp } from "./app";
 import { env } from './env.js';
+import { envWarnings } from './envWarnings.js';
 import { createMetricsApp } from './metrics.js';
 import { logger } from './logger.js';
 import { startSender } from './campaigns/sender.js';
@@ -17,6 +18,8 @@ import { backfillConsent, ensureSystemGroup } from './audience/store.js';
 import { startOwnerNotifier } from './notify/notifier.js';
 
 const app = createApp();
+
+for (const warning of envWarnings(env)) logger.warn(warning);
 
 const { PORT: port, HOST: host } = env;
 

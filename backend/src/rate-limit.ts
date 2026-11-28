@@ -22,11 +22,10 @@ function makeLimiter(name: string, windowMs: number, limit: number, extra: { ski
 /*
  * The mail route relays over real SMTP credentials; unthrottled and public it
  * is an open relay. The per-client, global, per-address and daily limits on
- * what is actually sent live in services/contactGuard.ts and answer the
- * visitor exactly as a send does, so they leave no hint for a bot.
+ * what is actually sent live in services/contactGuard.ts.
  */
 
-/* Junk that never validates: the one limit here that is visible, because it counts requests, not mail. */
+/* Junk that never validates: this one counts requests, not mail. */
 export const MAIL_BURST_LIMIT = 40;
 export const createMailBurstLimiter = () =>
   makeLimiter("email_burst", FIFTEEN_MINUTES, MAIL_BURST_LIMIT, { message: { ok: false, error: "Too many requests. Try again shortly." } });
